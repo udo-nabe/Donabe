@@ -1,0 +1,25 @@
+package io.github.udonabe.donabe.runtime.value;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public record ListValue(List<RuntimeValue<?>> value) implements RuntimeValue<List<RuntimeValue<?>>> {
+    @Override
+    public String typeName() {
+        return "list";
+    }
+
+    @Override
+    public String display() {
+        List<RuntimeValue<?>> forShow = new ArrayList<>(value);
+        if (forShow.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder sb = new StringBuilder("[");
+        sb.append(forShow.removeFirst().value());
+        for (RuntimeValue<?> r : forShow) {
+            sb.append(", ").append(r.display());
+        }
+        return sb.append("]").toString();
+    }
+}
