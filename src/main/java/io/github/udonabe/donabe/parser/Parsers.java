@@ -12,6 +12,9 @@ import java.util.function.Supplier;
  * {@link Parser}のdefaultメソッドだけでは実現が困難な、基本操作を提供する。
  */
 final class Parsers {
+    private Parsers() {
+        throw new AssertionError("Parsers cannot be instantiated.");
+    }
     /**
      * 入力した種別のトークンを一つ消費し、一致しなければParseFailedを返す。
      * <p>このメソッドセ生成したパーサーは、成功した場合位置を一つ進め、
