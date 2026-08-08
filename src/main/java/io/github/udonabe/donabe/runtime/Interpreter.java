@@ -43,8 +43,8 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
                 });
     }
 
-    private RuntimeValue<?> callFunction(FunctionValue functionValue, Expression[] args) {
-        List<? extends RuntimeValue<?>> actualArgs = Arrays.stream(args)
+    private RuntimeValue<?> callFunction(FunctionValue functionValue, List<Expression> args) {
+        List<? extends RuntimeValue<?>> actualArgs = args.stream()
                 .map(e -> e.accept(this))
                 .toList();
 
@@ -254,11 +254,11 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     @Override
     public RuntimeValue<?> visitCallExpression(CallExpression expr) {
         Expression callee = expr.target();
-        Expression[] args = expr.args();
+        List<Expression> args = expr.args();
         if (callee instanceof Identifier identifier && identifier.name().equals("print")) {
-            if (args.length != 1)
-                throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "関数\"%s\"は%dつの引数を要求しますが、実引数が%d個になっています。", "print", 1, args.length));
-            RuntimeValue<?> eval = args[0].accept(this);
+            if (args.size() != 1)
+                throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "関数\"%s\"は%dつの引数を要求しますが、実引数が%d個になっています。", "print", 1, args.size()));
+            RuntimeValue<?> eval = args.getFirst().accept(this);
             System.out.println(eval.display());
             return new VoidValue();
         } else {

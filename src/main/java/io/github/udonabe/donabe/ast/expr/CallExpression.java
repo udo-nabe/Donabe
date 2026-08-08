@@ -3,7 +3,13 @@ package io.github.udonabe.donabe.ast.expr;
 import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 
-public record CallExpression(SourceFileLocation location, Expression target, Expression... args) implements Expression {
+import java.util.List;
+
+public record CallExpression(Expression target, List<Expression> args, SourceFileLocation location) implements Expression {
+    public CallExpression {
+        args = List.copyOf(args);
+    }
+
     @Override
     public <R> R accept(ASTVisitor<R> visitor) {
         return visitor.visitCallExpression(this);
@@ -12,11 +18,11 @@ public record CallExpression(SourceFileLocation location, Expression target, Exp
     @Override
     public String display() {
         StringBuilder arguments = new StringBuilder();
-        if (args.length != 0) {
-            arguments.append(args[0].display());
-            if (args.length > 1) {
-                for (int i = 1; i < args.length; i++) {
-                    Expression expr = args[i];
+        if (!args.isEmpty()) {
+            arguments.append(args.getFirst().display());
+            if (args.size() > 1) {
+                for (int i = 1; i < args.size(); i++) {
+                    Expression expr = args.get(i);
                     arguments.append(", ");
                     arguments.append(expr.display());
                 }
