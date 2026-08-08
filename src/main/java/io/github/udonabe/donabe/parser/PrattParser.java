@@ -186,7 +186,7 @@ class PrattParser {
             throw new CompileException(((ParseFailed<?>) argsRes).message());
         }
         stream.consume(Token.Kind.RPAREN);
-        return new CallExpression(prefix.location(), prefix, args.toArray(new Expression[0]));
+        return new CallExpression(prefix, args, prefix.location());
     }
 
     private Expression parseIndex(Expression prefix) {
