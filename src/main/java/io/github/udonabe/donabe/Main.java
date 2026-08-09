@@ -4,25 +4,38 @@ import io.github.udonabe.donabe.ast.ASTViewer;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.UnaryOperator;
-import io.github.udonabe.donabe.runtime.Interpreter;
-import io.github.udonabe.donabe.runtime.InterpreterException;
-import io.github.udonabe.donabe.runtime.OperationRegistry;
-import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.lexer.Lexer;
 import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
+import io.github.udonabe.donabe.runtime.Interpreter;
+import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.OperationRegistry;
+import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.SemanticAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import picocli.CommandLine;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.PrintStream;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.concurrent.Callable;
 
-public class Main {
+@CommandLine.Command(name = "donabe",
+        version = "1.0-SNAPSHOT",
+        description = "Donabe言語 処理系",
+        mixinStandardHelpOptions = true)
+public class Main implements Callable<Integer> {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
-    private static void setupOutput() {
+
+    static {
         System.setOut(new PrintStream(
                 System.out,
                 true,
@@ -35,10 +48,26 @@ public class Main {
         ));
     }
 
+    @CommandLine.Parameters(index = "0",
+            description = "ソースファイル",
+            paramLabel = "<file>")
+    Path sourceFile;
+    @CommandLine.Option(
+            names = {"--verbose"},
+            description = "ログを詳細表示するか"
+    )
+    boolean verbose;
+
     public static void main(String[] args) {
+        int exitCode = new CommandLine(new Main()).execute(args);
+        System.exit(exitCode);
+    }
+
+    @Override
+    public Integer call() throws Exception {
+        LoggingUtil.configure(verbose);
         log.info("Donabe launched.");
-        setupOutput();
-        try (Reader reader = new BufferedReader(new FileReader(args[0]))) {
+        try (Reader reader = Files.newBufferedReader(sourceFile)) {
             StringBuilder source = new StringBuilder();
             for (int ch = reader.read();
                  ch != -1;
@@ -46,7 +75,7 @@ public class Main {
                 source.append((char) ch);
             }
             log.debug("Source file read.");
-            log.trace("Source: {}", source);
+            log.trace("Source: {}{}", System.lineSeparator(), source);
 
             Lexer lexer = new Lexer(source.toString());
             TokenStream stream = lexer.toTokenStream();
@@ -56,7 +85,8 @@ public class Main {
             var parser = BasicParsers.program;
             ParseResult<Program> result = parser.parse(stream);
 
-            if (result instanceof ParseFailed<Program>(String message, int ignored)) throw new CompileException(message);
+            if (result instanceof ParseFailed<Program>(String message, int ignored))
+                throw new CompileException(message);
 
             Program parsed = ((ParseSuccess<Program>) result).value();
             log.debug("Parse successful.");
@@ -75,17 +105,18 @@ public class Main {
             log.info("Normal termination.");
         } catch (CompileException e) {
             System.err.println("コンパイルエラー: " + e.getMessage());
-            System.exit(1);
+            return 1;
         } catch (InterpreterException e) {
             System.err.println("実行時エラー: " + e.getMessage());
-            System.exit(1);
+            return 1;
         } catch (Exception e) {
             log.error("An internal error has occurred.", e);
-            System.exit(1);
+            return 1;
         }
+        return 0;
     }
 
-    private static OperationRegistry generateRegistry() {
+    private OperationRegistry generateRegistry() {
         OperationRegistry registry = new OperationRegistry();
         // int | int
         registry.registerBinary(BinaryOperator.PLUS, IntegerValue.class, IntegerValue.class, (l, r) -> new IntegerValue(l.value() + r.value()));
