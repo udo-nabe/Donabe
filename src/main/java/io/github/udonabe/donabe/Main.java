@@ -14,11 +14,14 @@ import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
 import io.github.udonabe.donabe.semantic.SemanticAnalyzer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 public class Main {
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static void setupOutput() {
         System.setOut(new PrintStream(
                 System.out,
@@ -32,7 +35,8 @@ public class Main {
         ));
     }
 
-    public static void main(String[] args) throws IllegalAccessException {
+    public static void main(String[] args) {
+        log.info("Donabe launched.");
         setupOutput();
         try (Reader reader = new BufferedReader(new FileReader(args[0]))) {
             StringBuilder source = new StringBuilder();
@@ -41,9 +45,13 @@ public class Main {
                  ch = reader.read()) {
                 source.append((char) ch);
             }
+            log.debug("Source file read.");
+            log.trace("Source: {}", source);
 
             Lexer lexer = new Lexer(source.toString());
             TokenStream stream = lexer.toTokenStream();
+            log.debug("Lexical analysis successful.");
+            log.trace("Tokens: {}", stream);
 
             var parser = BasicParsers.program;
             ParseResult<Program> result = parser.parse(stream);
@@ -51,22 +59,29 @@ public class Main {
             if (result instanceof ParseFailed<Program>(String message, int ignored)) throw new CompileException(message);
 
             Program parsed = ((ParseSuccess<Program>) result).value();
+            log.debug("Parse successful.");
+
             SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
             semanticAnalyzer.check(parsed);
+            log.debug("Semantic analysis successful.");
+
             ASTViewer.view(parsed, System.out);
 
             OperationRegistry registry = generateRegistry();
 
             Interpreter interpreter = new Interpreter(parsed, registry, source.toString());
+            log.debug("Launching interpreter...");
             interpreter.run();
+            log.info("Normal termination.");
         } catch (CompileException e) {
             System.err.println("コンパイルエラー: " + e.getMessage());
             System.exit(1);
         } catch (InterpreterException e) {
             System.err.println("実行時エラー: " + e.getMessage());
             System.exit(1);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error("An internal error has occurred.", e);
+            System.exit(1);
         }
     }
 
