@@ -36,10 +36,10 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
                 });
     }
 
-    public void pushScope() {
+    private void pushScope() {
         currentScope = new Scope(currentScope);
     }
-    public void popScope() {
+    private void popScope() {
         currentScope = currentScope.parent();
     }
 
