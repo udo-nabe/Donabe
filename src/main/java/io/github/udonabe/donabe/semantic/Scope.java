@@ -18,7 +18,8 @@ public final class Scope {
     }
 
     public SymbolInformation get(String key) {
-        if (!symbolTable().containsKey(key)) {
+        Objects.requireNonNull(key);
+        if (!symbolTable.containsKey(key)) {
             if (parent == null) {
                 return null;
             }
@@ -28,7 +29,9 @@ public final class Scope {
     }
 
     public boolean put(String key, SymbolInformation value) {
-        if (symbolTable().containsKey(key)) {
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
+        if (symbolTable.containsKey(key)) {
             if (symbolTable.get(key).isTemporary()) {
                 symbolTable.put(key, value);
                 return true;
@@ -39,12 +42,18 @@ public final class Scope {
         return true;
     }
 
-    public void changeSymbolInfo(String key, SymbolInformation value) {
-        symbolTable.put(key, value);
+    public boolean changeSymbolInfo(String key, SymbolInformation value) {
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
+        if (symbolTable.containsKey(key)) {
+            symbolTable.put(key, value);
+            return true;
+        }
+        return false;
     }
 
     public Map<String, SymbolInformation> symbolTable() {
-        return symbolTable;
+        return Map.copyOf(symbolTable);
     }
 
     public Scope parent() {
