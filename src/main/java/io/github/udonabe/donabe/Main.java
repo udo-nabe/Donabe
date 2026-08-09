@@ -44,10 +44,6 @@ public class Main {
 
             Lexer lexer = new Lexer(source.toString());
             TokenStream stream = lexer.toTokenStream();
-            TokenStream st = stream.fork();
-//            while (!st.isAtEnd()) {
-//                System.out.println(st.advance());
-//            }
 
             var parser = BasicParsers.program;
             ParseResult<Program> result = parser.parse(stream);
