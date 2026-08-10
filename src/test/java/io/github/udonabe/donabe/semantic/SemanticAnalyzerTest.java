@@ -8,7 +8,12 @@ import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
+import io.github.udonabe.donabe.runtime.VariableCell;
+import io.github.udonabe.donabe.runtime.value.BuiltinFunctionValue;
+import io.github.udonabe.donabe.runtime.value.UndefinedValue;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -124,5 +129,39 @@ class SemanticAnalyzerTest {
                 let x = 1;
                 print(y + 1 / 2);
                 """);
+    }
+    @Test
+    void nameResolution() {
+        //正常系
+        String source = """
+                let a = 10;
+                var b = 2;
+                func add(a, b) { return a + b;};
+                let c = add(a, b);
+                print("ADD: " + c);
+                """;
+        Lexer l = new Lexer(source);
+        ParseResult<Program> programResult = BasicParsers.program.parse(l.toTokenStream());
+
+        if (!(programResult instanceof ParseSuccess<Program>(Program value))) {
+            fail();
+            return; //到達不可能。コンパイルを通すため。
+        }
+
+        List<VariableCell> nameResolutions = new SemanticAnalyzer(source).check(value);
+        assertEquals(
+                List.of(
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
+
+                        new VariableCell(false, new UndefinedValue()),  //let a
+                        new VariableCell(true, new UndefinedValue()),   //let b
+
+                        new VariableCell(false, new UndefinedValue()),  //func add
+                        new VariableCell(false, new UndefinedValue()),  //func add->a
+                        new VariableCell(false, new UndefinedValue()),  //func add->b
+
+                        new VariableCell(false, new UndefinedValue())   //let c
+                ), nameResolutions
+        );
     }
 }
