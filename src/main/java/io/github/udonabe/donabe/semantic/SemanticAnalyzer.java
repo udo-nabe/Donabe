@@ -135,13 +135,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitLetDeclaration(LetDeclaration statement) {
         statement.expr().accept(this);
-        if (!currentScope.put(statement.name().name(), new SymbolInformation(false))) {
+        if (!currentScope.put(statement.name(), new SymbolInformation(false))) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source, "変数\"%s\"は既に宣言されています。", statement.name()));
         }
-        int id = nextId();
-        currentScope.putId(statement.name().name(), id);
+        currentScope.putId(statement.name(), nextId());
         resolution.add(new VariableCell(false, new UndefinedValue()));
-        statement.name().resolve(id);
         return null;
     }
 
@@ -157,13 +155,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitVarDeclaration(VarDeclaration statement) {
         statement.expr().accept(this);
-        if (!currentScope.put(statement.name().name(), new SymbolInformation(true))) {
+        if (!currentScope.put(statement.name(), new SymbolInformation(true))) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source, "変数\"%s\"は既に宣言されています。", statement.name()));
         }
-        int id = nextId();
-        currentScope.putId(statement.name().name(), id);
+        currentScope.putId(statement.name(), nextId());
         resolution.add(new VariableCell(true, new UndefinedValue()));
-        statement.name().resolve(id);
         return null;
     }
 
@@ -178,11 +174,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitForEachStatement(ForEachStatement statement) {
         statement.iterable().accept(this);
         pushScope();
-        int id = nextId();
         currentScope.put(statement.variable().name(), new SymbolInformation(false));
-        currentScope.putId(statement.variable().name(), id);
+        currentScope.putId(statement.variable().name(), nextId());
         resolution.add(new VariableCell(false, new UndefinedValue()));
-        statement.variable().resolve(id);
         statement.body().accept(this);
         popScope();
         return null;
