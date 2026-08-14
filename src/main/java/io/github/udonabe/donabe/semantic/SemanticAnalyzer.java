@@ -135,11 +135,13 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitLetDeclaration(LetDeclaration statement) {
         statement.expr().accept(this);
-        if (!currentScope.put(statement.name(), new SymbolInformation(false))) {
+        if (!currentScope.put(statement.name().name(), new SymbolInformation(false))) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source, "変数\"%s\"は既に宣言されています。", statement.name()));
         }
-        currentScope.putId(statement.name(), nextId());
+        int id = nextId();
+        currentScope.putId(statement.name().name(), id);
         resolution.add(new VariableCell(false, new UndefinedValue()));
+        statement.name().resolve(id);
         return null;
     }
 
@@ -155,11 +157,13 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitVarDeclaration(VarDeclaration statement) {
         statement.expr().accept(this);
-        if (!currentScope.put(statement.name(), new SymbolInformation(true))) {
+        if (!currentScope.put(statement.name().name(), new SymbolInformation(true))) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source, "変数\"%s\"は既に宣言されています。", statement.name()));
         }
-        currentScope.putId(statement.name(), nextId());
+        int id = nextId();
+        currentScope.putId(statement.name().name(), id);
         resolution.add(new VariableCell(true, new UndefinedValue()));
+        statement.name().resolve(id);
         return null;
     }
 
