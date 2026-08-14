@@ -9,7 +9,6 @@ import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
 import io.github.udonabe.donabe.runtime.VariableCell;
-import io.github.udonabe.donabe.runtime.value.BuiltinFunctionValue;
 import io.github.udonabe.donabe.runtime.value.UndefinedValue;
 import org.junit.jupiter.api.Test;
 
@@ -26,14 +25,17 @@ class SemanticAnalyzerTest {
         }
         throw new IllegalArgumentException("Could not parse source: " + ((ParseFailed<Program>) res).message());
     }
+
     private void doesNotThrow(String source) {
         var program = parse(source);
         assertDoesNotThrow(() -> new SemanticAnalyzer(source).check(program));
     }
+
     private void throwCompileException(String source) {
         var program = parse(source);
         assertThrows(CompileException.class, () -> new SemanticAnalyzer(source).check(program));
     }
+
     @Test
     void declaredLetCanBeReferenced() {
         doesNotThrow("""
@@ -41,6 +43,7 @@ class SemanticAnalyzerTest {
                 foo;
                 """);
     }
+
     @Test
     void declaredVarCanBeReferenced() {
         doesNotThrow("""
@@ -48,6 +51,7 @@ class SemanticAnalyzerTest {
                 foo;
                 """);
     }
+
     @Test
     void varCanBeAssigned() {
         doesNotThrow("""
@@ -55,6 +59,7 @@ class SemanticAnalyzerTest {
                 foo = 2;
                 """);
     }
+
     @Test
     void letCannotBeAssigned() {
         throwCompileException("""
@@ -62,6 +67,7 @@ class SemanticAnalyzerTest {
                 foo = 2;
                 """);
     }
+
     @Test
     void undefinedIdentifierCannotBeReferenced() {
         throwCompileException("""
@@ -72,6 +78,7 @@ class SemanticAnalyzerTest {
                 let foo = 1;
                 """);
     }
+
     @Test
     void undefinedIdentifierCannotBeCalled() {
         throwCompileException("""
@@ -82,6 +89,7 @@ class SemanticAnalyzerTest {
                 let foo = func() {};
                 """);
     }
+
     @Test
     void varOfParentScopeCanBeReferenced() {
         doesNotThrow("""
@@ -89,6 +97,7 @@ class SemanticAnalyzerTest {
                 {x;}
                 """);
     }
+
     @Test
     void varOfChildScopeCannotBeReferenced() {
         throwCompileException("""
@@ -96,6 +105,7 @@ class SemanticAnalyzerTest {
                 x;
                 """);
     }
+
     @Test
     void childScopeVarCanBeReferenced() {
         doesNotThrow("""
@@ -105,6 +115,7 @@ class SemanticAnalyzerTest {
                 }
                 """);
     }
+
     @Test
     void canShadowing() {
         doesNotThrow("""
@@ -116,6 +127,7 @@ class SemanticAnalyzerTest {
                 x;
                 """);
     }
+
     @Test
     void varCanBeReferencedInExpression() {
         doesNotThrow("""
@@ -123,6 +135,7 @@ class SemanticAnalyzerTest {
                 print(x + 1 / 2);
                 """);
     }
+
     @Test
     void undefinedVarCannotBeReferencedInExpression() {
         throwCompileException("""
@@ -130,16 +143,8 @@ class SemanticAnalyzerTest {
                 print(y + 1 / 2);
                 """);
     }
-    @Test
-    void nameResolution() {
-        //正常系
-        String source = """
-                let a = 10;
-                var b = 2;
-                func add(a, b) { return a + b;};
-                let c = add(a, b);
-                print("ADD: " + c);
-                """;
+
+    private void nameResolution(String source, List<VariableCell> resolution) {
         Lexer l = new Lexer(source);
         ParseResult<Program> programResult = BasicParsers.program.parse(l.toTokenStream());
 
@@ -149,7 +154,19 @@ class SemanticAnalyzerTest {
         }
 
         List<VariableCell> nameResolutions = new SemanticAnalyzer(source).check(value);
-        assertEquals(
+        assertEquals(resolution, nameResolutions);
+    }
+
+    @Test
+    void nameResolutionBasic() {
+        //正常系
+        nameResolution("""
+                        let a = 10;
+                        var b = 2;
+                        func add(a, b) { return a + b;};
+                        let c = add(a, b);
+                        print("ADD: " + c);
+                        """,
                 List.of(
                         new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
 
@@ -161,7 +178,22 @@ class SemanticAnalyzerTest {
                         new VariableCell(false, new UndefinedValue()),  //func add->b
 
                         new VariableCell(false, new UndefinedValue())   //let c
-                ), nameResolutions
-        );
+                ));
+    }
+
+    @Test
+    void nameResolutionForEach() {
+        nameResolution("""
+                        let list = ["Hello", "Udon", "Nabe", "Donabe"];
+                        for let i in list {
+                            print(i);
+                        }
+                        """,
+                List.of(
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
+
+                        new VariableCell(false, new UndefinedValue()),  //let list
+                        new VariableCell(false, new UndefinedValue())   //let i
+                ));
     }
 }
