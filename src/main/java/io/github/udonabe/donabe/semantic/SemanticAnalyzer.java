@@ -178,9 +178,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitForEachStatement(ForEachStatement statement) {
         statement.iterable().accept(this);
         pushScope();
+        int id = nextId();
         currentScope.put(statement.variable().name(), new SymbolInformation(false));
-        currentScope.putId(statement.variable().name(), nextId());
+        currentScope.putId(statement.variable().name(), id);
         resolution.add(new VariableCell(false, new UndefinedValue()));
+        statement.variable().resolve(id);
         statement.body().accept(this);
         popScope();
         return null;

@@ -88,7 +88,7 @@ class BasicParsersTest {
         ParseResult<LetDeclaration> let = letDeclaration.parse(success);
         assertEquals(new ParseSuccess<>(
                 new LetDeclaration(
-                        "variable",
+                        new Identifier("variable", new SourceFileLocation(1, 5)),
                         new StringLiteral("Hello, World", new SourceFileLocation(1, 16)),
                         new SourceFileLocation(1, 1)
                 )
@@ -101,7 +101,7 @@ class BasicParsersTest {
         ParseResult<VarDeclaration> let = varDeclaration.parse(success);
         assertEquals(new ParseSuccess<>(
                 new VarDeclaration(
-                        "variable",
+                        new Identifier("variable", new SourceFileLocation(1, 5)),
                         new StringLiteral("Hello, World", new SourceFileLocation(1, 16)),
                         new SourceFileLocation(1, 1)
                 )
@@ -166,7 +166,7 @@ class BasicParsersTest {
                         new BlockStatement(
                                 List.of(
                                         new VarDeclaration(
-                                                "i",
+                                                new Identifier("i", new SourceFileLocation(1, 9)),
                                                 new IntegerLiteral(0, new SourceFileLocation(1, 13)),
                                                 new SourceFileLocation(1, 5)
                                         ),
