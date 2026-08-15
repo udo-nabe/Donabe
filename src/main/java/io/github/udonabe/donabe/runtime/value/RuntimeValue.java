@@ -1,7 +1,7 @@
 package io.github.udonabe.donabe.runtime.value;
 
 public sealed interface RuntimeValue<T>
-        permits IntegerValue, StringValue, VoidValue, BooleanValue, FunctionValue, ListValue {
+        permits BooleanValue, BuiltinFunctionValue, FunctionValue, IntegerValue, ListValue, StringValue, UndefinedValue, VoidValue {
     T value();
     String typeName();
     String display();

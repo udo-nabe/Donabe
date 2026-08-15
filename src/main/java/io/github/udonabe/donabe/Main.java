@@ -92,14 +92,14 @@ public class Main implements Callable<Integer> {
             log.debug("Parse successful.");
 
             SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
-            semanticAnalyzer.check(parsed);
+            var variables = semanticAnalyzer.check(parsed);
             log.debug("Semantic analysis successful.");
 
             ASTViewer.view(parsed, System.out);
 
             OperationRegistry registry = generateRegistry();
 
-            Interpreter interpreter = new Interpreter(parsed, registry, source.toString());
+            Interpreter interpreter = new Interpreter(parsed, registry, source.toString(), variables);
             log.debug("Launching interpreter...");
             interpreter.run();
             log.info("Normal termination.");

@@ -13,17 +13,15 @@ import java.util.List;
 
 public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     private final Program program;
-    private final Environment rootEnvironment;
     private final OperationRegistry registry;
     private final String source;
-    private Environment currentEnvironment;
+    private final List<VariableCell> variables;
     private InterpreterFlags flags;
 
-    public Interpreter(Program program, OperationRegistry registry, String source) {
+    public Interpreter(Program program, OperationRegistry registry, String source, List<VariableCell> variables) {
         this.program = program;
         this.source = source;
-        this.rootEnvironment = new Environment(null);
-        this.currentEnvironment = rootEnvironment;
+        this.variables = variables;
         this.registry = registry;
         this.flags = new InterpreterFlags();
     }
@@ -32,38 +30,12 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         program.accept(this);
     }
 
-    private void blockPreProcess(Environment environment, List<Statement> statements) {
-        statements.stream().filter(s -> s instanceof FunctionDefineStatement)
-                .forEach(s -> {
-                    FunctionDefineStatement functionDefineStatement = (FunctionDefineStatement) s;
-                    List<String> argNames = functionDefineStatement.args().stream()
-                            .map(Identifier::name)
-                            .toList();
-                    environment.declare(functionDefineStatement.identifier().name(), new VariableCell(false, new FunctionValue(argNames, null, null), true));
-                });
-    }
-
     private RuntimeValue<?> callFunction(FunctionValue functionValue, List<Expression> args) {
         List<? extends RuntimeValue<?>> actualArgs = args.stream()
                 .map(e -> e.accept(this))
                 .toList();
-
-        Environment captured = new Environment(null);
-        var cap = functionValue.captures();
-        for (String key : cap.keySet()) {
-            captured.declare(key, cap.get(key));
-        }
-
-        List<String> argNames = functionValue.argNames();
-        for (int i = 0; i < argNames.size(); i++) {
-            String argName = argNames.get(i);
-            captured.declareForce(argName, new VariableCell(false, actualArgs.get(i)));
-        }
-
         RuntimeValue<?> retValue = new VoidValue();
         flags.inFunction = true;
-        Environment before = currentEnvironment;
-        currentEnvironment = captured;
         for (Statement statement : functionValue.statements()) {
             try {
                 statement.accept(this);
@@ -73,17 +45,17 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
             }
         }
         flags.inFunction = false;
-        currentEnvironment = before;
         return retValue;
     }
 
     private IntegerValue incrementOrDecrement(boolean increment, boolean prefix, Identifier target) {
-        RuntimeValue<?> value = currentEnvironment.getVar(target.name());
-        if (value instanceof IntegerValue(Integer before)) {
-            IntegerValue after = (IntegerValue) currentEnvironment.assign(target.name(), new IntegerValue(increment ? before + 1 : before - 1));
+        VariableCell cell = variables.get(target.id());
+        if (cell.value() instanceof IntegerValue(Integer before)) {
+            IntegerValue after = new IntegerValue(increment ? before + 1 : before - 1);
+            cell.setValue(after);
             return prefix ? after : new IntegerValue(before);
         }
-        throw new InterpreterException(String.format("演算子\"++\"は型\"%s\"に適用できません。", value.typeName()));
+        throw new InterpreterException(String.format("演算子\"++\"は型\"%s\"に適用できません。", cell.value().typeName()));
     }
 
     private RuntimeValue<?> evalBinary(Expression leftExpr, BinaryOperator operator, Expression rightExpr) {
@@ -99,7 +71,6 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitProgram(Program program) {
-        blockPreProcess(rootEnvironment, program.statements());
         for (Statement statement : program.statements()) {
             try {
                 statement.accept(this);
@@ -110,22 +81,11 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         return null;
     }
 
-    public void pushEnvironment() {
-        currentEnvironment = new Environment(currentEnvironment);
-    }
-
-    public void popEnvironment() {
-        currentEnvironment = currentEnvironment.parent();
-    }
-
     @Override
     public RuntimeValue<?> visitBlockStatement(BlockStatement statement) {
-        pushEnvironment();
-        blockPreProcess(currentEnvironment, statement.statements());
         for (Statement s : statement.statements()) {
             s.accept(this);
         }
-        popEnvironment();
         return null;
     }
 
@@ -142,8 +102,8 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     @Override
     public RuntimeValue<?> visitFunctionDefineStatement(FunctionDefineStatement statement) {
         List<Identifier> args = statement.args();
-        FunctionValue function = new FunctionValue(args.stream().map(Identifier::name).toList(), statement.block().statements(), currentEnvironment.getVarsRecursive());
-        currentEnvironment.initialize(statement.identifier().name(), function);
+        FunctionValue function = new FunctionValue(args.stream().map(Identifier::name).toList(), statement.block().statements());
+        variables.get(statement.identifier().id()).setValue(function);
         return null;
     }
 
@@ -164,7 +124,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitLetDeclaration(LetDeclaration statement) {
-        currentEnvironment.declare(statement.name(), new VariableCell(false, statement.expr().accept(this)));
+        variables.get(statement.name().id()).setValue(statement.expr().accept(this));
         return null;
     }
 
@@ -179,7 +139,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitVarDeclaration(VarDeclaration statement) {
-        currentEnvironment.declare(statement.name(), new VariableCell(true, statement.expr().accept(this)));
+        variables.get(statement.name().id()).setValue(statement.expr().accept(this));
         return null;
     }
 
@@ -205,10 +165,8 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
             throw new InterpreterException(ErrorUtil.makeError(statement.location(), source, "for-each文で、list型以外を使うことはできません。"));
         }
         for (RuntimeValue<?> it : iterable) {
-            pushEnvironment();
-            currentEnvironment.declare(statement.variable().name(), new VariableCell(false, it));
+            variables.get(statement.variable().id()).setValue(it);
             statement.body().accept(this);
-            popEnvironment();
         }
         return null;
     }
@@ -226,7 +184,8 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     }
 
     private RuntimeValue<?> assignIdentifier(Identifier identifier, RuntimeValue<?> value) {
-        return currentEnvironment.assign(identifier.name(), value);
+        variables.get(identifier.id()).setValue(value);
+        return value;
     }
     private RuntimeValue<?> assignList(IndexExpression index, RuntimeValue<?> value) {
         RuntimeValue<?> listRes = index.target().accept(this);
@@ -280,12 +239,12 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         List<String> argNames = expr.args().stream()
                 .map(Identifier::name)
                 .toList();
-        return new FunctionValue(argNames, expr.block().statements(), currentEnvironment.getVarsRecursive());
+        return new FunctionValue(argNames, expr.block().statements());
     }
 
     @Override
     public RuntimeValue<?> visitIdentifier(Identifier expr) {
-        return currentEnvironment.getVar(expr.name());
+        return variables.get(expr.id()).value();
     }
 
     @Override

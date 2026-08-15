@@ -40,14 +40,14 @@ public final class BasicParsers {
                     .skip(token(ASSIGN))
                     .then(expression)
                     .skip(token(SEMICOLON))
-                    .map(p -> new LetDeclaration(p.getLeft().getRight().name(), p.getRight(), genLocation(p.getKey().getLeft())));
+                    .map(p -> new LetDeclaration(p.getLeft().getRight(), p.getRight(), genLocation(p.getKey().getLeft())));
     public static final Parser<VarDeclaration> varDeclaration =
             token(VAR)
                     .then(identifier)
                     .skip(token(ASSIGN))
                     .then(expression)
                     .skip(token(SEMICOLON))
-                    .map(p -> new VarDeclaration(p.getLeft().getRight().name(), p.getRight(), genLocation(p.getKey().getLeft())));
+                    .map(p -> new VarDeclaration(p.getLeft().getRight(), p.getRight(), genLocation(p.getKey().getLeft())));
 
     public static final Parser<ExpressionStatement> expressionStatement =
             expression.map(e -> new ExpressionStatement(e, e.location()))

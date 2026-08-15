@@ -1,20 +1,24 @@
 package io.github.udonabe.donabe.semantic;
 
+import io.github.udonabe.donabe.ast.expr.Identifier;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
 public final class Scope {
     private final Map<String, SymbolInformation> symbolTable;
+    private final Map<String, Integer> identifierIds;
     private final Scope parent;
 
-    private Scope(Map<String, SymbolInformation> symbolTable, Scope parent) {
+    private Scope(Map<String, SymbolInformation> symbolTable, Map<String, Integer> identifierIds, Scope parent) {
         this.symbolTable = symbolTable;
+        this.identifierIds = identifierIds;
         this.parent = parent;
     }
 
     public Scope(Scope parent) {
-        this(new HashMap<>(), parent);
+        this(new HashMap<>(), new HashMap<>(), parent);
     }
 
     public SymbolInformation get(String key) {
@@ -26,6 +30,17 @@ public final class Scope {
             return parent.get(key);
         }
         return symbolTable.get(key);
+    }
+
+    public int getId(String identifier) {
+        Objects.requireNonNull(identifier);
+        if (!identifierIds.containsKey(identifier)) {
+            if (parent == null) {
+                return Identifier.UNRESOLVED_ID;
+            }
+            return parent.getId(identifier);
+        }
+        return identifierIds.get(identifier);
     }
 
     public boolean put(String key, SymbolInformation value) {
@@ -40,6 +55,19 @@ public final class Scope {
         }
         symbolTable.put(key, value);
         return true;
+    }
+
+    public boolean putId(String identifier, int id) {
+        Objects.requireNonNull(identifier);
+        if (identifierIds.containsKey(identifier)) {
+            return false;
+        }
+        identifierIds.put(identifier, id);
+        return true;
+    }
+
+    public boolean isDeclared(String key) {
+        return symbolTable.containsKey(key);
     }
 
     public boolean changeSymbolInfo(String key, SymbolInformation value) {
@@ -82,6 +110,6 @@ public final class Scope {
     }
 
     public Scope capture() {
-        return new Scope(new HashMap<>(this.symbolTable), parent != null ? parent.capture() : null);
+        return new Scope(new HashMap<>(this.symbolTable), new HashMap<>(this.identifierIds), parent != null ? parent.capture() : null);
     }
 }
