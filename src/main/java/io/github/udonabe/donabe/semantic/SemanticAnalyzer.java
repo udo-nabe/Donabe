@@ -10,11 +10,14 @@ import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.BuiltinFunctionValue;
 import io.github.udonabe.donabe.runtime.value.UndefinedValue;
 import io.github.udonabe.donabe.runtime.value.VoidValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
+    private static final Logger log = LoggerFactory.getLogger(SemanticAnalyzer.class);
     static final BuiltinFunctionValue BUILTIN_PRINT = new BuiltinFunctionValue(
             List.of("target"),
             l -> {
@@ -49,12 +52,48 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         return List.copyOf(resolution);
     }
 
-    private void defineFunctionsTemporary(Scope scope, List<Statement> statements) {
-        statements.stream().filter(s -> s instanceof FunctionDefineStatement)
-                .forEach(s -> {
-                    FunctionDefineStatement functionDefineStatement = (FunctionDefineStatement) s;
-                    scope.put(functionDefineStatement.identifier().name(), new SymbolInformation(false, true));
-                });
+    private void defineFunctions(Scope scope, List<Statement> statements) {
+        var funcDefines = statements.stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList();
+        for (FunctionDefineStatement statement : funcDefines) {
+            defineFunction(statement);
+        }
+    }
+
+    private void defineFunction(FunctionDefineStatement statement) {
+        if (!currentScope.put(statement.identifier().name(), new SymbolInformation(false))) {
+            throw new CompileException(ErrorUtil.makeError(statement.location(), source, "関数\"%s\"は既に定義されています。", statement.identifier().name()));
+        }
+        int identifierId = nextId();
+        currentScope.putId(statement.identifier().name(), identifierId);
+        resolution.add(new VariableCell(false, new UndefinedValue()));
+        statement.identifier().resolve(identifierId);
+
+        List<String> argNames = statement.args().stream()
+                .map(Identifier::name)
+                .toList();
+
+        Scope func = currentScope.capture();
+        Scope before = currentScope;
+        currentScope = func;
+
+        for (int i = 0; i < argNames.size(); i++) {
+            String argName = argNames.get(i);
+            int argId = nextId();
+            func.put(argName, new SymbolInformation(false));
+            currentScope.putId(argName, argId);
+            resolution.add(new VariableCell(false, new UndefinedValue()));
+
+            Identifier argIdentifier = statement.args().get(i);
+            argIdentifier.resolve(argId);
+        }
+
+        inFunction = true;
+        statement.block().accept(this);
+        inFunction = false;
+        currentScope = before;
     }
 
     private void pushScope() {
@@ -68,7 +107,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitProgram(Program program) {
         List<Statement> statements = program.statements();
-        defineFunctionsTemporary(rootScope, statements);
+        defineFunctions(rootScope, statements);
         for (Statement statement : statements) {
             if (statement == null) continue;
             statement.accept(this);
@@ -79,7 +118,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitBlockStatement(BlockStatement statement) {
         pushScope();
-        defineFunctionsTemporary(currentScope, statement.statements());
+        defineFunctions(currentScope, statement.statements());
         for (Statement s : statement.statements()) {
             s.accept(this);
         }
@@ -100,27 +139,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionDefineStatement(FunctionDefineStatement statement) {
-        if (!currentScope.put(statement.identifier().name(), new SymbolInformation(false))) {
-            throw new CompileException(ErrorUtil.makeError(statement.location(), source, "関数\"%s\"は既に定義されています。", statement.identifier().name()));
-        }
-        currentScope.putId(statement.identifier().name(), nextId());
-        resolution.add(new VariableCell(false, new UndefinedValue()));
-        List<String> argNames = statement.args().stream()
-                .map(Identifier::name)
-                .toList();
-
-        Scope func = currentScope.capture();
-        Scope before = currentScope;
-        currentScope = func;
-        for (String argName : argNames) {
-            func.put(argName, new SymbolInformation(false));
-            currentScope.putId(argName, nextId());
-            resolution.add(new VariableCell(false, new UndefinedValue()));
-        }
-        inFunction = true;
-        statement.block().accept(this);
-        inFunction = false;
-        currentScope = before;
+        log.trace("Skipped FunctionDefineStatement: {}", statement);
         return null;
     }
 
