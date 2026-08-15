@@ -1,15 +1,14 @@
 package io.github.udonabe.donabe.runtime.value;
 
+import io.github.udonabe.donabe.ast.expr.Identifier;
 import io.github.udonabe.donabe.ast.statement.Statement;
-import io.github.udonabe.donabe.runtime.VariableCell;
 
 import java.util.List;
-import java.util.Map;
 
-public record FunctionValue(List<String> argNames, List<Statement> statements) implements RuntimeValue<String> {
+public record FunctionValue(List<Identifier> formalArgs, List<Statement> statements) implements RuntimeValue<String> {
     @Override
     public String value() {
-        return "<function(" + argNames + "->" + "?)>";
+        return "<function(" + formalArgs + "->" + "?)>";
     }
     @Override
     public String typeName() {

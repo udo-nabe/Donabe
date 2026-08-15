@@ -3,15 +3,18 @@ package io.github.udonabe.donabe.runtime;
 import io.github.udonabe.donabe.ErrorUtil;
 import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.Program;
+import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.runtime.value.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
+    private static final Logger log = LoggerFactory.getLogger(Interpreter.class);
     private final Program program;
     private final OperationRegistry registry;
     private final String source;
@@ -30,12 +33,35 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         program.accept(this);
     }
 
-    private RuntimeValue<?> callFunction(FunctionValue functionValue, List<Expression> args) {
+    private void defineFunctions(List<FunctionDefineStatement> statements) {
+        for (var statement : statements) {
+            List<Identifier> args = statement.args();
+            FunctionValue function = new FunctionValue(args, statement.block().statements());
+            variables.get(statement.identifier().id()).setValue(function);
+        }
+    }
+
+    private RuntimeValue<?> callFunction(FunctionValue functionValue, List<Expression> args, SourceFileLocation functionLocation) {
         List<? extends RuntimeValue<?>> actualArgs = args.stream()
                 .map(e -> e.accept(this))
                 .toList();
         RuntimeValue<?> retValue = new VoidValue();
         flags.inFunction = true;
+
+        int formalSize = functionValue.formalArgs().size();
+        int actualSize = actualArgs.size();
+        if (formalSize != actualSize) {
+            throw new InterpreterException(ErrorUtil.makeError(functionLocation, source, "仮引数リスト(%d個)と実引数リスト(%d個)の長さが異なります。", formalSize, actualSize));
+        }
+
+        List<Identifier> formalArgs = functionValue.formalArgs();
+        for (int i = 0; i < formalArgs.size(); i++) {
+            Identifier arg = formalArgs.get(i);
+            int id = arg.id();
+            RuntimeValue<?> value = actualArgs.get(i);
+            variables.get(id).setValue(value);
+        }
+
         for (Statement statement : functionValue.statements()) {
             try {
                 statement.accept(this);
@@ -71,6 +97,11 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitProgram(Program program) {
+        defineFunctions(program.statements()
+                .stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList());
         for (Statement statement : program.statements()) {
             try {
                 statement.accept(this);
@@ -83,6 +114,11 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitBlockStatement(BlockStatement statement) {
+        defineFunctions(statement.statements()
+                .stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList());
         for (Statement s : statement.statements()) {
             s.accept(this);
         }
@@ -101,9 +137,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitFunctionDefineStatement(FunctionDefineStatement statement) {
-        List<Identifier> args = statement.args();
-        FunctionValue function = new FunctionValue(args.stream().map(Identifier::name).toList(), statement.block().statements());
-        variables.get(statement.identifier().id()).setValue(function);
+        log.trace("Skipped FunctionDefineStatement: {}", statement);
         return null;
     }
 
@@ -223,9 +257,10 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         } else {
             RuntimeValue<?> func = callee.accept(this);
             if (!(func instanceof FunctionValue functionValue)) {
+                log.debug("Invalid callee: {}", func);
                 throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "呼び出せるのはfunction型のみです。"));
             }
-            return callFunction(functionValue, args);
+            return callFunction(functionValue, args, callee.location());
         }
     }
 
@@ -236,10 +271,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitFunctionLiteral(FunctionLiteral expr) {
-        List<String> argNames = expr.args().stream()
-                .map(Identifier::name)
-                .toList();
-        return new FunctionValue(argNames, expr.block().statements());
+        return new FunctionValue(expr.args(), expr.block().statements());
     }
 
     @Override
