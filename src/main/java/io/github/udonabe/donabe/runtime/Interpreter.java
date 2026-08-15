@@ -41,18 +41,26 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         }
     }
 
-    private RuntimeValue<?> callFunction(FunctionValue functionValue, List<Expression> args, SourceFileLocation functionLocation) {
-        List<? extends RuntimeValue<?>> actualArgs = args.stream()
-                .map(e -> e.accept(this))
-                .toList();
-        RuntimeValue<?> retValue = new VoidValue();
-        flags.inFunction = true;
-
-        int formalSize = functionValue.formalArgs().size();
+    private void checkArgSize(List<?> formalArgs, List<?> actualArgs, SourceFileLocation functionLocation) {
+        int formalSize = formalArgs.size();
         int actualSize = actualArgs.size();
         if (formalSize != actualSize) {
             throw new InterpreterException(ErrorUtil.makeError(functionLocation, source, "仮引数リスト(%d個)と実引数リスト(%d個)の長さが異なります。", formalSize, actualSize));
         }
+    }
+
+    private List<? extends RuntimeValue<?>> evalArgs(List<Expression> args) {
+        return args.stream()
+                .map(e -> e.accept(this))
+                .toList();
+    }
+
+    private RuntimeValue<?> callFunction(FunctionValue functionValue, List<Expression> args, SourceFileLocation functionLocation) {
+        var actualArgs = evalArgs(args);
+        RuntimeValue<?> retValue = new VoidValue();
+        flags.inFunction = true;
+
+        checkArgSize(functionValue.formalArgs(), args, functionLocation);
 
         List<Identifier> formalArgs = functionValue.formalArgs();
         for (int i = 0; i < formalArgs.size(); i++) {
@@ -70,6 +78,17 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
                 break;
             }
         }
+        flags.inFunction = false;
+        return retValue;
+    }
+
+    private RuntimeValue<?> callBuiltinFunction(BuiltinFunctionValue functionValue, List<Expression> args, SourceFileLocation functionLocation) {
+        flags.inFunction = true;
+        checkArgSize(functionValue.formalArgs(), args, functionLocation);
+        var actualArgs = evalArgs(args);
+
+        var callee = functionValue.content();
+        RuntimeValue<?> retValue = callee.apply(actualArgs);
         flags.inFunction = false;
         return retValue;
     }
@@ -213,7 +232,8 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         return switch (target) {
             case Identifier identifier -> assignIdentifier(identifier, value);
             case IndexExpression indexExpression -> assignList(indexExpression, value);
-            default -> throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "式\"%s\"には代入できません。", expr.display()));
+            default ->
+                    throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "式\"%s\"には代入できません。", expr.display()));
         };
     }
 
@@ -221,6 +241,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         variables.get(identifier.id()).setValue(value);
         return value;
     }
+
     private RuntimeValue<?> assignList(IndexExpression index, RuntimeValue<?> value) {
         RuntimeValue<?> listRes = index.target().accept(this);
         if (!(listRes instanceof ListValue(List<RuntimeValue<?>> list))) {
@@ -248,20 +269,14 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     public RuntimeValue<?> visitCallExpression(CallExpression expr) {
         Expression callee = expr.target();
         List<Expression> args = expr.args();
-        if (callee instanceof Identifier identifier && identifier.name().equals("print")) {
-            if (args.size() != 1)
-                throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "関数\"%s\"は%dつの引数を要求しますが、実引数が%d個になっています。", "print", 1, args.size()));
-            RuntimeValue<?> eval = args.getFirst().accept(this);
-            System.out.println(eval.display());
-            return new VoidValue();
-        } else {
-            RuntimeValue<?> func = callee.accept(this);
-            if (!(func instanceof FunctionValue functionValue)) {
-                log.debug("Invalid callee: {}", func);
-                throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "呼び出せるのはfunction型のみです。"));
-            }
+        RuntimeValue<?> func = callee.accept(this);
+        if (func instanceof FunctionValue functionValue) {
             return callFunction(functionValue, args, callee.location());
+        } else if (func instanceof BuiltinFunctionValue functionValue) {
+            return callBuiltinFunction(functionValue, args, callee.location());
         }
+        log.debug("Invalid callee: {}", func);
+        throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "呼び出せるのはfunction型のみです。"));
     }
 
     @Override

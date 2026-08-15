@@ -23,7 +23,7 @@ public final class Identifier implements Expression {
             throw new IllegalArgumentException("The argument 'id' must not be a negative value.");
         }
         if (this.id != UNRESOLVED_ID) {
-            throw new IllegalStateException("This identifier has already been resolved. value: " + this.id);
+            throw new IllegalStateException("This identifier has already been resolved. value: " + this.id + " location: " + location);
         }
         this.id = id;
     }

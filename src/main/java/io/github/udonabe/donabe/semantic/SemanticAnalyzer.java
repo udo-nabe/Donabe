@@ -6,10 +6,9 @@ import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.VariableCell;
-import io.github.udonabe.donabe.runtime.value.BuiltinFunctionValue;
-import io.github.udonabe.donabe.runtime.value.UndefinedValue;
-import io.github.udonabe.donabe.runtime.value.VoidValue;
+import io.github.udonabe.donabe.runtime.value.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +24,22 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
                 return new VoidValue();
             }
     );
+    static final BuiltinFunctionValue BUILTIN_RANGE = new BuiltinFunctionValue(
+            List.of("start", "end"),
+            l -> {
+                RuntimeValue<?> s = l.getFirst();
+                RuntimeValue<?> e = l.get(1);
+                if (s instanceof IntegerValue(Integer start) &&
+                    e instanceof IntegerValue(Integer end)) {
+                    List<RuntimeValue<?>> res = new ArrayList<>();
+                    for (int i = start; i < end; i++) {
+                        res.add(new IntegerValue(i));
+                    }
+                    return new ListValue(res);
+                }
+                throw new InterpreterException("range()の引数は(int, int)である必要があります。");
+            }
+    );
     private final Scope rootScope;
     private final String source;
     private Scope currentScope;
@@ -34,13 +49,18 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SemanticAnalyzer(String source) {
         this.source = source;
         this.rootScope = new Scope(null);
-        this.rootScope.put("print", new SymbolInformation(false));
         this.currentScope = rootScope;
         this.inFunction = false;
         this.resolution = new ArrayList<>();
 
-        resolution.add(new VariableCell(false, BUILTIN_PRINT));
-        rootScope.putId("print", 0);
+        putBuiltinFunction("print", BUILTIN_PRINT, 0);
+        putBuiltinFunction("range", BUILTIN_RANGE, 1);
+    }
+
+    private void putBuiltinFunction(String name, BuiltinFunctionValue value, int id) {
+        resolution.add(new VariableCell(false, value));
+        rootScope.put(name, new SymbolInformation(false));
+        rootScope.putId(name, id);
     }
 
     private int nextId() {
