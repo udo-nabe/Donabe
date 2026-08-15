@@ -23,6 +23,7 @@ public interface ASTVisitor<R> {
     R visitBinaryExpression(BinaryExpression expr);
     R visitBooleanLiteral(BooleanLiteral expr);
     R visitCallExpression(CallExpression expr);
+    R visitCompoundAssignExpression(CompoundAssignExpression expr);
     R visitDecrement(Decrement expr);
     R visitFunctionLiteral(FunctionLiteral expr);
     R visitIdentifier(Identifier expr);

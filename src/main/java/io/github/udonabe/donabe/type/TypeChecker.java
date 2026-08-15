@@ -83,6 +83,11 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     @Override
+    public Type visitCompoundAssignExpression(CompoundAssignExpression expr) {
+        return null;
+    }
+
+    @Override
     public Type visitDecrement(Decrement expr) {
         return null;
     }

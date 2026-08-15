@@ -160,17 +160,17 @@ class PrattParser {
         };
     }
 
-    private AssignExpression assign(Expression prefix, Token infix, int precedence) {
+    private Expression assign(Expression prefix, Token infix, int precedence) {
         return switch (infix.kind()) {
             case ASSIGN -> new AssignExpression(prefix, parseExpression(precedence - 1), prefix.location());
             case PLUS_ASSIGN ->
-                    new AssignExpression(prefix, new BinaryExpression(prefix, BinaryOperator.PLUS, parseExpression(precedence - 1), prefix.location()), prefix.location());
+                    new CompoundAssignExpression(prefix, CompoundAssignOperator.PLUS, parseExpression(precedence - 1), prefix.location());
             case MINUS_ASSIGN ->
-                    new AssignExpression(prefix, new BinaryExpression(prefix, BinaryOperator.MINUS, parseExpression(precedence - 1), prefix.location()), prefix.location());
+                    new CompoundAssignExpression(prefix, CompoundAssignOperator.MINUS, parseExpression(precedence - 1), prefix.location());
             case ASTERISK_ASSIGN ->
-                    new AssignExpression(prefix, new BinaryExpression(prefix, BinaryOperator.MULTIPLICATION, parseExpression(precedence - 1), prefix.location()), prefix.location());
+                    new CompoundAssignExpression(prefix, CompoundAssignOperator.MULTIPLICATION, parseExpression(precedence - 1), prefix.location());
             case SLASH_ASSIGN ->
-                    new AssignExpression(prefix, new BinaryExpression(prefix, BinaryOperator.DIVISION, parseExpression(precedence - 1), prefix.location()), prefix.location());
+                    new CompoundAssignExpression(prefix, CompoundAssignOperator.DIVISION, parseExpression(precedence - 1), prefix.location());
             default -> throw new IllegalStateException("PrattParser#assign has a problem.");
         };
     }

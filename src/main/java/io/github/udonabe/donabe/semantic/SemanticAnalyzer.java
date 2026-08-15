@@ -264,6 +264,13 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     }
 
     @Override
+    public SymbolInformation visitCompoundAssignExpression(CompoundAssignExpression expr) {
+        var result = expr.target().accept(this);
+        expr.value().accept(this);
+        return result;
+    }
+
+    @Override
     public SymbolInformation visitDecrement(Decrement expr) {
         expr.target().accept(this);
         return new SymbolInformation(false);
