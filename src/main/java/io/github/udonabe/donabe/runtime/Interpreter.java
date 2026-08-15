@@ -51,7 +51,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         int formalSize = functionValue.formalArgs().size();
         int actualSize = actualArgs.size();
         if (formalSize != actualSize) {
-            throw new InterpreterException(ErrorUtil.makeError(functionLocation, source, "仮引数リスト(%d個)と実引数リスト(%d個)の長さが異なります。", formalSize, actualArgs));
+            throw new InterpreterException(ErrorUtil.makeError(functionLocation, source, "仮引数リスト(%d個)と実引数リスト(%d個)の長さが異なります。", formalSize, actualSize));
         }
 
         List<Identifier> formalArgs = functionValue.formalArgs();
