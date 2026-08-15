@@ -170,12 +170,12 @@ class SemanticAnalyzerTest {
                 List.of(
                         new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
 
-                        new VariableCell(false, new UndefinedValue()),  //let a
-                        new VariableCell(true, new UndefinedValue()),   //let b
-
                         new VariableCell(false, new UndefinedValue()),  //func add
-                        new VariableCell(false, new UndefinedValue()),  //func add->a
-                        new VariableCell(false, new UndefinedValue()),  //func add->b
+                        new VariableCell(false, new UndefinedValue()),  //-> a
+                        new VariableCell(false, new UndefinedValue()),  //-> b
+
+                        new VariableCell(false, new UndefinedValue()),  //let a
+                        new VariableCell(true, new UndefinedValue()),   //var b
 
                         new VariableCell(false, new UndefinedValue())   //let c
                 ));
