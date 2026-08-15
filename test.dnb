@@ -1,3 +1,2 @@
-for let i in range(0, 10) {
-    print(i);
-}
+print(add(1, 2));
+func add(a, b) {return a + b;};
