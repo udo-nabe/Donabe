@@ -280,6 +280,30 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     }
 
     @Override
+    public RuntimeValue<?> visitCompoundAssignExpression(CompoundAssignExpression expr) {
+        Expression target = expr.target();
+        RuntimeValue<?> value = expr.value().accept(this);
+
+        BinaryOperator binOperator = switch (expr.operator()) {
+            case PLUS -> BinaryOperator.PLUS;
+            case MINUS -> BinaryOperator.MINUS;
+            case DIVISION -> BinaryOperator.DIVISION;
+            case MULTIPLICATION -> BinaryOperator.MULTIPLICATION;
+        };
+
+        RuntimeValue<?> calc = registry.applyBinary(binOperator,
+                expr.target().accept(this),
+                expr.value().accept(this));
+
+        return switch (target) {
+            case Identifier identifier -> assignIdentifier(identifier, calc);
+            case IndexExpression indexExpression -> assignList(indexExpression, calc);
+            default ->
+                    throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "式\"%s\"には代入できません。", expr.display()));
+        };
+    }
+
+    @Override
     public RuntimeValue<?> visitDecrement(Decrement expr) {
         return incrementOrDecrement(false, expr.prefix(), expr.target());
     }

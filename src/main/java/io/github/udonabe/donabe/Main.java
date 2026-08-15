@@ -90,12 +90,12 @@ public class Main implements Callable<Integer> {
 
             Program parsed = ((ParseSuccess<Program>) result).value();
             log.debug("Parse successful.");
+            log.trace("Parsed tree: {}", ASTViewer.view(parsed));
 
             SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
             var variables = semanticAnalyzer.check(parsed);
             log.debug("Semantic analysis successful.");
-
-            ASTViewer.view(parsed, System.out);
+            log.trace("Name resolved tree: {}", ASTViewer.view(parsed));
 
             OperationRegistry registry = generateRegistry();
 

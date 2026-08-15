@@ -11,70 +11,71 @@ public class ASTViewer {
     private static final String CONTINUATION = "│  ";
     private static final String EMPTY = "    ";
 
-    private static final String RESET = "\u001B[0m";
-    private static final String CYAN = "\u001B[36m";
-    private static final String YELLO = "\u001B[33m";
-    private static final String GREEN = "\u001B[32m";
-
     public static void view(ASTNode root, PrintStream stream) throws IllegalAccessException {
-        viewImpl(root, stream, "", true);
+        stream.println(viewImpl(root, "", true));
     }
 
-    private static void viewImpl(Object node, PrintStream stream, String prefix, boolean isInsertPrefixBeforeClassName) throws IllegalAccessException {
-        if (node == null) return;
+    public static String view(ASTNode root) throws IllegalAccessException {
+        return viewImpl(root, "", true);
+    }
+
+    private static String viewImpl(Object node, String prefix, boolean isInsertPrefixBeforeClassName) throws IllegalAccessException {
+        StringBuilder result = new StringBuilder();
+        if (node == null) return result.toString();
         Class<?> clazz = node.getClass();
 
-        if (isInsertPrefixBeforeClassName) stream.print(prefix);
-        stream.println(CYAN + clazz.getSimpleName() + RESET);
+        if (isInsertPrefixBeforeClassName) result.append(prefix);
+        result.append(clazz.getSimpleName() + "\n");
 
         Field[] fields = clazz.getDeclaredFields();
         for (int i = 0; i < fields.length; i++) {
             Field field = fields[i];
             boolean isLastField = i == fields.length - 1;
             if (isLastField) {
-                stream.print(prefix + LAST_CHILD);
+                result.append(prefix + LAST_CHILD);
             } else {
-                stream.print(prefix + CHILD);
+                result.append(prefix + CHILD);
             }
             field.setAccessible(true);
-            stream.print(YELLO + field.getName() + RESET + ": ");
+            result.append(field.getName() + ": ");
             Object value = field.get(node);
 
             String fieldPrefix = prefix + (!isLastField ? CONTINUATION : EMPTY);
 
             // 配列・Collectionは、見やすくするため展開する
             if (field.getType().isArray()) {
-                stream.println("[");
+                result.append("[\n");
                 Object[] objects = (Object[]) value;
                 for (int j = 0; j < objects.length; j++) {
                     Object o = objects[j];
-                    stream.print(fieldPrefix + (j == objects.length - 1 ? LAST_CHILD : CHILD));
-                    stream.print("[" + j + "]: ");
-                    viewImpl(o, stream, fieldPrefix + CONTINUATION, false);
+                    result.append(fieldPrefix + (j == objects.length - 1 ? LAST_CHILD : CHILD));
+                    result.append("[" + j + "]: ");
+                    result.append(viewImpl(o, fieldPrefix + CONTINUATION, false));
                 }
-                stream.print(fieldPrefix);
-                stream.println("]");
+                result.append(fieldPrefix);
+                result.append("]\n");
                 continue;
             }
             if (Collection.class.isAssignableFrom(field.getType())) {
-                stream.println("[");
+                result.append("[\n");
                 int j = 0;
                 for (Iterator<?> iterator = ((Collection<?>) value).iterator(); iterator.hasNext(); ) {
                     Object o = iterator.next();
-                    stream.print(fieldPrefix + (iterator.hasNext() ? CHILD : LAST_CHILD));
-                    stream.print("[" + j++ + "]: ");
-                    viewImpl(o, stream, fieldPrefix + CONTINUATION, false);
+                    result.append(fieldPrefix + (iterator.hasNext() ? CHILD : LAST_CHILD));
+                    result.append("[" + j++ + "]: ");
+                    result.append(viewImpl(o, fieldPrefix + CONTINUATION, false));
                 }
-                stream.print(fieldPrefix);
-                stream.println("]");
+                result.append(fieldPrefix);
+                result.append("]\n");
                 continue;
             }
 
             if (!ASTNode.class.isAssignableFrom(field.getType())) { //不要な展開を防ぐため、ASTNodeを実装していないクラスはそのまま出力する
-                stream.println(GREEN + value + RESET);
+                result.append(value + "\n");
                 continue;
             }
-            viewImpl(value, stream, fieldPrefix, false);
+            result.append(viewImpl(value, fieldPrefix, false));
         }
+        return result.toString();
     }
 }
