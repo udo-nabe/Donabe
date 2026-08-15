@@ -169,6 +169,7 @@ class SemanticAnalyzerTest {
                         """,
                 List.of(
                         new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
 
                         new VariableCell(false, new UndefinedValue()),  //func add
                         new VariableCell(false, new UndefinedValue()),  //-> a
@@ -191,6 +192,7 @@ class SemanticAnalyzerTest {
                         """,
                 List.of(
                         new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
 
                         new VariableCell(false, new UndefinedValue()),  //let list
                         new VariableCell(false, new UndefinedValue())   //let i
