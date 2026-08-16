@@ -1,3 +1,14 @@
-for let i in range(10, 15) {
-    print(i);
+// Fibonacci
+// 生成する数字の数
+let limit = 10;
+var a = 1;
+var b = 1;
+var result = "[1, 1";
+
+for var i = 0; i < limit - 2; i++ {
+  let next = a + b;
+  a = b;
+  b = next;
+  result += ", " + next;
 }
+print(result + "]");
