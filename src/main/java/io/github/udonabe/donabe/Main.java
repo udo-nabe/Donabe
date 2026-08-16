@@ -12,6 +12,7 @@ import io.github.udonabe.donabe.parser.ParseSuccess;
 import io.github.udonabe.donabe.runtime.Interpreter;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.OperationRegistry;
+import io.github.udonabe.donabe.runtime.ReturnSignal;
 import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.SemanticAnalyzer;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "donabe",
@@ -109,9 +112,12 @@ public class Main implements Callable<Integer> {
         } catch (InterpreterException e) {
             System.err.println("実行時エラー: " + e.getMessage());
             return 1;
-        } catch (Exception e) {
+        } catch (Exception | AssertionError e) {
             log.error("An internal error has occurred.", e);
             return 1;
+        } catch (Throwable e) {
+            e.printStackTrace();    //ロギングすら失敗する可能性があるため、System.errにスタックトレースを出す
+            System.exit(1);
         }
         return 0;
     }
