@@ -63,6 +63,20 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
                 throw new InterpreterException("range()の引数は(int, int)である必要があります。");
             }
     );
+    static final BuiltinFunctionValue BUILTIN_INT = new BuiltinFunctionValue(
+            List.of("target"),
+            l -> {
+                RuntimeValue<?> target = l.getFirst();
+                if (target instanceof StringValue(String value)) {
+                    try {
+                        return new IntegerValue(Integer.parseInt(value));
+                    } catch (NumberFormatException ignored) {
+                        throw new InterpreterException("'" + value + "'を数値に変換できませんでした。");
+                    }
+                }
+                throw new InterpreterException("int()の引数は(string)である必要があります。");
+            }
+    );
     private static final Logger log = LoggerFactory.getLogger(SemanticAnalyzer.class);
     private final Scope rootScope;
     private final String source;
@@ -82,6 +96,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         putBuiltinFunction("string", BUILTIN_STRING, 2);
         putBuiltinFunction("length", BUILTIN_LENGTH, 3);
         putBuiltinFunction("range", BUILTIN_RANGE, 4);
+        putBuiltinFunction("int", BUILTIN_INT, 5);
     }
 
     private void putBuiltinFunction(String name, BuiltinFunctionValue value, int id) {

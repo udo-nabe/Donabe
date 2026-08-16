@@ -22,7 +22,8 @@ Donabeは、今のところ動的型付けのインタプリタ言語として�
 ```donabe
 // Fibonacci
 // 生成する数字の数
-let limit = 10;
+print("How many do you want to generate?> ");
+let limit = int(input());
 var a = 1;
 var b = 1;
 var result = "[1, 1";
@@ -39,6 +40,8 @@ print(result + "]");
 実行結果:
 
 ```text
+How many do you want to generate?> 
+10
 [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
 ```
 

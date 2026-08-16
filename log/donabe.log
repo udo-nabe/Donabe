@@ -921,3 +921,36 @@ java.util.NoSuchElementException: No line found
 14:27:59.857 [main] DEBUG i.g.udonabe.donabe.Main  - Semantic analysis successful.
 14:27:59.945 [main] DEBUG i.g.udonabe.donabe.Main  - Launching interpreter...
 14:27:59.953 [main] INFO  i.g.udonabe.donabe.Main  - Normal termination.
+14:45:08.242 [main] INFO  i.g.udonabe.donabe.Main  - Donabe launched.
+14:45:08.251 [main] DEBUG i.g.udonabe.donabe.Main  - Source file read.
+14:45:08.257 [main] DEBUG i.g.udonabe.donabe.Main  - Lexical analysis successful.
+14:45:08.342 [main] DEBUG i.g.udonabe.donabe.Main  - Parse successful.
+14:45:08.403 [main] DEBUG i.g.udonabe.donabe.Main  - Semantic analysis successful.
+14:45:08.436 [main] DEBUG i.g.udonabe.donabe.Main  - Launching interpreter...
+14:45:08.454 [main] INFO  i.g.udonabe.donabe.Main  - Normal termination.
+14:45:17.645 [main] INFO  i.g.udonabe.donabe.Main  - Donabe launched.
+14:45:17.655 [main] DEBUG i.g.udonabe.donabe.Main  - Source file read.
+14:45:17.663 [main] DEBUG i.g.udonabe.donabe.Main  - Lexical analysis successful.
+14:45:17.765 [main] DEBUG i.g.udonabe.donabe.Main  - Parse successful.
+14:45:17.807 [main] DEBUG i.g.udonabe.donabe.Main  - Semantic analysis successful.
+14:45:17.837 [main] DEBUG i.g.udonabe.donabe.Main  - Launching interpreter...
+14:45:17.852 [main] INFO  i.g.udonabe.donabe.Main  - Normal termination.
+14:51:52.875 [main] INFO  i.g.udonabe.donabe.Main  - Donabe launched.
+14:51:52.888 [main] DEBUG i.g.udonabe.donabe.Main  - Source file read.
+14:51:52.896 [main] DEBUG i.g.udonabe.donabe.Main  - Lexical analysis successful.
+14:51:52.985 [main] DEBUG i.g.udonabe.donabe.Main  - Parse successful.
+14:51:53.038 [main] DEBUG i.g.udonabe.donabe.Main  - Semantic analysis successful.
+14:51:53.071 [main] DEBUG i.g.udonabe.donabe.Main  - Launching interpreter...
+14:51:56.480 [main] INFO  i.g.udonabe.donabe.Main  - Normal termination.
+14:52:07.490 [main] INFO  i.g.udonabe.donabe.Main  - Donabe launched.
+14:52:07.498 [main] DEBUG i.g.udonabe.donabe.Main  - Source file read.
+14:52:07.505 [main] DEBUG i.g.udonabe.donabe.Main  - Lexical analysis successful.
+14:52:07.580 [main] DEBUG i.g.udonabe.donabe.Main  - Parse successful.
+14:52:07.636 [main] DEBUG i.g.udonabe.donabe.Main  - Semantic analysis successful.
+14:52:07.670 [main] DEBUG i.g.udonabe.donabe.Main  - Launching interpreter...
+14:52:19.333 [main] INFO  i.g.udonabe.donabe.Main  - Donabe launched.
+14:52:19.342 [main] DEBUG i.g.udonabe.donabe.Main  - Source file read.
+14:52:19.350 [main] DEBUG i.g.udonabe.donabe.Main  - Lexical analysis successful.
+14:52:19.431 [main] DEBUG i.g.udonabe.donabe.Main  - Parse successful.
+14:52:19.501 [main] DEBUG i.g.udonabe.donabe.Main  - Semantic analysis successful.
+14:52:19.540 [main] DEBUG i.g.udonabe.donabe.Main  - Launching interpreter...
