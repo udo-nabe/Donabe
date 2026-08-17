@@ -132,7 +132,7 @@ public class LexerTest {
     void testSymbols() {
         //記号が正しく解釈できるか
         Lexer lexer = new Lexer("""
-                == /= = ,""");
+                == /= = , < > <= >=""");
         var tokens = lexer.getTokens();
         var tokenKinds = tokens.stream().map(Token::kind).toList();
         assertIterableEquals(List.of(
@@ -140,6 +140,10 @@ public class LexerTest {
                 Token.Kind.SLASH_ASSIGN,
                 Token.Kind.ASSIGN,
                 Token.Kind.COMMA,
+                Token.Kind.LESS,
+                Token.Kind.GREATER,
+                Token.Kind.LESS_EQUAL,
+                Token.Kind.GREATER_EQUAL,
                 Token.Kind.EOF
         ), tokenKinds);
 

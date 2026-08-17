@@ -19,14 +19,12 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     private final OperationRegistry registry;
     private final String source;
     private final List<VariableCell> variables;
-    private InterpreterFlags flags;
 
     public Interpreter(Program program, OperationRegistry registry, String source, List<VariableCell> variables) {
         this.program = program;
         this.source = source;
         this.variables = variables;
         this.registry = registry;
-        this.flags = new InterpreterFlags();
     }
 
     public void run() {
@@ -58,7 +56,6 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     private RuntimeValue<?> callFunction(FunctionValue functionValue, List<Expression> args, SourceFileLocation functionLocation) {
         var actualArgs = evalArgs(args);
         RuntimeValue<?> retValue = new VoidValue();
-        flags.inFunction = true;
 
         checkArgSize(functionValue.formalArgs(), args, functionLocation);
 
@@ -70,6 +67,12 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
             variables.get(id).setValue(value);
         }
 
+        var functionDefines = functionValue.statements().stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList();
+        defineFunctions(functionDefines);
+
         for (Statement statement : functionValue.statements()) {
             try {
                 statement.accept(this);
@@ -78,18 +81,15 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
                 break;
             }
         }
-        flags.inFunction = false;
         return retValue;
     }
 
     private RuntimeValue<?> callBuiltinFunction(BuiltinFunctionValue functionValue, List<Expression> args, SourceFileLocation functionLocation) {
-        flags.inFunction = true;
         checkArgSize(functionValue.formalArgs(), args, functionLocation);
         var actualArgs = evalArgs(args);
 
         var callee = functionValue.content();
         RuntimeValue<?> retValue = callee.apply(actualArgs);
-        flags.inFunction = false;
         return retValue;
     }
 
@@ -183,11 +183,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitReturnStatement(ReturnStatement statement) {
-        if (flags.inFunction) {
-            throw new ReturnSignal(statement.returnValue().accept(this));
-        } else {
-            throw new InterpreterException(ErrorUtil.makeError(statement.location(), source, "return文は、関数の外で使用できません。"));
-        }
+        throw new ReturnSignal(statement.returnValue().accept(this));
     }
 
     @Override

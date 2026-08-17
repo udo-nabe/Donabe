@@ -81,14 +81,14 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     private final Scope rootScope;
     private final String source;
     private Scope currentScope;
-    private boolean inFunction;
+    private final AnalyzeContext context;
     private List<VariableCell> resolution;
 
     public SemanticAnalyzer(String source) {
         this.source = source;
         this.rootScope = new Scope(null);
         this.currentScope = rootScope;
-        this.inFunction = false;
+        this.context = new AnalyzeContext();
         this.resolution = new ArrayList<>();
 
         putBuiltinFunction("print", BUILTIN_PRINT, 0);
@@ -152,9 +152,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
             argIdentifier.resolve(argId);
         }
 
-        inFunction = true;
+        context.pushFunction();
         statement.block().accept(this);
-        inFunction = false;
+        context.popFunction();
         currentScope = before;
     }
 
@@ -228,7 +228,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitReturnStatement(ReturnStatement statement) {
-        if (!inFunction) {
+        if (!context.inFunction()) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source, "return文は関数の外で使用できません。"));
         }
         statement.returnValue().accept(this);

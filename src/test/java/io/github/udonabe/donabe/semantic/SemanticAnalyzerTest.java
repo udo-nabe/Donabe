@@ -206,4 +206,60 @@ class SemanticAnalyzerTest {
                         new VariableCell(false, new UndefinedValue())   //let i
                 ));
     }
+
+    @Test
+    void function() {
+        nameResolution("""
+                        func add(a, b) {
+                            return a + b;
+                        }
+                        let a = add(1, 2);
+                        """,
+                List.of(
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT),    //input
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING),    //string
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH),    //length
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INT),    //int
+
+                        new VariableCell(false, new UndefinedValue()),  //func add
+                        new VariableCell(false, new UndefinedValue()),  //add->a
+                        new VariableCell(false, new UndefinedValue()),  //add->b
+
+                        new VariableCell(false, new UndefinedValue())   //let a
+                ));
+    }
+
+    @Test
+    void nestedFunction() {
+        nameResolution("""
+                        func add(a, b) {
+                            func impl(a, b) {
+                                return a + b;
+                            }
+                            return impl(a, b);
+                        }
+                        
+                        let b = add(3, 4);
+                        """,
+                List.of(
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT),    //input
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING),    //string
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH),    //length
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
+                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INT),    //int
+
+                        new VariableCell(false, new UndefinedValue()),  //func add
+                        new VariableCell(false, new UndefinedValue()),  //add->a
+                        new VariableCell(false, new UndefinedValue()),  //add->b
+
+                        new VariableCell(false, new UndefinedValue()),  //add->func impl
+                        new VariableCell(false, new UndefinedValue()),  //add->impl->a
+                        new VariableCell(false, new UndefinedValue()),  //add->impl->b
+
+                        new VariableCell(false, new UndefinedValue())   //let b
+                ));
+    }
 }
