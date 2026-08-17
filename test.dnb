@@ -1,2 +1,8 @@
-print(1 > 10);
-print(10 < 1);
+func add(a, b) {
+    func impl(a, b) {
+        return a + b;
+    }
+    return impl(3, b);
+}
+
+print(add(1, 3));

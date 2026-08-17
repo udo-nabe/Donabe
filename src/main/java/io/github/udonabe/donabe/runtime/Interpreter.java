@@ -67,6 +67,12 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
             variables.get(id).setValue(value);
         }
 
+        var functionDefines = functionValue.statements().stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList();
+        defineFunctions(functionDefines);
+
         for (Statement statement : functionValue.statements()) {
             try {
                 statement.accept(this);
