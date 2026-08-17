@@ -12,15 +12,16 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     private static final Logger log = LoggerFactory.getLogger(Interpreter.class);
     private final Program program;
     private final OperationRegistry registry;
     private final String source;
-    private final List<VariableCell> variables;
+    private final Map<Integer, VariableCell> variables;
 
-    public Interpreter(Program program, OperationRegistry registry, String source, List<VariableCell> variables) {
+    public Interpreter(Program program, OperationRegistry registry, String source, Map<Integer, VariableCell> variables) {
         this.program = program;
         this.source = source;
         this.variables = variables;

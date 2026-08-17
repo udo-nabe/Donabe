@@ -1,8 +1,18 @@
-func add(a, b) {
-    func impl(a, b) {
-        return a + b;
-    }
-    return impl(3, b);
+func makeCounter(start) {
+    var count = start;
+
+    let increment = func() {
+        count += 1;
+        return count;
+    };
+
+    return increment;
 }
 
-print(add(1, 3));
+let a = makeCounter(0);
+let b = makeCounter(100);
+
+print(a());
+print(b());
+print(a());
+print(b());
