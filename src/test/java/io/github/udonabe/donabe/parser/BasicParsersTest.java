@@ -83,6 +83,61 @@ class BasicParsersTest {
     }
 
     @Test
+    void testCompare() {
+        TokenStream lessStream = TestUtil.toTokenStream("1 < 2");
+        ParseResult<Expression> less = expression.parse(lessStream);
+        assertEquals(
+                new ParseSuccess<>(
+                        new BinaryExpression(
+                                new IntegerLiteral(1, new SourceFileLocation(1, 1)),
+                                BinaryOperator.LESS,
+                                new IntegerLiteral(2, new SourceFileLocation(1, 5)),
+                                new SourceFileLocation(1, 1)
+                        )
+                ), less
+        );
+
+        TokenStream greaterStream = TestUtil.toTokenStream("1 > 2");
+        ParseResult<Expression> greater = expression.parse(greaterStream);
+        assertEquals(
+                new ParseSuccess<>(
+                        new BinaryExpression(
+                                new IntegerLiteral(1, new SourceFileLocation(1, 1)),
+                                BinaryOperator.GREATER,
+                                new IntegerLiteral(2, new SourceFileLocation(1, 5)),
+                                new SourceFileLocation(1, 1)
+                        )
+                ), greater
+        );
+
+        TokenStream lessEqualStream = TestUtil.toTokenStream("1 <= 2");
+        ParseResult<Expression> lessEqual = expression.parse(lessEqualStream);
+        assertEquals(
+                new ParseSuccess<>(
+                        new BinaryExpression(
+                                new IntegerLiteral(1, new SourceFileLocation(1, 1)),
+                                BinaryOperator.LESS_EQUAL,
+                                new IntegerLiteral(2, new SourceFileLocation(1, 6)),
+                                new SourceFileLocation(1, 1)
+                        )
+                ), lessEqual
+        );
+
+        TokenStream greaterEqualStream = TestUtil.toTokenStream("1 >= 2");
+        ParseResult<Expression> greaterEqual = expression.parse(greaterEqualStream);
+        assertEquals(
+                new ParseSuccess<>(
+                        new BinaryExpression(
+                                new IntegerLiteral(1, new SourceFileLocation(1, 1)),
+                                BinaryOperator.GREATER_EQUAL,
+                                new IntegerLiteral(2, new SourceFileLocation(1, 6)),
+                                new SourceFileLocation(1, 1)
+                        )
+                ), greaterEqual
+        );
+    }
+
+    @Test
     void testLetDeclaration() {
         TokenStream success = TestUtil.toTokenStream("let variable = \"Hello, World\";");
         ParseResult<LetDeclaration> let = letDeclaration.parse(success);
@@ -173,7 +228,7 @@ class BasicParsersTest {
                                         new WhileStatement(
                                                 new BinaryExpression(
                                                         new Identifier("i", new SourceFileLocation(1, 16)),
-                                                        BinaryOperator.GREATER,
+                                                        BinaryOperator.LESS,
                                                         new IntegerLiteral(10, new SourceFileLocation(1, 20)),
                                                         new SourceFileLocation(1, 16)
                                                 ),

@@ -32,8 +32,8 @@ public class Lexer {
     );
     private static final Map<String, Token.Kind> OPERATOR2 = Map.ofEntries(
             entry("==", Token.Kind.EQUAL),
-            entry("<=", Token.Kind.GREATER_EQUAL),
-            entry(">=", Token.Kind.LESS_EQUAL),
+            entry("<=", Token.Kind.LESS_EQUAL),
+            entry(">=", Token.Kind.GREATER_EQUAL),
             entry("++", Token.Kind.INCREMENT),
             entry("--", Token.Kind.DECREMENT),
             entry("+=", Token.Kind.PLUS_ASSIGN),
@@ -55,8 +55,8 @@ public class Lexer {
             entry("]", Token.Kind.RBRACKET),
             entry(";", Token.Kind.SEMICOLON),
             entry("!", Token.Kind.EXCLAMATION),
-            entry("<", Token.Kind.GREATER),
-            entry(">", Token.Kind.LESS),
+            entry("<", Token.Kind.LESS),
+            entry(">", Token.Kind.GREATER),
             entry(",", Token.Kind.COMMA)
     );
 

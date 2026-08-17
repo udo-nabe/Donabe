@@ -1,14 +1,8 @@
-// Fibonacci
-// 生成する数字の数
-let limit = 10;
-var a = 1;
-var b = 1;
-var result = "[1, 1";
-
-for var i = 0; i < limit - 2; i++ {
-  let next = a + b;
-  a = b;
-  b = next;
-  result += ", " + next;
+func add(a, b) {
+    func impl(a, b) {
+        return a + b;
+    }
+    return impl(3, b);
 }
-print(result + "]");
+
+print(add(1, 3));
