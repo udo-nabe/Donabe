@@ -7,6 +7,7 @@ import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
 import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.*;
 import org.slf4j.Logger;
@@ -14,14 +15,36 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
-    private static final Logger log = LoggerFactory.getLogger(SemanticAnalyzer.class);
     static final BuiltinFunctionValue BUILTIN_PRINT = new BuiltinFunctionValue(
             List.of("target"),
             l -> {
                 System.out.println(l.getFirst().display());
                 return new VoidValue();
+            }
+    );
+    static final BuiltinFunctionValue BUILTIN_INPUT = new BuiltinFunctionValue(
+            List.of(),
+            l -> new StringValue(RuntimeIOUtil.RUNTIME_INPUT.nextLine())
+    );
+    static final BuiltinFunctionValue BUILTIN_STRING = new BuiltinFunctionValue(
+            List.of("target"),
+            l -> {
+                RuntimeValue<?> value = l.getFirst();
+                return new StringValue(value.display());
+            }
+    );
+    static final BuiltinFunctionValue BUILTIN_LENGTH = new BuiltinFunctionValue(
+            List.of("target"),
+            l -> {
+                RuntimeValue<?> target = l.getFirst();
+                return switch (target) {
+                    case StringValue(String value) -> new IntegerValue(value.length());
+                    case ListValue(List<RuntimeValue<?>> value) -> new IntegerValue(value.size());
+                    default -> new IntegerValue(-1);
+                };
             }
     );
     static final BuiltinFunctionValue BUILTIN_RANGE = new BuiltinFunctionValue(
@@ -40,6 +63,21 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
                 throw new InterpreterException("range()の引数は(int, int)である必要があります。");
             }
     );
+    static final BuiltinFunctionValue BUILTIN_INT = new BuiltinFunctionValue(
+            List.of("target"),
+            l -> {
+                RuntimeValue<?> target = l.getFirst();
+                if (target instanceof StringValue(String value)) {
+                    try {
+                        return new IntegerValue(Integer.parseInt(value));
+                    } catch (NumberFormatException ignored) {
+                        throw new InterpreterException("'" + value + "'を数値に変換できませんでした。");
+                    }
+                }
+                throw new InterpreterException("int()の引数は(string)である必要があります。");
+            }
+    );
+    private static final Logger log = LoggerFactory.getLogger(SemanticAnalyzer.class);
     private final Scope rootScope;
     private final String source;
     private Scope currentScope;
@@ -54,7 +92,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         this.resolution = new ArrayList<>();
 
         putBuiltinFunction("print", BUILTIN_PRINT, 0);
-        putBuiltinFunction("range", BUILTIN_RANGE, 1);
+        putBuiltinFunction("input", BUILTIN_INPUT, 1);
+        putBuiltinFunction("string", BUILTIN_STRING, 2);
+        putBuiltinFunction("length", BUILTIN_LENGTH, 3);
+        putBuiltinFunction("range", BUILTIN_RANGE, 4);
+        putBuiltinFunction("int", BUILTIN_INT, 5);
     }
 
     private void putBuiltinFunction(String name, BuiltinFunctionValue value, int id) {
