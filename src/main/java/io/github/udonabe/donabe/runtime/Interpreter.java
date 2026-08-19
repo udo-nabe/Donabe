@@ -304,8 +304,8 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         };
 
         RuntimeValue<?> calc = registry.applyBinary(binOperator,
-                expr.target().accept(this),
-                expr.value().accept(this));
+                target.accept(this),
+                value);
 
         return switch (target) {
             case Identifier identifier -> assignIdentifier(identifier, calc);
