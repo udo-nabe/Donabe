@@ -2,6 +2,7 @@ package io.github.udonabe.donabe.ast;
 
 import java.io.PrintStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -36,11 +37,25 @@ public class ASTViewer {
             } else {
                 result.append(prefix + CHILD);
             }
-            field.setAccessible(true);
+
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            if (!field.canAccess(node)) {
+                continue;
+            }
+
             result.append(field.getName() + ": ");
+
+            field.setAccessible(true);
             Object value = field.get(node);
 
             String fieldPrefix = prefix + (!isLastField ? CONTINUATION : EMPTY);
+
+            if (value == null) {
+                result.append(fieldPrefix + "null");
+                continue;
+            }
 
             // 配列・Collectionは、見やすくするため展開する
             if (field.getType().isArray()) {

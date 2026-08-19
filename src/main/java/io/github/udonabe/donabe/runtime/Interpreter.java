@@ -6,11 +6,14 @@ import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.runtime.context.InterpretContext;
+import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
 import io.github.udonabe.donabe.runtime.value.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,12 +22,12 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     private final Program program;
     private final OperationRegistry registry;
     private final String source;
-    private final Map<Integer, VariableCell> variables;
+    private final InterpretContext context;
 
     public Interpreter(Program program, OperationRegistry registry, String source, Map<Integer, VariableCell> variables) {
         this.program = program;
         this.source = source;
-        this.variables = variables;
+        this.context = new InterpretContext(variables);
         this.registry = registry;
     }
 
@@ -35,8 +38,13 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     private void defineFunctions(List<FunctionDefineStatement> statements) {
         for (var statement : statements) {
             List<Identifier> args = statement.args();
-            FunctionValue function = new FunctionValue(args, statement.block().statements());
-            variables.get(statement.identifier().id()).setValue(function);
+            FunctionValue function = new FunctionValue(
+                    statement.identifier().name(),
+                    args,
+                    statement.block().statements(),
+                    context.peekStackFrame(),
+                    statement.locals());
+            context.setVarValue(statement.identifier().id(), function);
         }
     }
 
@@ -60,12 +68,19 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
         checkArgSize(functionValue.formalArgs(), args, functionLocation);
 
+        context.pushStackFrame(new StackFrame(
+                functionValue.parent(),
+                functionValue.name(),
+                new HashMap<>(),
+                functionValue.locals()
+        ));
+
         List<Identifier> formalArgs = functionValue.formalArgs();
         for (int i = 0; i < formalArgs.size(); i++) {
             Identifier arg = formalArgs.get(i);
             int id = arg.id();
             RuntimeValue<?> value = actualArgs.get(i);
-            variables.get(id).setValue(value);
+            context.setVarValue(id, value);
         }
 
         var functionDefines = functionValue.statements().stream()
@@ -95,7 +110,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     }
 
     private IntegerValue incrementOrDecrement(boolean increment, boolean prefix, Identifier target) {
-        VariableCell cell = variables.get(target.id());
+        VariableCell cell = context.getVar(target.id());
         if (cell.value() instanceof IntegerValue(Integer before)) {
             IntegerValue after = new IntegerValue(increment ? before + 1 : before - 1);
             cell.setValue(after);
@@ -178,7 +193,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitLetDeclaration(LetDeclaration statement) {
-        variables.get(statement.name().id()).setValue(statement.expr().accept(this));
+        context.setVarValue(statement.name().id(), statement.expr().accept(this));
         return null;
     }
 
@@ -189,7 +204,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitVarDeclaration(VarDeclaration statement) {
-        variables.get(statement.name().id()).setValue(statement.expr().accept(this));
+        context.setVarValue(statement.name().id(), statement.expr().accept(this));
         return null;
     }
 
@@ -215,7 +230,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
             throw new InterpreterException(ErrorUtil.makeError(statement.location(), source, "for-each文で、list型以外を使うことはできません。"));
         }
         for (RuntimeValue<?> it : iterable) {
-            variables.get(statement.variable().id()).setValue(it);
+            context.setVarValue(statement.variable().id(), it);
             statement.body().accept(this);
         }
         return null;
@@ -235,7 +250,7 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
     }
 
     private RuntimeValue<?> assignIdentifier(Identifier identifier, RuntimeValue<?> value) {
-        variables.get(identifier.id()).setValue(value);
+        context.setVarValue(identifier.id(), value);
         return value;
     }
 
@@ -307,12 +322,17 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
 
     @Override
     public RuntimeValue<?> visitFunctionLiteral(FunctionLiteral expr) {
-        return new FunctionValue(expr.args(), expr.block().statements());
+        return new FunctionValue(
+                null,
+                expr.args(),
+                expr.block().statements(),
+                context.peekStackFrame(),
+                expr.locals());
     }
 
     @Override
     public RuntimeValue<?> visitIdentifier(Identifier expr) {
-        return variables.get(expr.id()).value();
+        return context.getVar(expr.id()).value();
     }
 
     @Override

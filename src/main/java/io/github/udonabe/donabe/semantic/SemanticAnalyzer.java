@@ -151,9 +151,27 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         }
 
         context.pushFunction();
-        statement.block().accept(this);
+
+        List<Statement> statements = statement.block().statements();
+        defineFunctions(currentScope, statements);
+
+        Set<Integer> locals = new HashSet<>();
+        for (Statement s : statements) {
+            s.accept(this);
+            switch (s) {
+                case LetDeclaration d -> locals.add(d.name().id());
+                case VarDeclaration d -> locals.add(d.name().id());
+                case FunctionDefineStatement d -> locals.add(d.identifier().id());
+                default -> {
+                    //localsに追加する必要がないため、何もしない
+                }
+            }
+        }
         context.popFunction();
         currentScope = before;
+
+        log.trace("defineFunction: locals: {}", locals);
+        statement.setLocals(locals);
     }
 
     private void pushScope() {
@@ -318,11 +336,48 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionLiteral(FunctionLiteral expr) {
-        Scope capture = currentScope.capture();
+        Scope func = currentScope.capture();
         Scope before = currentScope;
-        currentScope = capture;
-        expr.block().accept(this);
+        currentScope = func;
+
+        List<String> argNames = expr.args()
+                .stream()
+                .map(Identifier::name)
+                .toList();
+
+        for (int i = 0; i < argNames.size(); i++) {
+            String argName = argNames.get(i);
+            int argId = nextId();
+            func.put(argName, new SymbolInformation(false));
+            currentScope.putId(argName, argId);
+            resolution.put(argId, new VariableCell(false, new UndefinedValue()));
+
+            Identifier argIdentifier = expr.args().get(i);
+            argIdentifier.resolve(argId);
+        }
+
+        context.pushFunction();
+
+        List<Statement> statements = expr.block().statements();
+        defineFunctions(currentScope, statements);
+
+        Set<Integer> locals = new HashSet<>();
+        for (Statement s : statements) {
+            s.accept(this);
+            switch (s) {
+                case LetDeclaration d -> locals.add(d.name().id());
+                case VarDeclaration d -> locals.add(d.name().id());
+                case FunctionDefineStatement d -> locals.add(d.identifier().id());
+                default -> {
+                    //localsに追加する必要がないため、何もしない
+                }
+            }
+        }
+        context.popFunction();
         currentScope = before;
+
+        log.trace("visitFunctionLiteral: locals: {}", locals);
+        expr.setLocals(locals);
         return new SymbolInformation(false);
     }
 
