@@ -16,6 +16,7 @@ public record Token(Kind kind, String lexeme, String lineSource, int line, int c
         FUNC,
         RETURN,
         IN,
+        LAZY,
         // Identifier
         IDENTIFIER,
         // Values

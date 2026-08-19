@@ -100,6 +100,19 @@ public final class BasicParsers {
 
                         return new FunctionDefineStatement(identifier, params, block, location);
                     });
+    public static Parser<LetDeclaration> lazyFunctionDefineStatement =
+            token(LAZY).skip(token(FUNC)).then(identifier)
+                    .then(separatedBy(identifier, token(COMMA)).between(token(LPAREN), token(RPAREN)))
+                    .then(blockStatement())
+                    .map(p -> {
+                        Identifier identifier = p.getLeft().getLeft().getRight();
+                        List<Identifier> params = p.getLeft().getRight();
+                        BlockStatement block = p.getRight();
+                        var location = genLocation(p.getLeft().getLeft().getLeft());
+                        var literal = new FunctionLiteral(params, block, location);
+
+                        return new LetDeclaration(identifier, literal, location);
+                    });
     public static Parser<EmptyStatement> emptyStatement = token(SEMICOLON).map(t -> new EmptyStatement(genLocation(t)));
     public static Parser<ForEachStatement> forEachStatement = token(FOR)
             .skip(token(LET)).then(identifier)
@@ -117,7 +130,8 @@ public final class BasicParsers {
             forStatement,
             returnStatement,
             functionDefineStatement,
-            forEachStatement);
+            forEachStatement,
+            lazyFunctionDefineStatement);
     public static final Parser<Program> program = removeIf(many(statement), t -> t instanceof EmptyStatement)
             .skip(token(EOF)).map(l -> new Program(l, new SourceFileLocation(0, 0)));
 

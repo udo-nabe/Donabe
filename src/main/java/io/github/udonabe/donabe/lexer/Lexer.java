@@ -28,7 +28,8 @@ public class Lexer {
             entry("for", Token.Kind.FOR),
             entry("func", Token.Kind.FUNC),
             entry("return", Token.Kind.RETURN),
-            entry("in", Token.Kind.IN)
+            entry("in", Token.Kind.IN),
+            entry("lazy", Token.Kind.LAZY)
     );
     private static final Map<String, Token.Kind> OPERATOR2 = Map.ofEntries(
             entry("==", Token.Kind.EQUAL),
