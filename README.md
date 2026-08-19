@@ -108,7 +108,7 @@ var bar = "Hello";
 ```donabe
 let add = func(a, b) {
   return a + b;
-}
+};
 ```
 と
 ```donabe
@@ -312,10 +312,7 @@ cd Donabe
 
 ## 既知の問題
 
-現在、以下の問題があります。
-
-- クロージャがおかしい
-- 関数をネストするとreturnできなくなる
+現在、既知の問題はありません。
 
 ## ライセンス
 MIT License
