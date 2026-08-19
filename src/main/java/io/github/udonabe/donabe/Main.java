@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe;
 
-import io.github.udonabe.donabe.ast.ASTViewer;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.UnaryOperator;
@@ -12,23 +11,17 @@ import io.github.udonabe.donabe.parser.ParseSuccess;
 import io.github.udonabe.donabe.runtime.Interpreter;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.OperationRegistry;
-import io.github.udonabe.donabe.runtime.ReturnSignal;
 import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.SemanticAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "donabe",
@@ -93,12 +86,10 @@ public class Main implements Callable<Integer> {
 
             Program parsed = ((ParseSuccess<Program>) result).value();
             log.debug("Parse successful.");
-            log.trace("Parsed tree: {}", ASTViewer.view(parsed));
 
             SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
             var variables = semanticAnalyzer.check(parsed);
             log.debug("Semantic analysis successful.");
-            log.trace("Name resolved tree: {}", ASTViewer.view(parsed));
 
             OperationRegistry registry = generateRegistry();
 

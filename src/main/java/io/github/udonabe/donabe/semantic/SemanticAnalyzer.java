@@ -13,9 +13,7 @@ import io.github.udonabe.donabe.runtime.value.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     static final BuiltinFunctionValue BUILTIN_PRINT = new BuiltinFunctionValue(
@@ -82,14 +80,14 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     private final String source;
     private Scope currentScope;
     private final AnalyzeContext context;
-    private List<VariableCell> resolution;
+    private Map<Integer, VariableCell> resolution;
 
     public SemanticAnalyzer(String source) {
         this.source = source;
         this.rootScope = new Scope(null);
         this.currentScope = rootScope;
         this.context = new AnalyzeContext();
-        this.resolution = new ArrayList<>();
+        this.resolution = new HashMap<>();
 
         putBuiltinFunction("print", BUILTIN_PRINT, 0);
         putBuiltinFunction("input", BUILTIN_INPUT, 1);
@@ -100,7 +98,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     }
 
     private void putBuiltinFunction(String name, BuiltinFunctionValue value, int id) {
-        resolution.add(new VariableCell(false, value));
+        resolution.put(id, new VariableCell(false, value));
         rootScope.put(name, new SymbolInformation(false));
         rootScope.putId(name, id);
     }
@@ -109,9 +107,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         return resolution.size();
     }
 
-    public List<VariableCell> check(Program program) {
+    public Map<Integer, VariableCell> check(Program program) {
         program.accept(this);
-        return List.copyOf(resolution);
+        return Map.copyOf(resolution);
     }
 
     private void defineFunctions(Scope scope, List<Statement> statements) {
@@ -130,7 +128,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         }
         int identifierId = nextId();
         currentScope.putId(statement.identifier().name(), identifierId);
-        resolution.add(new VariableCell(false, new UndefinedValue()));
+        resolution.put(identifierId, new VariableCell(false, new UndefinedValue()));
         statement.identifier().resolve(identifierId);
 
         List<String> argNames = statement.args().stream()
@@ -146,16 +144,34 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
             int argId = nextId();
             func.put(argName, new SymbolInformation(false));
             currentScope.putId(argName, argId);
-            resolution.add(new VariableCell(false, new UndefinedValue()));
+            resolution.put(argId, new VariableCell(false, new UndefinedValue()));
 
             Identifier argIdentifier = statement.args().get(i);
             argIdentifier.resolve(argId);
         }
 
         context.pushFunction();
-        statement.block().accept(this);
+
+        List<Statement> statements = statement.block().statements();
+        defineFunctions(currentScope, statements);
+
+        Set<Integer> locals = new HashSet<>();
+        for (Statement s : statements) {
+            s.accept(this);
+            switch (s) {
+                case LetDeclaration d -> locals.add(d.name().id());
+                case VarDeclaration d -> locals.add(d.name().id());
+                case FunctionDefineStatement d -> locals.add(d.identifier().id());
+                default -> {
+                    //localsに追加する必要がないため、何もしない
+                }
+            }
+        }
         context.popFunction();
         currentScope = before;
+
+        log.trace("defineFunction: locals: {}", locals);
+        statement.setLocals(locals);
     }
 
     private void pushScope() {
@@ -221,7 +237,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         }
         int id = nextId();
         currentScope.putId(statement.name().name(), id);
-        resolution.add(new VariableCell(false, new UndefinedValue()));
+        resolution.put(id, new VariableCell(false, new UndefinedValue()));
         statement.name().resolve(id);
         return null;
     }
@@ -243,7 +259,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         }
         int id = nextId();
         currentScope.putId(statement.name().name(), id);
-        resolution.add(new VariableCell(true, new UndefinedValue()));
+        resolution.put(id, new VariableCell(true, new UndefinedValue()));
         statement.name().resolve(id);
         return null;
     }
@@ -262,7 +278,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         int id = nextId();
         currentScope.put(statement.variable().name(), new SymbolInformation(false));
         currentScope.putId(statement.variable().name(), id);
-        resolution.add(new VariableCell(false, new UndefinedValue()));
+        resolution.put(id, new VariableCell(false, new UndefinedValue()));
         statement.variable().resolve(id);
         statement.body().accept(this);
         popScope();
@@ -320,11 +336,48 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionLiteral(FunctionLiteral expr) {
-        Scope capture = currentScope.capture();
+        Scope func = currentScope.capture();
         Scope before = currentScope;
-        currentScope = capture;
-        expr.block().accept(this);
+        currentScope = func;
+
+        List<String> argNames = expr.args()
+                .stream()
+                .map(Identifier::name)
+                .toList();
+
+        for (int i = 0; i < argNames.size(); i++) {
+            String argName = argNames.get(i);
+            int argId = nextId();
+            func.put(argName, new SymbolInformation(false));
+            currentScope.putId(argName, argId);
+            resolution.put(argId, new VariableCell(false, new UndefinedValue()));
+
+            Identifier argIdentifier = expr.args().get(i);
+            argIdentifier.resolve(argId);
+        }
+
+        context.pushFunction();
+
+        List<Statement> statements = expr.block().statements();
+        defineFunctions(currentScope, statements);
+
+        Set<Integer> locals = new HashSet<>();
+        for (Statement s : statements) {
+            s.accept(this);
+            switch (s) {
+                case LetDeclaration d -> locals.add(d.name().id());
+                case VarDeclaration d -> locals.add(d.name().id());
+                case FunctionDefineStatement d -> locals.add(d.identifier().id());
+                default -> {
+                    //localsに追加する必要がないため、何もしない
+                }
+            }
+        }
+        context.popFunction();
         currentScope = before;
+
+        log.trace("visitFunctionLiteral: locals: {}", locals);
+        expr.setLocals(locals);
         return new SymbolInformation(false);
     }
 

@@ -13,6 +13,7 @@ import io.github.udonabe.donabe.runtime.value.UndefinedValue;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -144,7 +145,7 @@ class SemanticAnalyzerTest {
                 """);
     }
 
-    private void nameResolution(String source, List<VariableCell> resolution) {
+    private void nameResolution(String source, Map<Integer, VariableCell> resolution) {
         Lexer l = new Lexer(source);
         ParseResult<Program> programResult = BasicParsers.program.parse(l.toTokenStream());
 
@@ -153,7 +154,7 @@ class SemanticAnalyzerTest {
             return; //到達不可能。コンパイルを通すため。
         }
 
-        List<VariableCell> nameResolutions = new SemanticAnalyzer(source).check(value);
+        Map<Integer, VariableCell> nameResolutions = new SemanticAnalyzer(source).check(value);
         assertEquals(resolution, nameResolutions);
     }
 
@@ -167,22 +168,21 @@ class SemanticAnalyzerTest {
                         let c = add(a, b);
                         print("ADD: " + c);
                         """,
-                List.of(
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT),    //input
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING),    //string
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH),    //length
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INT),    //int
+                Map.ofEntries(
+                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
 
-                        new VariableCell(false, new UndefinedValue()),  //func add
-                        new VariableCell(false, new UndefinedValue()),  //-> a
-                        new VariableCell(false, new UndefinedValue()),  //-> b
+                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //func add
+                        Map.entry(7, new VariableCell(false, new UndefinedValue())),  //add->a
+                        Map.entry(8, new VariableCell(false, new UndefinedValue())),  //add->b
 
-                        new VariableCell(false, new UndefinedValue()),  //let a
-                        new VariableCell(true, new UndefinedValue()),   //var b
-
-                        new VariableCell(false, new UndefinedValue())   //let c
+                        Map.entry(9, new VariableCell(false, new UndefinedValue())),  //let a
+                        Map.entry(10, new VariableCell(true, new UndefinedValue())),  //var b
+                        Map.entry(11, new VariableCell(false, new UndefinedValue()))  //let c
                 ));
     }
 
@@ -194,16 +194,16 @@ class SemanticAnalyzerTest {
                             print(i);
                         }
                         """,
-                List.of(
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT),    //input
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING),    //string
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH),    //length
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INT),    //int
+                Map.ofEntries(
+                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
 
-                        new VariableCell(false, new UndefinedValue()),  //let list
-                        new VariableCell(false, new UndefinedValue())   //let i
+                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //let list
+                        Map.entry(7, new VariableCell(false, new UndefinedValue()))  //for->let i
                 ));
     }
 
@@ -215,19 +215,19 @@ class SemanticAnalyzerTest {
                         }
                         let a = add(1, 2);
                         """,
-                List.of(
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT),    //input
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING),    //string
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH),    //length
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INT),    //int
+                Map.ofEntries(
+                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
 
-                        new VariableCell(false, new UndefinedValue()),  //func add
-                        new VariableCell(false, new UndefinedValue()),  //add->a
-                        new VariableCell(false, new UndefinedValue()),  //add->b
+                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //func add
+                        Map.entry(7, new VariableCell(false, new UndefinedValue())),  //add->a
+                        Map.entry(8, new VariableCell(false, new UndefinedValue())),  //add->b
 
-                        new VariableCell(false, new UndefinedValue())   //let a
+                        Map.entry(9, new VariableCell(false, new UndefinedValue()))  //let a
                 ));
     }
 
@@ -243,23 +243,23 @@ class SemanticAnalyzerTest {
                         
                         let b = add(3, 4);
                         """,
-                List.of(
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT),    //print
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT),    //input
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING),    //string
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH),    //length
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE),    //range
-                        new VariableCell(false, SemanticAnalyzer.BUILTIN_INT),    //int
+                Map.ofEntries(
+                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
 
-                        new VariableCell(false, new UndefinedValue()),  //func add
-                        new VariableCell(false, new UndefinedValue()),  //add->a
-                        new VariableCell(false, new UndefinedValue()),  //add->b
+                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //func add
+                        Map.entry(7, new VariableCell(false, new UndefinedValue())),  //add->a
+                        Map.entry(8, new VariableCell(false, new UndefinedValue())),  //add->b
 
-                        new VariableCell(false, new UndefinedValue()),  //add->func impl
-                        new VariableCell(false, new UndefinedValue()),  //add->impl->a
-                        new VariableCell(false, new UndefinedValue()),  //add->impl->b
+                        Map.entry(9, new VariableCell(false, new UndefinedValue())),  //add->func impl
+                        Map.entry(10, new VariableCell(false, new UndefinedValue())),  //add->impl->a
+                        Map.entry(11, new VariableCell(false, new UndefinedValue())),  //add->impl->b
 
-                        new VariableCell(false, new UndefinedValue())   //let b
+                        Map.entry(12, new VariableCell(false, new UndefinedValue()))   //let b
                 ));
     }
 }
