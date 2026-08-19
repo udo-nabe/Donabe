@@ -1,20 +1,7 @@
-func make() {
-    var x = 0;
-
-    let a = func() {
-        x += 1;
-        return x;
-    };
-
-    let b = func() {
-        x += 10;
-        return x;
-    };
-
-    print(a());
-    print(b());
-    print(a());
-    print(b());
+var x = 10;
+lazy func add(a) {
+    x = 1;
+    return x + a;
 }
-
-make();
+print(add(5));
+print(x);
