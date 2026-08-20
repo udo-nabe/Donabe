@@ -18,6 +18,7 @@ public final class Identifier implements Expression {
         this.id = UNRESOLVED_ID;
     }
 
+    @Deprecated(forRemoval = true)
     public void resolve(int id) {
         if (id < 0) {
             throw new IllegalArgumentException("The argument 'id' must not be a negative value.");
@@ -47,6 +48,7 @@ public final class Identifier implements Expression {
         return location;
     }
 
+    @Deprecated(forRemoval = true)
     public int id() {
         if (id == UNRESOLVED_ID) {
             throw new IllegalStateException("This identifier has not yet been resolved.");

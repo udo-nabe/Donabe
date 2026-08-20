@@ -2,23 +2,43 @@ package io.github.udonabe.donabe.semantic;
 
 import io.github.udonabe.donabe.ast.expr.Identifier;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public final class Scope {
     private final Map<String, SymbolInformation> symbolTable;
     private final Map<String, Integer> identifierIds;
     private final Scope parent;
+    private final List<Scope> children;
+    private int childPos;
+
+    public static Scope generateRoot() {
+        return new Scope(null);
+    }
 
     private Scope(Map<String, SymbolInformation> symbolTable, Map<String, Integer> identifierIds, Scope parent) {
         this.symbolTable = symbolTable;
         this.identifierIds = identifierIds;
         this.parent = parent;
+        this.children = new ArrayList<>();
+        this.childPos = -1;
     }
 
-    public Scope(Scope parent) {
+    private Scope(Scope parent) {
         this(new HashMap<>(), new HashMap<>(), parent);
+    }
+
+    public Scope newChild() {
+        Scope child = new Scope(this);
+        children.add(child);
+        return child;
+    }
+
+    public Scope nextChildScope() {
+        try {
+            return children.get(++childPos);
+        } catch (IndexOutOfBoundsException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     public SymbolInformation get(String key) {
@@ -70,22 +90,16 @@ public final class Scope {
         return symbolTable.containsKey(key);
     }
 
-    public boolean changeSymbolInfo(String key, SymbolInformation value) {
-        Objects.requireNonNull(key);
-        Objects.requireNonNull(value);
-        if (symbolTable.containsKey(key)) {
-            symbolTable.put(key, value);
-            return true;
-        }
-        return false;
-    }
-
     public Map<String, SymbolInformation> symbolTable() {
         return Map.copyOf(symbolTable);
     }
 
     public Scope parent() {
         return parent;
+    }
+
+    public List<Scope> children() {
+        return List.copyOf(children);
     }
 
     @Override
@@ -107,9 +121,5 @@ public final class Scope {
         return "Scope[" +
                "symbolTable=" + symbolTable + ", " +
                "parent=" + parent + ']';
-    }
-
-    public Scope capture() {
-        return new Scope(new HashMap<>(this.symbolTable), new HashMap<>(this.identifierIds), parent != null ? parent.capture() : null);
     }
 }

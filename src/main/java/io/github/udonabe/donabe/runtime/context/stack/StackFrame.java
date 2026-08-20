@@ -17,7 +17,7 @@ public record StackFrame(StackFrame parent, String name, Map<Integer, VariableCe
         VariableCell value = parent.getVariable(slot);
 
         if (localSlots.contains(slot)) {
-            VariableCell local = new VariableCell(value.mutable(), value.value());
+            VariableCell local = new VariableCell(value.value());
             locals.put(slot, local);
             return local;
         } else {

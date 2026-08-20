@@ -10,6 +10,7 @@ import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
 import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.UndefinedValue;
+import io.github.udonabe.donabe.semantic.resolve.NameResolver;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -169,20 +170,20 @@ class SemanticAnalyzerTest {
                         print("ADD: " + c);
                         """,
                 Map.ofEntries(
-                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
-                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
-                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
+                        Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(NameResolver.BUILTIN_INT)),    //int
 
-                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //func add
-                        Map.entry(7, new VariableCell(false, new UndefinedValue())),  //add->a
-                        Map.entry(8, new VariableCell(false, new UndefinedValue())),  //add->b
+                        Map.entry(6, new VariableCell(new UndefinedValue())),  //func add
+                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->a
+                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->b
 
-                        Map.entry(9, new VariableCell(false, new UndefinedValue())),  //let a
-                        Map.entry(10, new VariableCell(true, new UndefinedValue())),  //var b
-                        Map.entry(11, new VariableCell(false, new UndefinedValue()))  //let c
+                        Map.entry(9, new VariableCell(new UndefinedValue())),  //let a
+                        Map.entry(10, new VariableCell(new UndefinedValue())),  //var b
+                        Map.entry(11, new VariableCell(new UndefinedValue()))  //let c
                 ));
     }
 
@@ -195,15 +196,15 @@ class SemanticAnalyzerTest {
                         }
                         """,
                 Map.ofEntries(
-                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
-                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
-                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
+                        Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(NameResolver.BUILTIN_INT)),    //int
 
-                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //let list
-                        Map.entry(7, new VariableCell(false, new UndefinedValue()))  //for->let i
+                        Map.entry(6, new VariableCell(new UndefinedValue())),  //let list
+                        Map.entry(7, new VariableCell(new UndefinedValue()))  //for->let i
                 ));
     }
 
@@ -216,18 +217,18 @@ class SemanticAnalyzerTest {
                         let a = add(1, 2);
                         """,
                 Map.ofEntries(
-                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
-                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
-                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
+                        Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(NameResolver.BUILTIN_INT)),    //int
 
-                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //func add
-                        Map.entry(7, new VariableCell(false, new UndefinedValue())),  //add->a
-                        Map.entry(8, new VariableCell(false, new UndefinedValue())),  //add->b
+                        Map.entry(6, new VariableCell(new UndefinedValue())),  //func add
+                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->a
+                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->b
 
-                        Map.entry(9, new VariableCell(false, new UndefinedValue()))  //let a
+                        Map.entry(9, new VariableCell(new UndefinedValue()))  //let a
                 ));
     }
 
@@ -244,22 +245,22 @@ class SemanticAnalyzerTest {
                         let b = add(3, 4);
                         """,
                 Map.ofEntries(
-                        Map.entry(0, new VariableCell(false, SemanticAnalyzer.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(false, SemanticAnalyzer.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(false, SemanticAnalyzer.BUILTIN_STRING)),    //string
-                        Map.entry(3, new VariableCell(false, SemanticAnalyzer.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(false, SemanticAnalyzer.BUILTIN_RANGE)),    //range
-                        Map.entry(5, new VariableCell(false, SemanticAnalyzer.BUILTIN_INT)),    //int
+                        Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_RANGE)),    //range
+                        Map.entry(5, new VariableCell(NameResolver.BUILTIN_INT)),    //int
 
-                        Map.entry(6, new VariableCell(false, new UndefinedValue())),  //func add
-                        Map.entry(7, new VariableCell(false, new UndefinedValue())),  //add->a
-                        Map.entry(8, new VariableCell(false, new UndefinedValue())),  //add->b
+                        Map.entry(6, new VariableCell(new UndefinedValue())),  //func add
+                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->a
+                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->b
 
-                        Map.entry(9, new VariableCell(false, new UndefinedValue())),  //add->func impl
-                        Map.entry(10, new VariableCell(false, new UndefinedValue())),  //add->impl->a
-                        Map.entry(11, new VariableCell(false, new UndefinedValue())),  //add->impl->b
+                        Map.entry(9, new VariableCell(new UndefinedValue())),  //add->func impl
+                        Map.entry(10, new VariableCell(new UndefinedValue())),  //add->impl->a
+                        Map.entry(11, new VariableCell(new UndefinedValue())),  //add->impl->b
 
-                        Map.entry(12, new VariableCell(false, new UndefinedValue()))   //let b
+                        Map.entry(12, new VariableCell(new UndefinedValue()))   //let b
                 ));
     }
 }
