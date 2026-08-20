@@ -56,7 +56,7 @@ public final class Scope {
         Objects.requireNonNull(identifier);
         if (!identifierIds.containsKey(identifier)) {
             if (parent == null) {
-                return Identifier.UNRESOLVED_ID;
+                return -1;
             }
             return parent.getId(identifier);
         }

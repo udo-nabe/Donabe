@@ -8,7 +8,6 @@ import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
-import io.github.udonabe.donabe.runtime.Interpreter;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.OperationRegistry;
 import io.github.udonabe.donabe.runtime.value.*;
@@ -93,10 +92,9 @@ public class Main implements Callable<Integer> {
 
             OperationRegistry registry = generateRegistry();
 
-            Interpreter interpreter = new Interpreter(parsed, registry, source.toString(), variables);
-            log.debug("Launching interpreter...");
-            interpreter.run();
-            log.info("Normal termination.");
+            throw new UnsupportedOperationException("Execution is currently unavailable while migrating to the IRInterpreter.");
+            //log.debug("Launching interpreter...");
+            //log.info("Normal termination.");
         } catch (CompileException e) {
             System.err.println("コンパイルエラー: " + e.getMessage());
             return 1;
