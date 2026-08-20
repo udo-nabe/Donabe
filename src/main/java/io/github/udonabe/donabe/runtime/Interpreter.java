@@ -263,6 +263,9 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         if (!(indexRes instanceof IntegerValue(Integer i))) {
             throw new InterpreterException(ErrorUtil.makeError(index.location(), source, "式\"%s\"は添字として使用できません。int型である必要があります。", index.index().display()));
         }
+        if (i >= list.size() || i < 0) {
+            throw new InterpreterException(ErrorUtil.makeError(index.location(), source, "添字が範囲外です。期待値: 0-%d, 実際: %d", list.size() - 1, i));
+        }
         list.set(i, value);
         return list.get(i);
     }
@@ -349,6 +352,9 @@ public class Interpreter implements ASTVisitor<RuntimeValue<?>> {
         RuntimeValue<?> indexRes = expr.index().accept(this);
         if (!(indexRes instanceof IntegerValue(Integer i))) {
             throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "式\"%s\"は添字として使用できません。int型である必要があります。", expr.index()));
+        }
+        if (i >= list.size() || i < 0) {
+            throw new InterpreterException(ErrorUtil.makeError(expr.location(), source, "添字が範囲外です。期待値: 0-%d, 実際: %d", list.size() - 1, i));
         }
         return list.get(i);
     }

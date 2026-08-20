@@ -1,7 +1,2 @@
-var x = 10;
-lazy func add(a) {
-    x = 1;
-    return x + a;
-}
-print(add(5));
-print(x);
+let list = [1, 2, 3, 4, 5];
+list[5] = 1;
