@@ -125,6 +125,13 @@ public final class NameResolver implements ASTVisitor<Void> {
                 .filter(s -> s instanceof FunctionDefineStatement)
                 .map(s -> (FunctionDefineStatement) s)
                 .toList();
+
+        //相互再帰を可能にするため、先に全て仮登録する
+        for (var define : defines) {
+            currentScope.put(define.identifier().name(), new SymbolInformation(false, true));
+            putIdentifier(currentScope, define.identifier().name(), nextId());
+        }
+
         for (var define : defines) {
             var locals = defineFunction(define);
             localsASTNodeMap.put(define, locals);
@@ -169,8 +176,9 @@ public final class NameResolver implements ASTVisitor<Void> {
         if (!currentScope.put(functionIdentifier.name(), new SymbolInformation(false))) {
             throw new CompileException(ErrorUtil.makeError(define.location(), source, "識別子\"%s\"は既に定義されています。", functionIdentifier.name()));
         }
-
-        putIdentifier(currentScope, functionIdentifier.name(), nextId());
+        //仮登録されているため、getIdで取得できる
+        int id = currentScope.getId(functionIdentifier.name());
+        putIdentifier(currentScope, functionIdentifier.name(), id);
         return defineFunction(define.args(), define.block());
     }
 

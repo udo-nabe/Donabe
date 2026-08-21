@@ -146,6 +146,30 @@ class SemanticAnalyzerTest {
                 """);
     }
 
+    @Test
+    void mutualRecursion() {
+        doesNotThrow("""
+                func a() {
+                    b();
+                }
+                func b() {
+                    a();
+                }
+                """);
+    }
+
+    @Test
+    void doubleDeclaration() {
+        throwCompileException("""
+                func a() {
+                    
+                }
+                func a() {
+                    
+                }
+                """);
+    }
+
     private void nameResolution(String source, Map<Integer, VariableCell> resolution) {
         Lexer l = new Lexer(source);
         ParseResult<Program> programResult = BasicParsers.program.parse(l.toTokenStream());
