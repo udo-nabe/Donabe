@@ -1,4 +1,4 @@
 package io.github.udonabe.donabe.ir.instruction;
 
-public record Greater() {
+public record Greater() implements Instruction {
 }

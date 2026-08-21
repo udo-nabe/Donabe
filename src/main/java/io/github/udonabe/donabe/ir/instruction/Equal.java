@@ -1,4 +1,4 @@
 package io.github.udonabe.donabe.ir.instruction;
 
-public record Equal() {
+public record Equal() implements Instruction {
 }

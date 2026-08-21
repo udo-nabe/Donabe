@@ -1,4 +1,4 @@
 package io.github.udonabe.donabe.ir.instruction;
 
-public record Sub() {
+public record Sub() implements Instruction {
 }

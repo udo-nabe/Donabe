@@ -2,5 +2,5 @@ package io.github.udonabe.donabe.ir.instruction;
 
 import io.github.udonabe.donabe.ir.instruction.label.Label;
 
-public record Jmp(Label label) {
+public record Jmp(Label label) implements Instruction {
 }

@@ -1,5 +1,5 @@
 package io.github.udonabe.donabe.ir.instruction;
 
-public interface Instruction {
+public sealed interface Instruction permits Add, Call, Div, Equal, Greater, GreaterEqual, Jmp, JmpFalse, JmpTrue, LabelNop, Less, LessEqual, Load, Mul, Nop, Push, Store, Sub {
 
 }
