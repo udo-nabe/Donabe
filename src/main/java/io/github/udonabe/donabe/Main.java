@@ -87,12 +87,12 @@ public class Main implements Callable<Integer> {
             log.debug("Parse successful.");
 
             SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
-            var variables = semanticAnalyzer.check(parsed);
+            var program = semanticAnalyzer.check(parsed);
             log.debug("Semantic analysis successful.");
 
             OperationRegistry registry = generateRegistry();
 
-            throw new UnsupportedOperationException("Execution is currently unavailable while migrating to the IRInterpreter.");
+            //throw new UnsupportedOperationException("Execution is currently unavailable while migrating to the IRInterpreter.");
             //log.debug("Launching interpreter...");
             //log.info("Normal termination.");
         } catch (CompileException e) {

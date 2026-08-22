@@ -20,11 +20,16 @@ public final class Scope {
         this.identifierIds = identifierIds;
         this.parent = parent;
         this.children = new ArrayList<>();
-        this.childPos = -1;
+        this.childPos = 0;
     }
 
     private Scope(Scope parent) {
         this(new HashMap<>(), new HashMap<>(), parent);
+    }
+
+    public void resetChildPos() {
+        childPos = 0;
+        children.forEach(Scope::resetChildPos);
     }
 
     public Scope newChild() {
@@ -35,7 +40,7 @@ public final class Scope {
 
     public Scope nextChildScope() {
         try {
-            return children.get(++childPos);
+            return children.get(childPos++);
         } catch (IndexOutOfBoundsException e) {
             throw new IllegalStateException(e);
         }
@@ -103,23 +108,24 @@ public final class Scope {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (Scope) obj;
-        return Objects.equals(this.symbolTable, that.symbolTable) &&
-               Objects.equals(this.parent, that.parent);
+    public boolean equals(Object o) {
+        if (!(o instanceof Scope scope)) return false;
+        return childPos == scope.childPos && Objects.equals(symbolTable, scope.symbolTable) && Objects.equals(identifierIds, scope.identifierIds) && Objects.equals(parent, scope.parent) && Objects.equals(children, scope.children);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(symbolTable, parent);
+        return Objects.hash(symbolTable, identifierIds, parent, children, childPos);
     }
 
     @Override
     public String toString() {
-        return "Scope[" +
-               "symbolTable=" + symbolTable + ", " +
-               "parent=" + parent + ']';
+        final StringBuilder sb = new StringBuilder("Scope{");
+        sb.append("symbolTable=").append(symbolTable);
+        sb.append(", identifierIds=").append(identifierIds);
+        sb.append(", children=").append(children);
+        sb.append(", childPos=").append(childPos);
+        sb.append('}');
+        return sb.toString();
     }
 }
