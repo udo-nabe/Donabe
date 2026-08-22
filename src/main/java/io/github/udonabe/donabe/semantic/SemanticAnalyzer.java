@@ -6,10 +6,12 @@ import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
 import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.*;
+import io.github.udonabe.donabe.semantic.ir.IRGenerator;
 import io.github.udonabe.donabe.semantic.resolve.NameResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +34,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         return resolution.size();
     }
 
-    public Map<Integer, VariableCell> check(Program program) {
+    public AnalyzeResult check(Program program) {
         NameResolver.ResolveResult resolveResult = new NameResolver(source).resolve(program);
 
         Scope rootScope = resolveResult.root();
@@ -40,7 +42,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         this.resolution = resolveResult.resolution();
 
         program.accept(this);
-        return Map.copyOf(resolution);
+
+        rootScope.resetChildPos();
+        IRProgram ir = new IRGenerator(rootScope, resolveResult.localsASTNodeMap()).generate(program);
+
+        return new AnalyzeResult(ir, resolution);
     }
 
     @Override
@@ -223,4 +229,6 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitVoidExpression(VoidExpression expr) {
         return new SymbolInformation(false);
     }
+
+    public record AnalyzeResult(IRProgram irProgram, Map<Integer, VariableCell> resolution) {}
 }

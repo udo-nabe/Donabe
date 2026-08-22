@@ -129,8 +129,8 @@ public class Main implements Callable<Integer> {
         registry.registerBinary(BinaryOperator.PLUS, BooleanValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
         registry.registerBinary(BinaryOperator.PLUS, StringValue.class, BooleanValue.class, (l, r) -> new StringValue(l.display() + r.display()));
 
-        registry.registerBinary(BinaryOperator.PLUS, FunctionValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-        registry.registerBinary(BinaryOperator.PLUS, StringValue.class, FunctionValue.class, (l, r) -> new StringValue(l.display() + r.display()));
+        registry.registerBinary(BinaryOperator.PLUS, ClosureValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
+        registry.registerBinary(BinaryOperator.PLUS, StringValue.class, ClosureValue.class, (l, r) -> new StringValue(l.display() + r.display()));
 
         registry.registerBinary(BinaryOperator.PLUS, ListValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
         registry.registerBinary(BinaryOperator.PLUS, StringValue.class, ListValue.class, (l, r) -> new StringValue(l.display() + r.display()));
