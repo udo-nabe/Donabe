@@ -1,4 +1,158 @@
 package io.github.udonabe.donabe.ir;
 
-public class IRViewer {
+import io.github.udonabe.donabe.ir.instruction.*;
+import io.github.udonabe.donabe.runtime.value.FunctionValue;
+import io.github.udonabe.donabe.runtime.value.UndefinedValue;
+
+import java.util.List;
+
+public class IRViewer implements IRVisitor<String> {
+    public String getAssembler(IRProgram program) {
+        StringBuilder result = new StringBuilder();
+        for (Instruction instruction : program.instructions()) {
+            result.append(instruction.accept(this)).append("\n");
+        }
+        return result.toString();
+    }
+
+    @Override
+    public String visitAdd(Add instruction) {
+        return "add";
+    }
+
+    @Override
+    public String visitCall(Call instruction) {
+        return "call";
+    }
+
+    @Override
+    public String visitDiv(Div instruction) {
+        return "div";
+    }
+
+    @Override
+    public String visitEqual(Equal instruction) {
+        return "equal";
+    }
+
+    @Override
+    public String visitGreater(Greater instruction) {
+        return "greater";
+    }
+
+    @Override
+    public String visitGreaterEqual(GreaterEqual instruction) {
+        return "greater_equal";
+    }
+
+    @Override
+    public String visitJmp(Jmp instruction) {
+        return "jmp " + instruction.label().name();
+    }
+
+    @Override
+    public String visitJmpFalse(JmpFalse instruction) {
+        return "jmp_false + " + instruction.label().name();
+    }
+
+    @Override
+    public String visitJmpTrue(JmpTrue instruction) {
+        return "jmp_true" + instruction.label().name();
+    }
+
+    @Override
+    public String visitLabelNop(LabelNop instruction) {
+        return instruction.label().name() +  ":";
+    }
+
+    @Override
+    public String visitLess(Less instruction) {
+        return "less";
+    }
+
+    @Override
+    public String visitLessEqual(LessEqual instruction) {
+        return "less_equal";
+    }
+
+    @Override
+    public String visitLoad(Load instruction) {
+        return "load #" + instruction.identifierSlot();
+    }
+
+    @Override
+    public String visitLoadLocal(LoadLocal instruction) {
+        return "load_local #" + instruction.identifierSlot();
+    }
+
+    @Override
+    public String visitMinus(Minus instruction) {
+        return "minus";
+    }
+
+    @Override
+    public String visitMul(Mul instruction) {
+        return "mul";
+    }
+
+    @Override
+    public String visitNop(Nop instruction) {
+        return "nop";
+    }
+
+    @Override
+    public String visitNot(Not instruction) {
+        return "not";
+    }
+
+    @Override
+    public String visitPlus(Plus instruction) {
+        return "plus";
+    }
+
+    @Override
+    public String visitPop(Pop instruction) {
+        return "pop";
+    }
+
+    @Override
+    public String visitPush(Push instruction) {
+        var value = instruction.value();
+        if (value instanceof FunctionValue functionValue) {
+            List<Instruction> instructions = functionValue.instructions();
+            StringBuilder sb = new StringBuilder("push <function>:\n");
+
+            for (Instruction i : instructions) {
+                sb.append("  ").append(i.accept(this)).append("\n");
+            }
+
+            return sb.toString();
+        }
+        return "push " + value.display();
+    }
+
+    @Override
+    public String visitReturn(Return instruction) {
+        return "return";
+    }
+
+    @Override
+    public String visitStore(Store instruction) {
+        return "store #" + instruction.identifierSlot();
+    }
+
+    @Override
+    public String visitStoreLocal(StoreLocal instruction) {
+        return "store_local #" + instruction.identifierSlot();
+    }
+
+    @Override
+    public String visitSub(Sub instruction) {
+        return "sub";
+    }
+
+    @Override
+    public String visitVoidReturn(VoidReturn instruction) {
+        return "vreturn";
+    }
 }

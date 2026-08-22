@@ -3,6 +3,7 @@ package io.github.udonabe.donabe;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.UnaryOperator;
+import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.lexer.Lexer;
 import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
@@ -92,9 +93,11 @@ public class Main implements Callable<Integer> {
 
             OperationRegistry registry = generateRegistry();
 
+            log.debug("Assembler: \n{}", new IRViewer().getAssembler(program.irProgram()));
+
             //throw new UnsupportedOperationException("Execution is currently unavailable while migrating to the IRInterpreter.");
             //log.debug("Launching interpreter...");
-            //log.info("Normal termination.");
+            log.info("Normal termination.");
         } catch (CompileException e) {
             System.err.println("コンパイルエラー: " + e.getMessage());
             return 1;

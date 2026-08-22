@@ -139,21 +139,21 @@ public final class NameResolver implements ASTVisitor<Void> {
     }
 
     private Set<Integer> defineFunction(List<Identifier> args, BlockStatement block) {
-        Scope functionScope = currentScope.newChild();
-        Scope beforeScope = currentScope;
-        currentScope = functionScope;
+        currentScope = currentScope.newChild();
 
+        Set<Integer> locals = new HashSet<>();
         for (Identifier arg : args) {
             String argName = arg.name();
 
-            functionScope.put(argName, new SymbolInformation(false));
-            putIdentifier(functionScope, argName, nextId());
+            int argID = nextId();
+            currentScope.put(argName, new SymbolInformation(false));
+            putIdentifier(currentScope, argName, argID);
+            locals.add(argID);
         }
 
         List<Statement> statements = block.statements();
         defineFunctions(statements);
 
-        Set<Integer> locals = new HashSet<>();
         for (Statement statement : statements) {
             statement.accept(this);
             switch (statement) {
@@ -166,7 +166,7 @@ public final class NameResolver implements ASTVisitor<Void> {
             }
         }
 
-        currentScope = beforeScope;
+        currentScope = currentScope.parent();
         return locals;
     }
 

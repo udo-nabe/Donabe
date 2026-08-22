@@ -49,9 +49,24 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         return new AnalyzeResult(ir, resolution);
     }
 
+    private void checkFunctions(List<FunctionDefineStatement> functionDefineStatements) {
+        for (FunctionDefineStatement s : functionDefineStatements) {
+            context.pushFunction();
+            s.block().accept(this);
+            context.popFunction();
+        }
+    }
+
     @Override
     public SymbolInformation visitProgram(Program program) {
         List<Statement> statements = program.statements();
+
+        List<FunctionDefineStatement> defines = statements.stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList();
+        checkFunctions(defines);
+
         for (Statement statement : statements) {
             if (statement == null) continue;
             statement.accept(this);
@@ -61,9 +76,19 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitBlockStatement(BlockStatement statement) {
+        currentScope = currentScope.nextChildScope();
+
+        List<FunctionDefineStatement> defines = statement.statements().stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList();
+        checkFunctions(defines);
+
         for (Statement s : statement.statements()) {
             s.accept(this);
         }
+        currentScope = currentScope.parent();
+
         return null;
     }
 
@@ -122,7 +147,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitForEachStatement(ForEachStatement statement) {
         statement.iterable().accept(this);
-        currentScope = currentScope.newChild();
+        currentScope = currentScope.nextChildScope();
         statement.body().accept(this);
         currentScope = currentScope.parent();
         return null;
@@ -175,11 +200,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionLiteral(FunctionLiteral expr) {
-        currentScope = currentScope.nextChildScope();
-        for (Statement s : expr.block().statements()) {
-            s.accept(this);
-        }
-        currentScope = currentScope.parent();
+        context.pushFunction();
+        expr.block().accept(this);
+        context.popFunction();
         return new SymbolInformation(false);
     }
 
