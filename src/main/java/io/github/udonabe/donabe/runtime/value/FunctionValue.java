@@ -1,30 +1,29 @@
 package io.github.udonabe.donabe.runtime.value;
 
-import io.github.udonabe.donabe.ast.expr.Identifier;
-import io.github.udonabe.donabe.ast.statement.Statement;
-import io.github.udonabe.donabe.runtime.VariableCell;
-import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
+import io.github.udonabe.donabe.ir.instruction.Instruction;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public record FunctionValue(String name,
-                            List<Identifier> formalArgs,
-                            List<Statement> statements,
-                            StackFrame parent,
-                            Set<Integer> locals) implements RuntimeValue<String> {
+                            List<Integer> paramSlots,
+                            List<Instruction> instructions) implements RuntimeValue<String> {
+    @Override
+    public List<Instruction> instructions() {
+        throw new UnsupportedOperationException("This function has not been converted to runtime type.");
+    }
+
     @Override
     public String value() {
-        return "<function(" + formalArgs + "->" + "?)>";
+        throw new UnsupportedOperationException("Undefined identifier.");
     }
+
     @Override
     public String typeName() {
-        return "function";
+        throw new UnsupportedOperationException("Undefined identifier.");
     }
 
     @Override
     public String display() {
-        return value();
+        throw new UnsupportedOperationException("Undefined identifier.");
     }
 }
