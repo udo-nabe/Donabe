@@ -2,12 +2,12 @@ package io.github.udonabe.donabe.ir;
 
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.runtime.value.FunctionValue;
-import io.github.udonabe.donabe.runtime.value.UndefinedValue;
+import io.github.udonabe.donabe.runtime.value.StringValue;
 
 import java.util.List;
 
 public class IRViewer implements IRVisitor<String> {
-    public String getAssembler(IRProgram program) {
+    public String getIRString(IRProgram program) {
         StringBuilder result = new StringBuilder();
         for (Instruction instruction : program.instructions()) {
             result.append(instruction.accept(this)).append("\n");
@@ -52,7 +52,7 @@ public class IRViewer implements IRVisitor<String> {
 
     @Override
     public String visitJmpFalse(JmpFalse instruction) {
-        return "jmp_false + " + instruction.label().name();
+        return "jmp_false " + instruction.label().name();
     }
 
     @Override
@@ -127,6 +127,8 @@ public class IRViewer implements IRVisitor<String> {
             }
 
             return sb.toString();
+        } else if (value instanceof StringValue(String str)) {
+            return "push \"" + str + "\"";
         }
         return "push " + value.display();
     }
