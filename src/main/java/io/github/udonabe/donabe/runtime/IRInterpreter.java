@@ -19,11 +19,11 @@ public class IRInterpreter implements IRVisitor<Void> {
     private static final Logger log = LoggerFactory.getLogger(IRInterpreter.class);
 
     private final InterpretContext context;
-    private final OperationRegistry registry;
+    private final Operations registry;
     private final Map<Label, Integer> labelJmpMap;
     private final Map<Integer, VariableCell> globalIdentifiers;
 
-    public IRInterpreter(IRProgram program, Map<Integer, VariableCell> resolution, OperationRegistry registry) {
+    public IRInterpreter(IRProgram program, Map<Integer, VariableCell> resolution, Operations registry) {
         this.context = new InterpretContext(program.instructions(), resolution);
         this.registry = registry;
         this.labelJmpMap = new HashMap<>();

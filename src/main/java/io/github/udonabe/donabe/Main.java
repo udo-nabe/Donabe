@@ -1,8 +1,6 @@
 package io.github.udonabe.donabe;
 
 import io.github.udonabe.donabe.ast.Program;
-import io.github.udonabe.donabe.ast.expr.BinaryOperator;
-import io.github.udonabe.donabe.ast.expr.UnaryOperator;
 import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.lexer.Lexer;
 import io.github.udonabe.donabe.parser.BasicParsers;
@@ -11,8 +9,7 @@ import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
 import io.github.udonabe.donabe.runtime.IRInterpreter;
 import io.github.udonabe.donabe.runtime.InterpreterException;
-import io.github.udonabe.donabe.runtime.OperationRegistry;
-import io.github.udonabe.donabe.runtime.value.*;
+import io.github.udonabe.donabe.runtime.Operations;
 import io.github.udonabe.donabe.semantic.SemanticAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +92,7 @@ public class Main implements Callable<Integer> {
 
             log.debug("Launching interpreter...");
 
-            OperationRegistry registry = OperationRegistry.generateDefault();
+            Operations registry = new Operations();
             IRInterpreter interpreter = new IRInterpreter(checkResult.irProgram(), checkResult.resolution(), registry);
             interpreter.run();
 
