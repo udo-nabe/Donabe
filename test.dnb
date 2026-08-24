@@ -1,2 +1,20 @@
-let list = [1, 2, 3, 4, 5];
-list[5] = 1;
+func makeCounter(initial) {
+    var count = initial;
+
+    lazy func counter() {
+        count = count + 1;
+        return count;
+    }
+
+    return counter;
+}
+
+var counterA = makeCounter(0);
+var counterB = makeCounter(100);
+
+print(counterA());
+print(counterA());
+print(counterB());
+print(counterB());
+print(counterA());
+print(counterB());

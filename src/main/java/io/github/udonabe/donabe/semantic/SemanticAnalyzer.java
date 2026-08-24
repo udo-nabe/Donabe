@@ -6,77 +6,20 @@ import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
 import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.*;
+import io.github.udonabe.donabe.semantic.ir.IRGenerator;
+import io.github.udonabe.donabe.semantic.resolve.NameResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
-    static final BuiltinFunctionValue BUILTIN_PRINT = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                System.out.println(l.getFirst().display());
-                return new VoidValue();
-            }
-    );
-    static final BuiltinFunctionValue BUILTIN_INPUT = new BuiltinFunctionValue(
-            List.of(),
-            l -> new StringValue(RuntimeIOUtil.RUNTIME_INPUT.nextLine())
-    );
-    static final BuiltinFunctionValue BUILTIN_STRING = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                RuntimeValue<?> value = l.getFirst();
-                return new StringValue(value.display());
-            }
-    );
-    static final BuiltinFunctionValue BUILTIN_LENGTH = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                RuntimeValue<?> target = l.getFirst();
-                return switch (target) {
-                    case StringValue(String value) -> new IntegerValue(value.length());
-                    case ListValue(List<RuntimeValue<?>> value) -> new IntegerValue(value.size());
-                    default -> new IntegerValue(-1);
-                };
-            }
-    );
-    static final BuiltinFunctionValue BUILTIN_RANGE = new BuiltinFunctionValue(
-            List.of("start", "end"),
-            l -> {
-                RuntimeValue<?> s = l.getFirst();
-                RuntimeValue<?> e = l.get(1);
-                if (s instanceof IntegerValue(Integer start) &&
-                    e instanceof IntegerValue(Integer end)) {
-                    List<RuntimeValue<?>> res = new ArrayList<>();
-                    for (int i = start; i < end; i++) {
-                        res.add(new IntegerValue(i));
-                    }
-                    return new ListValue(res);
-                }
-                throw new InterpreterException("range()の引数は(int, int)である必要があります。");
-            }
-    );
-    static final BuiltinFunctionValue BUILTIN_INT = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                RuntimeValue<?> target = l.getFirst();
-                if (target instanceof StringValue(String value)) {
-                    try {
-                        return new IntegerValue(Integer.parseInt(value));
-                    } catch (NumberFormatException ignored) {
-                        throw new InterpreterException("'" + value + "'を数値に変換できませんでした。");
-                    }
-                }
-                throw new InterpreterException("int()の引数は(string)である必要があります。");
-            }
-    );
     private static final Logger log = LoggerFactory.getLogger(SemanticAnalyzer.class);
-    private final Scope rootScope;
     private final String source;
     private Scope currentScope;
     private final AnalyzeContext context;
@@ -84,108 +27,46 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     public SemanticAnalyzer(String source) {
         this.source = source;
-        this.rootScope = new Scope(null);
-        this.currentScope = rootScope;
         this.context = new AnalyzeContext();
-        this.resolution = new HashMap<>();
-
-        putBuiltinFunction("print", BUILTIN_PRINT, 0);
-        putBuiltinFunction("input", BUILTIN_INPUT, 1);
-        putBuiltinFunction("string", BUILTIN_STRING, 2);
-        putBuiltinFunction("length", BUILTIN_LENGTH, 3);
-        putBuiltinFunction("range", BUILTIN_RANGE, 4);
-        putBuiltinFunction("int", BUILTIN_INT, 5);
-    }
-
-    private void putBuiltinFunction(String name, BuiltinFunctionValue value, int id) {
-        resolution.put(id, new VariableCell(false, value));
-        rootScope.put(name, new SymbolInformation(false));
-        rootScope.putId(name, id);
     }
 
     private int nextId() {
         return resolution.size();
     }
 
-    public Map<Integer, VariableCell> check(Program program) {
+    public AnalyzeResult check(Program program) {
+        NameResolver.ResolveResult resolveResult = new NameResolver(source).resolve(program);
+
+        Scope rootScope = resolveResult.root();
+        this.currentScope = rootScope;
+        this.resolution = resolveResult.resolution();
+
         program.accept(this);
-        return Map.copyOf(resolution);
+
+        rootScope.resetChildPos();
+        IRProgram ir = new IRGenerator(rootScope, resolveResult.resolution().keySet(), resolveResult.localsASTNodeMap()).generate(program);
+
+        return new AnalyzeResult(ir, resolution);
     }
 
-    private void defineFunctions(Scope scope, List<Statement> statements) {
-        var funcDefines = statements.stream()
-                .filter(s -> s instanceof FunctionDefineStatement)
-                .map(s -> (FunctionDefineStatement) s)
-                .toList();
-        for (FunctionDefineStatement statement : funcDefines) {
-            defineFunction(statement);
+    private void checkFunctions(List<FunctionDefineStatement> functionDefineStatements) {
+        for (FunctionDefineStatement s : functionDefineStatements) {
+            context.pushFunction();
+            s.block().accept(this);
+            context.popFunction();
         }
-    }
-
-    private void defineFunction(FunctionDefineStatement statement) {
-        if (!currentScope.put(statement.identifier().name(), new SymbolInformation(false))) {
-            throw new CompileException(ErrorUtil.makeError(statement.location(), source, "関数\"%s\"は既に定義されています。", statement.identifier().name()));
-        }
-        int identifierId = nextId();
-        currentScope.putId(statement.identifier().name(), identifierId);
-        resolution.put(identifierId, new VariableCell(false, new UndefinedValue()));
-        statement.identifier().resolve(identifierId);
-
-        List<String> argNames = statement.args().stream()
-                .map(Identifier::name)
-                .toList();
-
-        Scope func = currentScope.capture();
-        Scope before = currentScope;
-        currentScope = func;
-
-        for (int i = 0; i < argNames.size(); i++) {
-            String argName = argNames.get(i);
-            int argId = nextId();
-            func.put(argName, new SymbolInformation(false));
-            currentScope.putId(argName, argId);
-            resolution.put(argId, new VariableCell(false, new UndefinedValue()));
-
-            Identifier argIdentifier = statement.args().get(i);
-            argIdentifier.resolve(argId);
-        }
-
-        context.pushFunction();
-
-        List<Statement> statements = statement.block().statements();
-        defineFunctions(currentScope, statements);
-
-        Set<Integer> locals = new HashSet<>();
-        for (Statement s : statements) {
-            s.accept(this);
-            switch (s) {
-                case LetDeclaration d -> locals.add(d.name().id());
-                case VarDeclaration d -> locals.add(d.name().id());
-                case FunctionDefineStatement d -> locals.add(d.identifier().id());
-                default -> {
-                    //localsに追加する必要がないため、何もしない
-                }
-            }
-        }
-        context.popFunction();
-        currentScope = before;
-
-        log.trace("defineFunction: locals: {}", locals);
-        statement.setLocals(locals);
-    }
-
-    private void pushScope() {
-        currentScope = new Scope(currentScope);
-    }
-
-    private void popScope() {
-        currentScope = currentScope.parent();
     }
 
     @Override
     public SymbolInformation visitProgram(Program program) {
         List<Statement> statements = program.statements();
-        defineFunctions(rootScope, statements);
+
+        List<FunctionDefineStatement> defines = statements.stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList();
+        checkFunctions(defines);
+
         for (Statement statement : statements) {
             if (statement == null) continue;
             statement.accept(this);
@@ -195,12 +76,19 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitBlockStatement(BlockStatement statement) {
-        pushScope();
-        defineFunctions(currentScope, statement.statements());
+        currentScope = currentScope.nextChildScope();
+
+        List<FunctionDefineStatement> defines = statement.statements().stream()
+                .filter(s -> s instanceof FunctionDefineStatement)
+                .map(s -> (FunctionDefineStatement) s)
+                .toList();
+        checkFunctions(defines);
+
         for (Statement s : statement.statements()) {
             s.accept(this);
         }
-        popScope();
+        currentScope = currentScope.parent();
+
         return null;
     }
 
@@ -232,13 +120,6 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitLetDeclaration(LetDeclaration statement) {
         statement.expr().accept(this);
-        if (!currentScope.put(statement.name().name(), new SymbolInformation(false))) {
-            throw new CompileException(ErrorUtil.makeError(statement.location(), source, "変数\"%s\"は既に宣言されています。", statement.name()));
-        }
-        int id = nextId();
-        currentScope.putId(statement.name().name(), id);
-        resolution.put(id, new VariableCell(false, new UndefinedValue()));
-        statement.name().resolve(id);
         return null;
     }
 
@@ -247,20 +128,12 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         if (!context.inFunction()) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source, "return文は関数の外で使用できません。"));
         }
-        statement.returnValue().accept(this);
         return null;
     }
 
     @Override
     public SymbolInformation visitVarDeclaration(VarDeclaration statement) {
         statement.expr().accept(this);
-        if (!currentScope.put(statement.name().name(), new SymbolInformation(true))) {
-            throw new CompileException(ErrorUtil.makeError(statement.location(), source, "変数\"%s\"は既に宣言されています。", statement.name()));
-        }
-        int id = nextId();
-        currentScope.putId(statement.name().name(), id);
-        resolution.put(id, new VariableCell(true, new UndefinedValue()));
-        statement.name().resolve(id);
         return null;
     }
 
@@ -274,14 +147,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitForEachStatement(ForEachStatement statement) {
         statement.iterable().accept(this);
-        pushScope();
-        int id = nextId();
-        currentScope.put(statement.variable().name(), new SymbolInformation(false));
-        currentScope.putId(statement.variable().name(), id);
-        resolution.put(id, new VariableCell(false, new UndefinedValue()));
-        statement.variable().resolve(id);
+        currentScope = currentScope.nextChildScope();
         statement.body().accept(this);
-        popScope();
+        currentScope = currentScope.parent();
         return null;
     }
 
@@ -291,12 +159,8 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         if (!target.isAssignable()) {
             throw new CompileException(ErrorUtil.makeError(expr.location(), source, "式\"%s\"へは代入できません。", expr.target().display()));
         }
-        SymbolInformation result = expr.value().accept(this);
-        if (expr.target() instanceof Identifier identifier) {
-            String name = identifier.name();
-            currentScope.changeSymbolInfo(name, result);
-        }
-        return result;
+
+        return target;
     }
 
     @Override
@@ -336,59 +200,15 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionLiteral(FunctionLiteral expr) {
-        Scope func = currentScope.capture();
-        Scope before = currentScope;
-        currentScope = func;
-
-        List<String> argNames = expr.args()
-                .stream()
-                .map(Identifier::name)
-                .toList();
-
-        for (int i = 0; i < argNames.size(); i++) {
-            String argName = argNames.get(i);
-            int argId = nextId();
-            func.put(argName, new SymbolInformation(false));
-            currentScope.putId(argName, argId);
-            resolution.put(argId, new VariableCell(false, new UndefinedValue()));
-
-            Identifier argIdentifier = expr.args().get(i);
-            argIdentifier.resolve(argId);
-        }
-
         context.pushFunction();
-
-        List<Statement> statements = expr.block().statements();
-        defineFunctions(currentScope, statements);
-
-        Set<Integer> locals = new HashSet<>();
-        for (Statement s : statements) {
-            s.accept(this);
-            switch (s) {
-                case LetDeclaration d -> locals.add(d.name().id());
-                case VarDeclaration d -> locals.add(d.name().id());
-                case FunctionDefineStatement d -> locals.add(d.identifier().id());
-                default -> {
-                    //localsに追加する必要がないため、何もしない
-                }
-            }
-        }
+        expr.block().accept(this);
         context.popFunction();
-        currentScope = before;
-
-        log.trace("visitFunctionLiteral: locals: {}", locals);
-        expr.setLocals(locals);
         return new SymbolInformation(false);
     }
 
     @Override
     public SymbolInformation visitIdentifier(Identifier expr) {
-        SymbolInformation symbol = currentScope.get(expr.name());
-        if (symbol == null) {
-            throw new CompileException(ErrorUtil.makeError(expr.location(), source, "識別子\"%s\"は宣言されていません。", expr.name()));
-        }
-        expr.resolve(currentScope.getId(expr.name()));
-        return symbol;
+        return currentScope.get(expr.name());
     }
 
     @Override
@@ -432,4 +252,6 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitVoidExpression(VoidExpression expr) {
         return new SymbolInformation(false);
     }
+
+    public record AnalyzeResult(IRProgram irProgram, Map<Integer, VariableCell> resolution) {}
 }

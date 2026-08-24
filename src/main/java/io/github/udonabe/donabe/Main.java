@@ -1,17 +1,15 @@
 package io.github.udonabe.donabe;
 
 import io.github.udonabe.donabe.ast.Program;
-import io.github.udonabe.donabe.ast.expr.BinaryOperator;
-import io.github.udonabe.donabe.ast.expr.UnaryOperator;
+import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.lexer.Lexer;
 import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
-import io.github.udonabe.donabe.runtime.Interpreter;
+import io.github.udonabe.donabe.runtime.IRInterpreter;
 import io.github.udonabe.donabe.runtime.InterpreterException;
-import io.github.udonabe.donabe.runtime.OperationRegistry;
-import io.github.udonabe.donabe.runtime.value.*;
+import io.github.udonabe.donabe.runtime.Operations;
 import io.github.udonabe.donabe.semantic.SemanticAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,19 +86,23 @@ public class Main implements Callable<Integer> {
             log.debug("Parse successful.");
 
             SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
-            var variables = semanticAnalyzer.check(parsed);
+            var checkResult = semanticAnalyzer.check(parsed);
             log.debug("Semantic analysis successful.");
+            log.debug("IR: \n{}", new IRViewer().getIRString(checkResult.irProgram()));
 
-            OperationRegistry registry = generateRegistry();
-
-            Interpreter interpreter = new Interpreter(parsed, registry, source.toString(), variables);
             log.debug("Launching interpreter...");
+
+            Operations registry = new Operations();
+            IRInterpreter interpreter = new IRInterpreter(checkResult.irProgram(), checkResult.resolution(), registry);
             interpreter.run();
+
             log.info("Normal termination.");
         } catch (CompileException e) {
+            log.warn("Compile error.", e);
             System.err.println("コンパイルエラー: " + e.getMessage());
             return 1;
         } catch (InterpreterException e) {
+            log.warn("Runtime error.", e);
             System.err.println("実行時エラー: " + e.getMessage());
             return 1;
         } catch (Exception | AssertionError e) {
@@ -111,48 +113,5 @@ public class Main implements Callable<Integer> {
             System.exit(1);
         }
         return 0;
-    }
-
-    private OperationRegistry generateRegistry() {
-        OperationRegistry registry = new OperationRegistry();
-        // int | int
-        registry.registerBinary(BinaryOperator.PLUS, IntegerValue.class, IntegerValue.class, (l, r) -> new IntegerValue(l.value() + r.value()));
-        registry.registerBinary(BinaryOperator.MINUS, IntegerValue.class, IntegerValue.class, (l, r) -> new IntegerValue(l.value() - r.value()));
-        registry.registerBinary(BinaryOperator.MULTIPLICATION, IntegerValue.class, IntegerValue.class, (l, r) -> new IntegerValue(l.value() * r.value()));
-        registry.registerBinary(BinaryOperator.DIVISION, IntegerValue.class, IntegerValue.class, (l, r) -> new IntegerValue(l.value() / r.value()));
-
-        // string | string
-        registry.registerBinary(BinaryOperator.PLUS, StringValue.class, StringValue.class, (l, r) -> new StringValue(l.value() + r.value()));
-
-        // string-related
-        registry.registerBinary(BinaryOperator.PLUS, IntegerValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-        registry.registerBinary(BinaryOperator.PLUS, StringValue.class, IntegerValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-
-        registry.registerBinary(BinaryOperator.PLUS, BooleanValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-        registry.registerBinary(BinaryOperator.PLUS, StringValue.class, BooleanValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-
-        registry.registerBinary(BinaryOperator.PLUS, FunctionValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-        registry.registerBinary(BinaryOperator.PLUS, StringValue.class, FunctionValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-
-        registry.registerBinary(BinaryOperator.PLUS, ListValue.class, StringValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-        registry.registerBinary(BinaryOperator.PLUS, StringValue.class, ListValue.class, (l, r) -> new StringValue(l.display() + r.display()));
-
-        // Equal
-        registry.registerBinary(BinaryOperator.EQUAL, IntegerValue.class, IntegerValue.class, (l, r) -> new BooleanValue(l.equals(r)));
-        registry.registerBinary(BinaryOperator.EQUAL, StringValue.class, StringValue.class, (l, r) -> new BooleanValue(l.equals(r)));
-        registry.registerBinary(BinaryOperator.EQUAL, BooleanValue.class, BooleanValue.class, (l, r) -> new BooleanValue(l.equals(r)));
-
-        // Compare
-        registry.registerBinary(BinaryOperator.GREATER, IntegerValue.class, IntegerValue.class, (l, r) -> new BooleanValue(l.value() > r.value()));
-        registry.registerBinary(BinaryOperator.LESS, IntegerValue.class, IntegerValue.class, (l, r) -> new BooleanValue(l.value() < r.value()));
-        registry.registerBinary(BinaryOperator.GREATER_EQUAL, IntegerValue.class, IntegerValue.class, (l, r) -> new BooleanValue(l.value() >= r.value()));
-        registry.registerBinary(BinaryOperator.LESS_EQUAL, IntegerValue.class, IntegerValue.class, (l, r) -> new BooleanValue(l.value() <= r.value()));
-
-        // Unary
-        registry.registerUnary(UnaryOperator.PLUS, IntegerValue.class, t -> new IntegerValue(t.value()));
-        registry.registerUnary(UnaryOperator.MINUS, IntegerValue.class, t -> new IntegerValue(-t.value()));
-        registry.registerUnary(UnaryOperator.NOT, BooleanValue.class, t -> new BooleanValue(!t.value()));
-
-        return registry;
     }
 }

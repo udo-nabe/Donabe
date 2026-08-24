@@ -2,23 +2,48 @@ package io.github.udonabe.donabe.semantic;
 
 import io.github.udonabe.donabe.ast.expr.Identifier;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public final class Scope {
     private final Map<String, SymbolInformation> symbolTable;
     private final Map<String, Integer> identifierIds;
     private final Scope parent;
+    private final List<Scope> children;
+    private int childPos;
+
+    public static Scope generateRoot() {
+        return new Scope(null);
+    }
 
     private Scope(Map<String, SymbolInformation> symbolTable, Map<String, Integer> identifierIds, Scope parent) {
         this.symbolTable = symbolTable;
         this.identifierIds = identifierIds;
         this.parent = parent;
+        this.children = new ArrayList<>();
+        this.childPos = 0;
     }
 
-    public Scope(Scope parent) {
+    private Scope(Scope parent) {
         this(new HashMap<>(), new HashMap<>(), parent);
+    }
+
+    public void resetChildPos() {
+        childPos = 0;
+        children.forEach(Scope::resetChildPos);
+    }
+
+    public Scope newChild() {
+        Scope child = new Scope(this);
+        children.add(child);
+        return child;
+    }
+
+    public Scope nextChildScope() {
+        try {
+            return children.get(childPos++);
+        } catch (IndexOutOfBoundsException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     public SymbolInformation get(String key) {
@@ -36,7 +61,7 @@ public final class Scope {
         Objects.requireNonNull(identifier);
         if (!identifierIds.containsKey(identifier)) {
             if (parent == null) {
-                return Identifier.UNRESOLVED_ID;
+                return -1;
             }
             return parent.getId(identifier);
         }
@@ -70,16 +95,6 @@ public final class Scope {
         return symbolTable.containsKey(key);
     }
 
-    public boolean changeSymbolInfo(String key, SymbolInformation value) {
-        Objects.requireNonNull(key);
-        Objects.requireNonNull(value);
-        if (symbolTable.containsKey(key)) {
-            symbolTable.put(key, value);
-            return true;
-        }
-        return false;
-    }
-
     public Map<String, SymbolInformation> symbolTable() {
         return Map.copyOf(symbolTable);
     }
@@ -88,28 +103,29 @@ public final class Scope {
         return parent;
     }
 
+    public List<Scope> children() {
+        return List.copyOf(children);
+    }
+
     @Override
-    public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (Scope) obj;
-        return Objects.equals(this.symbolTable, that.symbolTable) &&
-               Objects.equals(this.parent, that.parent);
+    public boolean equals(Object o) {
+        if (!(o instanceof Scope scope)) return false;
+        return childPos == scope.childPos && Objects.equals(symbolTable, scope.symbolTable) && Objects.equals(identifierIds, scope.identifierIds) && Objects.equals(parent, scope.parent) && Objects.equals(children, scope.children);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(symbolTable, parent);
+        return Objects.hash(symbolTable, identifierIds, parent, children, childPos);
     }
 
     @Override
     public String toString() {
-        return "Scope[" +
-               "symbolTable=" + symbolTable + ", " +
-               "parent=" + parent + ']';
-    }
-
-    public Scope capture() {
-        return new Scope(new HashMap<>(this.symbolTable), new HashMap<>(this.identifierIds), parent != null ? parent.capture() : null);
+        final StringBuilder sb = new StringBuilder("Scope{");
+        sb.append("symbolTable=").append(symbolTable);
+        sb.append(", identifierIds=").append(identifierIds);
+        sb.append(", children=").append(children);
+        sb.append(", childPos=").append(childPos);
+        sb.append('}');
+        return sb.toString();
     }
 }
