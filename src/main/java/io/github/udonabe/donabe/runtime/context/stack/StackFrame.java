@@ -31,13 +31,19 @@ public class StackFrame {
         this.instructions = instructions;
 
         Map<Integer, VariableCell> locals = new HashMap<>();
-        for (Instruction instruction : instructions) {
-            switch (instruction) {
-                case LoadLocal(int identifierSlot) -> locals.put(identifierSlot, new VariableCell(global.get(identifierSlot).value()));
-                case StoreLocal(int identifierSlot) -> locals.put(identifierSlot, new VariableCell(global.get(identifierSlot).value()));
-                default -> {}
+
+        try {
+            for (Instruction instruction : instructions) {
+                switch (instruction) {
+                    case LoadLocal(int identifierSlot) -> locals.put(identifierSlot, new VariableCell(global.get(identifierSlot).value()));
+                    case StoreLocal(int identifierSlot) -> locals.put(identifierSlot, new VariableCell(global.get(identifierSlot).value()));
+                    default -> {}
+                }
             }
+        } catch (NullPointerException e) {
+            throw new InterpreterException("Failed to init local variables: an undefined variable is being referenced.", e);
         }
+
         this.locals = locals;
         log.trace("Local slots: {} frame={}", locals.keySet(), name);
         capturedCache = new HashMap<>();

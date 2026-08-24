@@ -211,7 +211,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     }
 
     @Override
-    public Void visitLoad(LoadCaptured instruction) {
+    public Void visitLoadCaptured(LoadCaptured instruction) {
         RuntimeValue<?> loaded = context.getCaptured(instruction.identifierSlot()).value();
 
         if (loaded instanceof FunctionValue functionValue) {
@@ -298,7 +298,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     }
 
     @Override
-    public Void visitStore(StoreCaptured instruction) {
+    public Void visitStoreCaptured(StoreCaptured instruction) {
         RuntimeValue<?> value = context.popStack();
         context.setCapturedVarValue(instruction.identifierSlot(), value);
         return null;

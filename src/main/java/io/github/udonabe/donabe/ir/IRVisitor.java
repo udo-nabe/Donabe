@@ -15,7 +15,7 @@ public interface IRVisitor<R> {
     R visitLabelNop(LabelNop instruction);
     R visitLess(Less instruction);
     R visitLessEqual(LessEqual instruction);
-    R visitLoad(LoadCaptured instruction);
+    R visitLoadCaptured(LoadCaptured instruction);
     R visitLoadLocal(LoadLocal instruction);
     R visitMinus(Minus instruction);
     R visitMul(Mul instruction);
@@ -25,7 +25,7 @@ public interface IRVisitor<R> {
     R visitPop(Pop instruction);
     R visitPush(Push instruction);
     R visitReturn(Return instruction);
-    R visitStore(StoreCaptured instruction);
+    R visitStoreCaptured(StoreCaptured instruction);
     R visitStoreLocal(StoreLocal instruction);
     R visitSub(Sub instruction);
     R visitVoidReturn(VoidReturn instruction);

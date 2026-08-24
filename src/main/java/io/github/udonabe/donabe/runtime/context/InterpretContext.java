@@ -23,7 +23,7 @@ public class InterpretContext {
 
     public StackFrame popStackFrame() {
         if (!currentFrame.hasCaller()) {
-            throw new IllegalStateException("Cannot call popStackFrame when callStack is 1 or less.");
+            throw new InterpreterException("Cannot call popStackFrame when callStack is 1 or less.");
         }
         currentFrame = currentFrame.caller();
         return currentFrame;

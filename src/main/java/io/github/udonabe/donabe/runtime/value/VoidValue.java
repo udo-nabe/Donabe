@@ -15,4 +15,9 @@ public final class VoidValue implements RuntimeValue<String> {
     public String display() {
         return "<void>";
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return true;
+    }
 }

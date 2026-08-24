@@ -76,7 +76,7 @@ public class IRViewer implements IRVisitor<String> {
     }
 
     @Override
-    public String visitLoad(LoadCaptured instruction) {
+    public String visitLoadCaptured(LoadCaptured instruction) {
         return "load_captured #" + instruction.identifierSlot();
     }
 
@@ -139,7 +139,7 @@ public class IRViewer implements IRVisitor<String> {
     }
 
     @Override
-    public String visitStore(StoreCaptured instruction) {
+    public String visitStoreCaptured(StoreCaptured instruction) {
         return "store_captured #" + instruction.identifierSlot();
     }
 
