@@ -20,6 +20,7 @@ public class StackFrame {
     private final Registers registers;
     private final List<Instruction> instructions;
     private final Map<Integer, VariableCell> locals;
+    private final Map<Integer, VariableCell> capturedCache;
 
 
     public StackFrame(StackFrame caller, StackFrame parent, String name, Registers registers, List<Instruction> instructions, Map<Integer, VariableCell> global) {
@@ -39,6 +40,7 @@ public class StackFrame {
         }
         this.locals = locals;
         log.trace("Local slots: {} frame={}", locals.keySet(), name);
+        capturedCache = new HashMap<>();
     }
 
     public StackFrame(StackFrame caller, StackFrame parent, String name, List<Instruction> instructions, Map<Integer, VariableCell> globals) {
@@ -61,8 +63,19 @@ public class StackFrame {
         if (parent == null) {
             throw new InterpreterException("Could not find captured variable: parent is null. frame=" + name);
         }
+        if (capturedCache.containsKey(slot)) {
+            log.trace("Found captured variable in cache. frame={} slot={}", name, slot);
+            return capturedCache.get(slot);
+        }
+
         log.trace("Begin to find local variable... frame={} slot={}", name, slot);
-        return parent.getCapturedImpl(slot);
+
+        VariableCell capturedCell = parent.getCapturedImpl(slot);
+
+        log.trace("Cache captured variable. frame={} slot={}", name, slot);
+        capturedCache.put(slot, capturedCell);
+
+        return capturedCell;
     }
 
     private VariableCell getCapturedImpl(int slot) {
