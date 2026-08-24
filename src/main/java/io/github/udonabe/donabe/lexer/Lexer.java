@@ -58,7 +58,8 @@ public class Lexer {
             entry("!", Token.Kind.EXCLAMATION),
             entry("<", Token.Kind.LESS),
             entry(">", Token.Kind.GREATER),
-            entry(",", Token.Kind.COMMA)
+            entry(",", Token.Kind.COMMA),
+            entry(":", Token.Kind.COLON)
     );
 
     private final String source;

@@ -51,6 +51,7 @@ public record Token(Kind kind, String lexeme, String lineSource, int line, int c
         // Others
         SEMICOLON,
         COMMA,
+        COLON,
         EOF
     }
 }
