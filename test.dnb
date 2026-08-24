@@ -1,19 +1,20 @@
-// Everything test
+func makeCounter(initial) {
+    var count = initial;
 
-let name = input();
+    lazy func counter() {
+        count = count + 1;
+        return count;
+    }
 
-if name == "Donabe" {
-  print("Welcome, Donabe!");
-} else if name == "42" {
-  print("The answer has been found.");
-} else {
-  print("Hello, " + name);
+    return counter;
 }
 
-var total = 0;
+var counterA = makeCounter(0);
+var counterB = makeCounter(100);
 
-for var i = 1; i <= 10; i++ {
-  total = total + i;
-}
-
-print("1..10 = " + total);
+print(counterA());
+print(counterA());
+print(counterB());
+print(counterB());
+print(counterA());
+print(counterB());

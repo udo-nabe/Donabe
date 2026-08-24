@@ -28,6 +28,7 @@ public class IRInterpreter implements IRVisitor<Void> {
         this.registry = registry;
         this.labelJmpMap = new HashMap<>();
         this.globalIdentifiers = resolution;
+        log.debug("resolution: {}", resolution);
     }
 
     private void setupLabel(List<Instruction> instructions) {
@@ -83,16 +84,17 @@ public class IRInterpreter implements IRVisitor<Void> {
         RuntimeValue<?> callee = context.popStack();
         switch (callee) {
             case ClosureValue(String name, List<Integer> paramSlots, List<Instruction> instructions, StackFrame parent) -> {
-                StackFrame calleeStackFrame = new StackFrame(context.peekStackFrame(), name, instructions, globalIdentifiers);
-
                 List<RuntimeValue<?>> argValues = bindArgs(paramSlots.size());
-                for (int i = 0; i < paramSlots.size(); i++) {
-                    var argCell = calleeStackFrame.getVariable(paramSlots.get(i), true);
-                    var argValue = argValues.get(i);
-                    argCell.setValue(argValue);
-                }
+
+                StackFrame calleeStackFrame = new StackFrame(context.peekStackFrame(), parent, name, instructions, globalIdentifiers);
 
                 context.pushStackFrame(calleeStackFrame);
+
+                for (int i = 0; i < paramSlots.size(); i++) {
+                    int argSlot = paramSlots.get(i);
+                    RuntimeValue<?> argValue = argValues.get(i);
+                    context.setLocalVarValue(argSlot, argValue);
+                }
             }
             case BuiltinFunctionValue(List<String> formalArgs, Function<List<? extends RuntimeValue<?>>, RuntimeValue<?>> content) -> {
                 List<RuntimeValue<?>> args = bindArgs(formalArgs.size());
@@ -143,9 +145,16 @@ public class IRInterpreter implements IRVisitor<Void> {
         return null;
     }
 
+    private int getLabelPC(Label label) {
+        if (!labelJmpMap.containsKey(label)) {
+            throw new InterpreterException("Undefined label: " + label);
+        }
+        return labelJmpMap.get(label);
+    }
+
     @Override
     public Void visitJmp(Jmp instruction) {
-        int jmpTo = labelJmpMap.get(instruction.label());
+        int jmpTo = getLabelPC(instruction.label());
         context.peekStackFrame().registers().setPC(jmpTo);
         return null;
     }
@@ -158,7 +167,7 @@ public class IRInterpreter implements IRVisitor<Void> {
         }
 
         if (!value) {
-            int jmpTo = labelJmpMap.get(instruction.label());
+            int jmpTo = getLabelPC(instruction.label());
             context.peekStackFrame().registers().setPC(jmpTo);
         }
         return null;
@@ -172,7 +181,7 @@ public class IRInterpreter implements IRVisitor<Void> {
         }
 
         if (value) {
-            int jmpTo = labelJmpMap.get(instruction.label());
+            int jmpTo = getLabelPC(instruction.label());
             context.peekStackFrame().registers().setPC(jmpTo);
         }
         return null;
@@ -202,8 +211,8 @@ public class IRInterpreter implements IRVisitor<Void> {
     }
 
     @Override
-    public Void visitLoad(Load instruction) {
-        RuntimeValue<?> loaded = context.getVar(instruction.identifierSlot(), false).value();
+    public Void visitLoad(LoadCaptured instruction) {
+        RuntimeValue<?> loaded = context.getCaptured(instruction.identifierSlot()).value();
 
         if (loaded instanceof FunctionValue functionValue) {
             context.pushStack(setupClosure(functionValue));
@@ -215,7 +224,7 @@ public class IRInterpreter implements IRVisitor<Void> {
 
     @Override
     public Void visitLoadLocal(LoadLocal instruction) {
-        RuntimeValue<?> loaded = context.getVar(instruction.identifierSlot(), true).value();
+        RuntimeValue<?> loaded = context.getLocal(instruction.identifierSlot()).value();
 
         if (loaded instanceof FunctionValue functionValue) {
             context.pushStack(setupClosure(functionValue));
@@ -289,16 +298,16 @@ public class IRInterpreter implements IRVisitor<Void> {
     }
 
     @Override
-    public Void visitStore(Store instruction) {
+    public Void visitStore(StoreCaptured instruction) {
         RuntimeValue<?> value = context.popStack();
-        context.setVarValue(instruction.identifierSlot(), value, false);
+        context.setCapturedVarValue(instruction.identifierSlot(), value);
         return null;
     }
 
     @Override
     public Void visitStoreLocal(StoreLocal instruction) {
         RuntimeValue<?> value = context.popStack();
-        context.setVarValue(instruction.identifierSlot(), value, true);
+        context.setLocalVarValue(instruction.identifierSlot(), value);
         return null;
     }
 

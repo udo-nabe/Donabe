@@ -8,8 +8,10 @@ public class IRGenerateContext {
     private Deque<Set<Integer>> locals;
     private int labelIndex;
 
-    public IRGenerateContext() {
+    public IRGenerateContext(Set<Integer> resolution) {
         locals = new ArrayDeque<>();
+        locals.push(resolution);
+
         labelIndex = 0;
     }
 
@@ -17,7 +19,7 @@ public class IRGenerateContext {
         locals.push(currentLocals);
     }
     public void popFunction() {
-        if (locals.isEmpty()) {
+        if (locals.size() <= 1) {
             throw new IllegalStateException("Cannot call popFunction when not inside a function.");
         }
         locals.pop();
@@ -28,7 +30,7 @@ public class IRGenerateContext {
     public Set<Integer> currentLocals() {
         return locals.peek();
     }
-    public boolean isLocal(int slot) {
+    public boolean shouldUseLocal(int slot) {
         return currentLocals().contains(slot);
     }
 

@@ -44,7 +44,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         program.accept(this);
 
         rootScope.resetChildPos();
-        IRProgram ir = new IRGenerator(rootScope, resolveResult.localsASTNodeMap()).generate(program);
+        IRProgram ir = new IRGenerator(rootScope, resolveResult.resolution().keySet(), resolveResult.localsASTNodeMap()).generate(program);
 
         return new AnalyzeResult(ir, resolution);
     }

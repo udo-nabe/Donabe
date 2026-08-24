@@ -35,15 +35,15 @@ class IRGeneratorTest {
     }
 
     private void assertIRSimple(ASTNode ast, List<Instruction> instructions) {
-        assertIR(ast, Scope.generateRoot(), instructions);
+        assertIR(ast, Scope.generateRoot(), Set.of(), instructions);
     }
 
-    private void assertIR(ASTNode ast, Scope root, List<Instruction> instructions) {
-        assertIR(ast, root, instructions, new HashMap<>());
+    private void assertIR(ASTNode ast, Scope root, Set<Integer> resolution, List<Instruction> instructions) {
+        assertIR(ast, root, instructions, resolution, new HashMap<>());
     }
 
-    private void assertIR(ASTNode ast, Scope root, List<Instruction> instructions, Map<ASTNode, Set<Integer>> map) {
-        List<Instruction> actualInstructions = ast.accept(new IRGenerator(root, map));
+    private void assertIR(ASTNode ast, Scope root, List<Instruction> instructions, Set<Integer> resolution, Map<ASTNode, Set<Integer>> map) {
+        List<Instruction> actualInstructions = ast.accept(new IRGenerator(root, resolution, map));
         assertIterableEquals(instructions, actualInstructions);
     }
 
@@ -80,15 +80,16 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("foo", "bar"),
+                Set.of(6, 7),
                 List.of(
                         new Push(new IntegerValue(42)),
-                        new Store(6),
-                        new Load(6),
+                        new StoreLocal(6),
+                        new LoadLocal(6),
                         new Push(new IntegerValue(1)),
                         new Add(),
-                        new Store(7),
-                        new Load(6),
-                        new Load(7),
+                        new StoreLocal(7),
+                        new LoadLocal(6),
+                        new LoadLocal(7),
                         new Sub(),
                         new Pop()
                 )
@@ -132,15 +133,16 @@ class IRGeneratorTest {
                         ),
                         new SourceFileLocation(1, 1)
                 ), root,
+                Set.of(6, 7),
                 List.of(
                         new Push(new IntegerValue(42)),
-                        new Store(6),
-                        new Load(6),
+                        new StoreLocal(6),
+                        new LoadLocal(6),
                         new Push(new IntegerValue(1)),
                         new Add(),
-                        new Store(7),
-                        new Load(6),
-                        new Load(7),
+                        new StoreLocal(7),
+                        new LoadLocal(6),
+                        new LoadLocal(7),
                         new Sub(),
                         new Pop()
                 )
@@ -185,7 +187,7 @@ class IRGeneratorTest {
                 "add",
                 List.of(8, 9),
                 List.of(
-                        new Load(7),
+                        new LoadCaptured(7),
                         new Pop(),
                         new LoadLocal(8),
                         new LoadLocal(9),
@@ -235,10 +237,11 @@ class IRGeneratorTest {
                 root,
                 List.of(
                         new Push(functionValue),
-                        new Store(6),
+                        new StoreLocal(6),
                         new Push(new IntegerValue(42)),
-                        new Store(7)
+                        new StoreLocal(7)
                 ),
+                Set.of(6, 7, 8, 9),
                 Map.of(
                         define, Set.of(8, 9)
                 )
@@ -275,6 +278,7 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 root,
+                Set.of(),
                 List.of(
                         new Push(new BooleanValue(true)),
                         new JmpFalse(new Label(".0")),
@@ -312,6 +316,7 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 rootOnlyIf,
+                Set.of(),
                 List.of(
                         new Push(new BooleanValue(true)),
                         new JmpFalse(new Label(".0")),
@@ -333,9 +338,10 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("bar"),
+                Set.of(6),
                 List.of(
                         new Push(new StringValue("Hello")),
-                        new Store(6)
+                        new StoreLocal(6)
                 )
         );
     }
@@ -375,9 +381,10 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("hoge"),
+                Set.of(6),
                 List.of(
                         new Push(new StringValue("Hello")),
-                        new Store(6)
+                        new StoreLocal(6)
                 )
         );
     }
@@ -400,6 +407,7 @@ class IRGeneratorTest {
                         ), new SourceFileLocation(1, 1)
                 ),
                 root,
+                Set.of(),
                 List.of(
                         new LabelNop(new Label(".0")),
 
@@ -430,10 +438,11 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("bar"),
+                Set.of(6),
                 List.of(
                         new Push(new StringValue("Hello")),
-                        new Store(6),
-                        new Load(6)
+                        new StoreLocal(6),
+                        new LoadLocal(6)
                 )
         );
     }
@@ -552,13 +561,14 @@ class IRGeneratorTest {
                 root,
                 List.of(
                         new Push(functionValue),
-                        new Store(6),
+                        new StoreLocal(6),
                         new Push(new IntegerValue(1234)),
                         new Push(new IntegerValue(123)),
-                        new Load(6),
+                        new LoadLocal(6),
                         new Call(),
                         new Pop()
                 ),
+                Set.of(6, 7, 8),
                 Map.of(
                         define, Set.of(7, 8)
                 )
@@ -575,12 +585,13 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("bar"),
+                Set.of(6),
                 List.of(
-                        new Load(6),
+                        new LoadLocal(6),
                         new Push(new IntegerValue(1234)),
                         new Add(),
-                        new Store(6),
-                        new Load(6)
+                        new StoreLocal(6),
+                        new LoadLocal(6)
                 )
         );
     }
@@ -595,12 +606,13 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("hoge"),
+                Set.of(6),
                 List.of(
-                        new Load(6),
+                        new LoadLocal(6),
                         new Push(new IntegerValue(1)),
                         new Sub(),
-                        new Store(6),
-                        new Load(6)
+                        new StoreLocal(6),
+                        new LoadLocal(6)
                 )
         );
 
@@ -612,12 +624,13 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("hoge"),
+                Set.of(6),
                 List.of(
-                        new Load(6),
-                        new Load(6),
+                        new LoadLocal(6),
+                        new LoadLocal(6),
                         new Push(new IntegerValue(1)),
                         new Sub(),
-                        new Store(6)
+                        new StoreLocal(6)
                 )
         );
     }
@@ -669,6 +682,7 @@ class IRGeneratorTest {
                 List.of(
                         new Push(functionValue)
                 ),
+                Set.of(6, 7),
                 Map.of(
                         define, Set.of(6, 7)
                 )
@@ -680,8 +694,9 @@ class IRGeneratorTest {
         assertIR(
                 new Identifier("foo", new SourceFileLocation(1, 1)),
                 generateSimpleScope("foo"),
+                Set.of(6),
                 List.of(
-                        new Load(6)
+                        new LoadLocal(6)
                 )
         );
     }
@@ -696,12 +711,13 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("hoge"),
+                Set.of(6),
                 List.of(
-                        new Load(6),
+                        new LoadLocal(6),
                         new Push(new IntegerValue(1)),
                         new Add(),
-                        new Store(6),
-                        new Load(6)
+                        new StoreLocal(6),
+                        new LoadLocal(6)
                 )
         );
 
@@ -713,12 +729,13 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("hoge"),
+                Set.of(6),
                 List.of(
-                        new Load(6),
-                        new Load(6),
+                        new LoadLocal(6),
+                        new LoadLocal(6),
                         new Push(new IntegerValue(1)),
                         new Add(),
-                        new Store(6)
+                        new StoreLocal(6)
                 )
         );
     }

@@ -98,9 +98,11 @@ public class Main implements Callable<Integer> {
 
             log.info("Normal termination.");
         } catch (CompileException e) {
+            log.warn("Compile error.", e);
             System.err.println("コンパイルエラー: " + e.getMessage());
             return 1;
         } catch (InterpreterException e) {
+            log.warn("Runtime error.", e);
             System.err.println("実行時エラー: " + e.getMessage());
             return 1;
         } catch (Exception | AssertionError e) {

@@ -13,7 +13,7 @@ public class InterpretContext {
     private final Deque<RuntimeValue<?>> stack;
 
     public InterpretContext(List<Instruction> instructions, Map<Integer, VariableCell> rootStackFrame) {
-        currentFrame = new StackFrame(null, "<root>", instructions, rootStackFrame);
+        currentFrame = new StackFrame(null, null, "<root>", instructions, rootStackFrame);
         stack = new ArrayDeque<>();
     }
 
@@ -37,12 +37,20 @@ public class InterpretContext {
         return currentFrame.instructions().get(currentFrame.registers().pc());
     }
 
-    public VariableCell getVar(int slot, boolean isLocal) {
-        return currentFrame.getVariable(slot, isLocal);
+    public VariableCell getLocal(int slot) {
+        return currentFrame.getLocal(slot);
     }
 
-    public void setVarValue(int slot, RuntimeValue<?> value, boolean isLocal) {
-        getVar(slot, isLocal).setValue(value);
+    public VariableCell getCaptured(int slot) {
+        return currentFrame.getCaptured(slot);
+    }
+
+    public void setLocalVarValue(int slot, RuntimeValue<?> value) {
+        getLocal(slot).setValue(value);
+    }
+
+    public void setCapturedVarValue(int slot, RuntimeValue<?> value) {
+        getCaptured(slot).setValue(value);
     }
 
     public void pushStack(RuntimeValue<?> value) {

@@ -9,7 +9,6 @@ import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
 import io.github.udonabe.donabe.runtime.value.*;
-import io.github.udonabe.donabe.semantic.AnalyzeContext;
 import io.github.udonabe.donabe.semantic.Scope;
 
 import java.util.ArrayList;
@@ -23,11 +22,11 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
     private Scope currentScope;
 
-    public IRGenerator(Scope rootScope, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
+    public IRGenerator(Scope rootScope, Set<Integer> resolution, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
         this.rootScope = rootScope;
         this.currentScope = rootScope;
         this.localsASTNodeMap = localsASTNodeMap;
-        context = new IRGenerateContext();
+        context = new IRGenerateContext(resolution);
     }
 
     public IRProgram generate(Program program) {
@@ -83,18 +82,18 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     }
 
     private Instruction load(int slot) {
-        if (context.inFunction() && context.isLocal(slot)) {
+        if (context.inFunction() && context.shouldUseLocal(slot)) {
             return new LoadLocal(slot);
         } else {
-            return new Load(slot);
+            return new LoadCaptured(slot);
         }
     }
 
     private Instruction store(int slot) {
-        if (context.inFunction() && context.isLocal(slot)) {
+        if (context.inFunction() && context.shouldUseLocal(slot)) {
             return new StoreLocal(slot);
         } else {
-            return new Store(slot);
+            return new StoreCaptured(slot);
         }
     }
 
