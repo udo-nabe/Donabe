@@ -41,6 +41,8 @@ public record Token(Kind kind, String lexeme, String lineSource, int line, int c
         GREATER,
         LESS_EQUAL,
         GREATER_EQUAL,
+
+        ARROW,
         // Brackets
         LPAREN,
         RPAREN,
