@@ -31,6 +31,7 @@ test {
 }
 
 application {
+    mainModule = "io.github.udonabe.donabe"
     mainClass = "io.github.udonabe.donabe.Main"
 }
 
