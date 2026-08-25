@@ -2,12 +2,11 @@ package io.github.udonabe.donabe.semantic.resolve;
 
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.ErrorUtil;
-import io.github.udonabe.donabe.ast.ASTNode;
-import io.github.udonabe.donabe.ast.ASTVisitor;
-import io.github.udonabe.donabe.ast.Program;
-import io.github.udonabe.donabe.ast.SourceFileLocation;
+import io.github.udonabe.donabe.ast.*;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
 import io.github.udonabe.donabe.runtime.VariableCell;
@@ -138,12 +137,12 @@ public final class NameResolver implements ASTVisitor<Void> {
         }
     }
 
-    private Set<Integer> defineFunction(List<Identifier> args, BlockStatement block) {
+    private Set<Integer> defineFunction(List<Parameter> params, BlockStatement block) {
         currentScope = currentScope.newChild();
 
         Set<Integer> locals = new HashSet<>();
-        for (Identifier arg : args) {
-            String argName = arg.name();
+        for (Parameter param : params) {
+            String argName = param.name().name();
 
             int argID = nextId();
             currentScope.put(argName, new SymbolInformation(false));
@@ -350,6 +349,21 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitVoidExpression(VoidExpression expr) {
+        return null;
+    }
+
+    @Override
+    public Void visitNamedTypeAnnotation(NamedTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public Void visitParameter(Parameter parameter) {
         return null;
     }
 

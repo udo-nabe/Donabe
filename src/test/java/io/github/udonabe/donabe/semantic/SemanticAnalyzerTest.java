@@ -41,7 +41,7 @@ class SemanticAnalyzerTest {
     @Test
     void declaredLetCanBeReferenced() {
         doesNotThrow("""
-                let foo = 1;
+                let foo: int = 1;
                 foo;
                 """);
     }
@@ -49,7 +49,7 @@ class SemanticAnalyzerTest {
     @Test
     void declaredVarCanBeReferenced() {
         doesNotThrow("""
-                var foo = 1;
+                var foo: int = 1;
                 foo;
                 """);
     }
@@ -57,7 +57,7 @@ class SemanticAnalyzerTest {
     @Test
     void varCanBeAssigned() {
         doesNotThrow("""
-                var foo = 1;
+                var foo: int = 1;
                 foo = 2;
                 """);
     }
@@ -65,7 +65,7 @@ class SemanticAnalyzerTest {
     @Test
     void letCannotBeAssigned() {
         throwCompileException("""
-                let foo = 1;
+                let foo: int = 1;
                 foo = 2;
                 """);
     }
@@ -77,7 +77,7 @@ class SemanticAnalyzerTest {
                 """);
         throwCompileException("""
                 foo;
-                let foo = 1;
+                let foo: int = 1;
                 """);
     }
 
@@ -88,14 +88,14 @@ class SemanticAnalyzerTest {
                 """);
         throwCompileException("""
                 foo;
-                let foo = func() {};
+                let foo: () -> void = func(): void {};
                 """);
     }
 
     @Test
     void varOfParentScopeCanBeReferenced() {
         doesNotThrow("""
-                let x = 1;
+                let x: int = 1;
                 {x;}
                 """);
     }
@@ -103,7 +103,7 @@ class SemanticAnalyzerTest {
     @Test
     void varOfChildScopeCannotBeReferenced() {
         throwCompileException("""
-                {let x = 1;}
+                {let x: int = 1;}
                 x;
                 """);
     }
@@ -112,7 +112,7 @@ class SemanticAnalyzerTest {
     void childScopeVarCanBeReferenced() {
         doesNotThrow("""
                 {
-                    let x = 1;
+                    let x: int = 1;
                     x;
                 }
                 """);
@@ -121,9 +121,9 @@ class SemanticAnalyzerTest {
     @Test
     void canShadowing() {
         doesNotThrow("""
-                let x = 1;
+                let x: int = 1;
                 {
-                    let x = 2;
+                    let x: int = 2;
                     x;
                 }
                 x;
@@ -133,7 +133,7 @@ class SemanticAnalyzerTest {
     @Test
     void varCanBeReferencedInExpression() {
         doesNotThrow("""
-                let x = 1;
+                let x: int = 1;
                 print(x + 1 / 2);
                 """);
     }
@@ -141,7 +141,7 @@ class SemanticAnalyzerTest {
     @Test
     void undefinedVarCannotBeReferencedInExpression() {
         throwCompileException("""
-                let x = 1;
+                let x: int = 1;
                 print(y + 1 / 2);
                 """);
     }
@@ -149,10 +149,10 @@ class SemanticAnalyzerTest {
     @Test
     void mutualRecursion() {
         doesNotThrow("""
-                func a() {
+                func a() -> void {
                     b();
                 }
-                func b() {
+                func b() -> void {
                     a();
                 }
                 """);
@@ -161,10 +161,10 @@ class SemanticAnalyzerTest {
     @Test
     void doubleDeclaration() {
         throwCompileException("""
-                func a() {
+                func a() -> void {
                     
                 }
-                func a() {
+                func a() -> void {
                     
                 }
                 """);
@@ -187,10 +187,10 @@ class SemanticAnalyzerTest {
     void nameResolutionBasic() {
         //正常系
         nameResolution("""
-                        let a = 10;
-                        var b = 2;
-                        func add(a, b) { return a + b;};
-                        let c = add(a, b);
+                        let a: int = 10;
+                        var b: int = 2;
+                        func add(a: int, b: int) -> int { return a + b;};
+                        let c: int = add(a, b);
                         print("ADD: " + c);
                         """,
                 Map.ofEntries(
@@ -236,10 +236,10 @@ class SemanticAnalyzerTest {
     @Test
     void function() {
         nameResolution("""
-                        func add(a, b) {
+                        func add(a: int, b: int) -> int {
                             return a + b;
                         }
-                        let a = add(1, 2);
+                        let a: int = add(1, 2);
                         """,
                 Map.ofEntries(
                         Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
@@ -260,14 +260,14 @@ class SemanticAnalyzerTest {
     @Test
     void nestedFunction() {
         nameResolution("""
-                        func add(a, b) {
-                            func impl(a, b) {
+                        func add(a: int, b: int) -> int {
+                            func impl(a: int, b: int) -> int {
                                 return a + b;
                             }
                             return impl(a, b);
                         }
                         
-                        let b = add(3, 4);
+                        let b: int = add(3, 4);
                         """,
                 Map.ofEntries(
                         Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print

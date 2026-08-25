@@ -3,8 +3,11 @@ package io.github.udonabe.donabe.parser;
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.ErrorUtil;
 import io.github.udonabe.donabe.TokenStream;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
+import io.github.udonabe.donabe.ast.statement.BlockStatement;
+import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 import io.github.udonabe.donabe.lexer.Token;
 
 import java.util.List;
@@ -19,9 +22,17 @@ import static java.util.Map.entry;
 class PrattParser {
     public static final Parser<FunctionLiteral> functionDefine =
             token(FUNC)
-                    .then(separatedBy(identifier, token(COMMA)).between(token(LPAREN), token(RPAREN)))
+                    .then(parameters)
+                    .then(typeAnnotation)
                     .then(blockStatement())
-                    .map(p -> new FunctionLiteral(p.getLeft().getRight(), p.getRight(), genLocation(p.getLeft().getLeft())));
+                    .map(p -> {
+                        SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
+                        List<Parameter> params = p.getLeft().getLeft().getRight();
+                        TypeAnnotation type = p.getLeft().getRight();
+                        BlockStatement block = p.getRight();
+
+                        return new FunctionLiteral(params, type, block, location);
+                    });
     private static final int PREFIX_PRECEDENCE = 100;
     private static final int MIN_PRECEDENCE = 1;
     private static final Map<Token.Kind, Integer> PRECEDENCES = Map.ofEntries(

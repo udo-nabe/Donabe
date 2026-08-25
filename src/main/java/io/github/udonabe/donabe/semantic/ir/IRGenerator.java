@@ -2,9 +2,12 @@ package io.github.udonabe.donabe.semantic.ir;
 
 import io.github.udonabe.donabe.ast.ASTNode;
 import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
@@ -59,7 +62,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         currentScope = currentScope.nextChildScope();
 
         List<Integer> paramSlots = statement.args().stream()
-                .map(identifier -> currentScope.getId(identifier.name()))
+                .map(parameter -> currentScope.getId(parameter.name().name()))
                 .toList();
 
         for (Statement s : statement.block().statements()) {
@@ -345,7 +348,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         currentScope = currentScope.nextChildScope();
 
         List<Integer> paramSlots = expr.args().stream()
-                .map(identifier -> currentScope.getId(identifier.name()))
+                .map(parameter -> currentScope.getId(parameter.name().name()))
                 .toList();
 
         for (Statement s : expr.block().statements()) {
@@ -414,5 +417,20 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitVoidExpression(VoidExpression expr) {
         throw new AssertionError("VoidExpression cannot be visited.");  //VoidExpressionに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    @Override
+    public List<Instruction> visitNamedTypeAnnotation(NamedTypeAnnotation typeAnnotation) {
+        throw new AssertionError("NamedTypeAnnotation cannot be visited.");  //NamedTypeAnnotationに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    @Override
+    public List<Instruction> visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        throw new AssertionError("FunctionTypeAnnotation cannot be visited.");  //FunctionTypeAnnotationに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    @Override
+    public List<Instruction> visitParameter(Parameter parameter) {
+        throw new AssertionError("Parameter cannot be visited.");  //Parameterに到達することは通常ないため、AssertionErrorを出す。
     }
 }

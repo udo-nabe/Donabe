@@ -3,9 +3,12 @@ package io.github.udonabe.donabe.semantic;
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.ErrorUtil;
 import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
@@ -251,6 +254,21 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitVoidExpression(VoidExpression expr) {
         return new SymbolInformation(false);
+    }
+
+    @Override
+    public SymbolInformation visitNamedTypeAnnotation(NamedTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public SymbolInformation visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public SymbolInformation visitParameter(Parameter parameter) {
+        return null;
     }
 
     public record AnalyzeResult(IRProgram irProgram, Map<Integer, VariableCell> resolution) {}

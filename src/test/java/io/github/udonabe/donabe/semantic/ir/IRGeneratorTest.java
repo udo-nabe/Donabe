@@ -1,10 +1,12 @@
 package io.github.udonabe.donabe.semantic.ir;
 
 import io.github.udonabe.donabe.ast.ASTNode;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
 import io.github.udonabe.donabe.runtime.value.BooleanValue;
@@ -55,6 +57,7 @@ class IRGeneratorTest {
                                 new LetDeclaration(
                                         new Identifier("foo", new SourceFileLocation(1, 1)),
                                         new IntegerLiteral(42, new SourceFileLocation(1, 1)),
+                                        new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1))),
                                         new SourceFileLocation(1, 1)
                                 ),
                                 new VarDeclaration(
@@ -65,6 +68,7 @@ class IRGeneratorTest {
                                                 new IntegerLiteral(1, new SourceFileLocation(1, 1)),
                                                 new SourceFileLocation(1, 1)
                                         ),
+                                        new NamedTypeAnnotation(new Identifier("string", new SourceFileLocation(1, 1))),
                                         new SourceFileLocation(1, 1)
                                 ),
                                 new ExpressionStatement(
@@ -109,6 +113,7 @@ class IRGeneratorTest {
                                 new LetDeclaration(
                                         new Identifier("foo", new SourceFileLocation(1, 1)),
                                         new IntegerLiteral(42, new SourceFileLocation(1, 1)),
+                                        new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1))),
                                         new SourceFileLocation(1, 1)
                                 ),
                                 new VarDeclaration(
@@ -119,6 +124,7 @@ class IRGeneratorTest {
                                                 new IntegerLiteral(1, new SourceFileLocation(1, 1)),
                                                 new SourceFileLocation(1, 1)
                                         ),
+                                        new NamedTypeAnnotation(new Identifier("string", new SourceFileLocation(1, 1))),
                                         new SourceFileLocation(1, 1)
                                 ),
                                 new ExpressionStatement(
@@ -199,9 +205,16 @@ class IRGeneratorTest {
         var define = new FunctionDefineStatement(
                 new Identifier("add", new SourceFileLocation(1, 1)),
                 List.of(
-                        new Identifier("a", new SourceFileLocation(1, 1)),
-                        new Identifier("b", new SourceFileLocation(1, 1))
+                        new Parameter(
+                                new Identifier("a", new SourceFileLocation(1, 1)),
+                                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1)))
+                        ),
+                        new Parameter(
+                                new Identifier("b", new SourceFileLocation(1, 1)),
+                                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1)))
+                        )
                 ),
+                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1))),
                 new BlockStatement(
                         List.of(
                                 new ExpressionStatement(
@@ -228,6 +241,7 @@ class IRGeneratorTest {
                                 new LetDeclaration(
                                         new Identifier("answer", new SourceFileLocation(1, 1)),
                                         new IntegerLiteral(42, new SourceFileLocation(1, 1)),
+                                        new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1))),
                                         new SourceFileLocation(1, 1)
                                 ),
                                 define
@@ -335,6 +349,7 @@ class IRGeneratorTest {
                 new LetDeclaration(
                         new Identifier("bar", new SourceFileLocation(1, 1)),
                         new StringLiteral("Hello", new SourceFileLocation(1, 1)),
+                        new NamedTypeAnnotation(new Identifier("string", new SourceFileLocation(1, 1))),
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("bar"),
@@ -378,6 +393,7 @@ class IRGeneratorTest {
                 new VarDeclaration(
                         new Identifier("hoge", new SourceFileLocation(1, 1)),
                         new StringLiteral("Hello", new SourceFileLocation(1, 1)),
+                        new NamedTypeAnnotation(new Identifier("string", new SourceFileLocation(1, 1))),
                         new SourceFileLocation(1, 1)
                 ),
                 generateSimpleScope("hoge"),
@@ -521,9 +537,16 @@ class IRGeneratorTest {
         var define = new FunctionDefineStatement(
                 new Identifier("add", new SourceFileLocation(1, 1)),
                 List.of(
-                        new Identifier("a", new SourceFileLocation(1, 1)),
-                        new Identifier("b", new SourceFileLocation(1, 1))
+                        new Parameter(
+                                new Identifier("a", new SourceFileLocation(1, 1)),
+                                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1)))
+                        ),
+                        new Parameter(
+                                new Identifier("b", new SourceFileLocation(1, 1)),
+                                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1)))
+                        )
                 ),
+                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1))),
                 new BlockStatement(
                         List.of(
                                 new ReturnStatement(
@@ -657,9 +680,16 @@ class IRGeneratorTest {
 
         var define = new FunctionLiteral(
                 List.of(
-                        new Identifier("a", new SourceFileLocation(1, 1)),
-                        new Identifier("b", new SourceFileLocation(1, 1))
+                        new Parameter(
+                                new Identifier("a", new SourceFileLocation(1, 1)),
+                                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1)))
+                        ),
+                        new Parameter(
+                                new Identifier("b", new SourceFileLocation(1, 1)),
+                                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1)))
+                        )
                 ),
+                new NamedTypeAnnotation(new Identifier("int", new SourceFileLocation(1, 1))),
                 new BlockStatement(
                         List.of(
                                 new ReturnStatement(

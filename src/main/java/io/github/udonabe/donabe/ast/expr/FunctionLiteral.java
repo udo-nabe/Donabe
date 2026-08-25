@@ -1,14 +1,14 @@
 package io.github.udonabe.donabe.ast.expr;
 
 import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.statement.BlockStatement;
+import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 
-public record FunctionLiteral(List<Identifier> args, BlockStatement block,
+public record FunctionLiteral(List<Parameter> args, TypeAnnotation type, BlockStatement block,
                               SourceFileLocation location) implements Expression {
 
 
@@ -19,6 +19,6 @@ public record FunctionLiteral(List<Identifier> args, BlockStatement block,
 
     @Override
     public String display() {
-        return "<function(" + args.stream().map(Identifier::name).toList() + "->?)>";
+        return type.typeString();
     }
 }

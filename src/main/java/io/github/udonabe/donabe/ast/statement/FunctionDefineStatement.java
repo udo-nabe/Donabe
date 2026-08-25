@@ -1,16 +1,15 @@
 package io.github.udonabe.donabe.ast.statement;
 
 import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
-import io.github.udonabe.donabe.ast.expr.Expression;
 import io.github.udonabe.donabe.ast.expr.Identifier;
+import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 
-public record FunctionDefineStatement(Identifier identifier, List<Identifier> args, BlockStatement block,
-                                      SourceFileLocation location) implements Statement {
+public record FunctionDefineStatement(Identifier identifier, List<Parameter> args, TypeAnnotation returnValue,
+                                      BlockStatement block, SourceFileLocation location) implements Statement {
 
 
     @Override
