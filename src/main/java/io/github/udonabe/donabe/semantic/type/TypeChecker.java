@@ -55,6 +55,8 @@ public class TypeChecker implements ASTVisitor<Type> {
             identifierTypeTable.put(paramID, paramType);
         }
 
+        defineFunctions(block.statements());
+
         for (Statement statement : block.statements()) {
             statement.accept(this);
         }
@@ -66,15 +68,7 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     private void defineFunction(FunctionDefineStatement statement) {
-        Identifier functionName = statement.identifier();
-        List<Parameter> params = statement.params();
-        TypeAnnotation returnType = statement.returnType();
-
-        int functionID = currentScope.getId(functionName.name());
-        FunctionType functionType = generateFunctionType(params, returnType);
-        identifierTypeTable.put(functionID, functionType);
-
-        defineFunction(params, returnType, statement.block());
+        defineFunction(statement.params(), statement.returnType(), statement.block());
     }
 
     private void defineFunctions(List<Statement> statements) {
@@ -82,6 +76,18 @@ public class TypeChecker implements ASTVisitor<Type> {
                 .filter(s -> s instanceof FunctionDefineStatement)
                 .map(s -> (FunctionDefineStatement) s)
                 .toList();
+
+        //相互参照を可能にするため、先に名前と型だけ登録する
+        for (FunctionDefineStatement define : defines) {
+            Identifier functionName = define.identifier();
+            List<Parameter> params = define.params();
+            TypeAnnotation returnType = define.returnType();
+
+            int functionID = currentScope.getId(functionName.name());
+            FunctionType functionType = generateFunctionType(params, returnType);
+            identifierTypeTable.put(functionID, functionType);
+        }
+
         for (FunctionDefineStatement define : defines) {
             defineFunction(define);
         }
@@ -127,9 +133,15 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitIfStatement(IfStatement statement) {
-        statement.condition().accept(this);
+        Type conditionType = statement.condition().accept(this);
+        if (!(conditionType instanceof BooleanType)) {
+            throw new CompileException(ErrorUtil.makeError(statement.location(), source,
+                    "The conditional expression of an 'if' statement must be of type 'Bool'. Actual: %s", conditionType));
+        }
         statement.thenBlock().accept(this);
-        statement.elseBlock().accept(this);
+        if (statement.elseBlock() != null) {
+            statement.elseBlock().accept(this);
+        }
         return null;
     }
 
@@ -175,7 +187,12 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitWhileStatement(WhileStatement statement) {
-        statement.condition().accept(this);
+        Type conditionType = statement.condition().accept(this);
+        if (!(conditionType instanceof BooleanType)) {
+            throw new CompileException(ErrorUtil.makeError(statement.location(), source,
+                    "The conditional expression of an 'while' statement must be of type 'Bool'. Actual: %s", conditionType));
+        }
+
         statement.loop().accept(this);
         return null;
     }
@@ -378,5 +395,9 @@ public class TypeChecker implements ASTVisitor<Type> {
                 .map(typeResolver::resolve)
                 .toList();
         return new FunctionType(types, typeResolver.resolve(retType));
+    }
+
+    Map<Integer, Type> identifierTypeTable() {
+        return Map.copyOf(identifierTypeTable);
     }
 }

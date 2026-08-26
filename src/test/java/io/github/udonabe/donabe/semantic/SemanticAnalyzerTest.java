@@ -41,7 +41,7 @@ class SemanticAnalyzerTest {
     @Test
     void declaredLetCanBeReferenced() {
         doesNotThrow("""
-                let foo: int = 1;
+                let foo: Int = 1;
                 foo;
                 """);
     }
@@ -49,7 +49,7 @@ class SemanticAnalyzerTest {
     @Test
     void declaredVarCanBeReferenced() {
         doesNotThrow("""
-                var foo: int = 1;
+                var foo: Int = 1;
                 foo;
                 """);
     }
@@ -57,7 +57,7 @@ class SemanticAnalyzerTest {
     @Test
     void varCanBeAssigned() {
         doesNotThrow("""
-                var foo: int = 1;
+                var foo: Int = 1;
                 foo = 2;
                 """);
     }
@@ -65,7 +65,7 @@ class SemanticAnalyzerTest {
     @Test
     void letCannotBeAssigned() {
         throwCompileException("""
-                let foo: int = 1;
+                let foo: Int = 1;
                 foo = 2;
                 """);
     }
@@ -77,7 +77,7 @@ class SemanticAnalyzerTest {
                 """);
         throwCompileException("""
                 foo;
-                let foo: int = 1;
+                let foo: Int = 1;
                 """);
     }
 
@@ -88,14 +88,14 @@ class SemanticAnalyzerTest {
                 """);
         throwCompileException("""
                 foo;
-                let foo: () -> void = func(): void {};
+                let foo: () -> void = func() -> void {};
                 """);
     }
 
     @Test
     void varOfParentScopeCanBeReferenced() {
         doesNotThrow("""
-                let x: int = 1;
+                let x: Int = 1;
                 {x;}
                 """);
     }
@@ -103,7 +103,7 @@ class SemanticAnalyzerTest {
     @Test
     void varOfChildScopeCannotBeReferenced() {
         throwCompileException("""
-                {let x: int = 1;}
+                {let x: Int = 1;}
                 x;
                 """);
     }
@@ -112,7 +112,7 @@ class SemanticAnalyzerTest {
     void childScopeVarCanBeReferenced() {
         doesNotThrow("""
                 {
-                    let x: int = 1;
+                    let x: Int = 1;
                     x;
                 }
                 """);
@@ -121,9 +121,9 @@ class SemanticAnalyzerTest {
     @Test
     void canShadowing() {
         doesNotThrow("""
-                let x: int = 1;
+                let x: Int = 1;
                 {
-                    let x: int = 2;
+                    let x: Int = 2;
                     x;
                 }
                 x;
@@ -133,7 +133,7 @@ class SemanticAnalyzerTest {
     @Test
     void varCanBeReferencedInExpression() {
         doesNotThrow("""
-                let x: int = 1;
+                let x: Int = 1;
                 print(x + 1 / 2);
                 """);
     }
@@ -141,7 +141,7 @@ class SemanticAnalyzerTest {
     @Test
     void undefinedVarCannotBeReferencedInExpression() {
         throwCompileException("""
-                let x: int = 1;
+                let x: Int = 1;
                 print(y + 1 / 2);
                 """);
     }
@@ -149,10 +149,10 @@ class SemanticAnalyzerTest {
     @Test
     void mutualRecursion() {
         doesNotThrow("""
-                func a() -> void {
+                func a() -> Void {
                     b();
                 }
-                func b() -> void {
+                func b() -> Void {
                     a();
                 }
                 """);
@@ -161,10 +161,10 @@ class SemanticAnalyzerTest {
     @Test
     void doubleDeclaration() {
         throwCompileException("""
-                func a() -> void {
+                func a() -> Void {
                     
                 }
-                func a() -> void {
+                func a() -> Void {
                     
                 }
                 """);
@@ -187,27 +187,26 @@ class SemanticAnalyzerTest {
     void nameResolutionBasic() {
         //正常系
         nameResolution("""
-                        let a: int = 10;
-                        var b: int = 2;
-                        func add(a: int, b: int) -> int { return a + b;};
-                        let c: int = add(a, b);
-                        print("ADD: " + c);
+                        let a: Int = 10;
+                        var b: Int = 2;
+                        func add(a: Int, b: Int) -> Int { return a + b;};
+                        let c: Int = add(a, b);
+                        print("ADD: " + string(c));
                         """,
                 Map.ofEntries(
                         Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
                         Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
                         Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
                         Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_RANGE)),    //range
-                        Map.entry(5, new VariableCell(NameResolver.BUILTIN_INT)),    //int
+                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_INT)),    //int
 
-                        Map.entry(6, new VariableCell(new UndefinedValue())),  //func add
-                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->a
-                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->b
+                        Map.entry(5, new VariableCell(new UndefinedValue())),  //func add
+                        Map.entry(6, new VariableCell(new UndefinedValue())),  //add->a
+                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->b
 
-                        Map.entry(9, new VariableCell(new UndefinedValue())),  //let a
-                        Map.entry(10, new VariableCell(new UndefinedValue())),  //var b
-                        Map.entry(11, new VariableCell(new UndefinedValue()))  //let c
+                        Map.entry(8, new VariableCell(new UndefinedValue())),  //let a
+                        Map.entry(9, new VariableCell(new UndefinedValue())),  //var b
+                        Map.entry(10, new VariableCell(new UndefinedValue()))  //let c
                 ));
     }
 
@@ -236,56 +235,54 @@ class SemanticAnalyzerTest {
     @Test
     void function() {
         nameResolution("""
-                        func add(a: int, b: int) -> int {
+                        func add(a: Int, b: Int) -> Int {
                             return a + b;
                         }
-                        let a: int = add(1, 2);
+                        let a: Int = add(1, 2);
                         """,
                 Map.ofEntries(
                         Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
                         Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
                         Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
                         Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_RANGE)),    //range
-                        Map.entry(5, new VariableCell(NameResolver.BUILTIN_INT)),    //int
+                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_INT)),    //int
 
-                        Map.entry(6, new VariableCell(new UndefinedValue())),  //func add
-                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->a
-                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->b
+                        Map.entry(5, new VariableCell(new UndefinedValue())),  //func add
+                        Map.entry(6, new VariableCell(new UndefinedValue())),  //add->a
+                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->b
 
-                        Map.entry(9, new VariableCell(new UndefinedValue()))  //let a
+                        Map.entry(8, new VariableCell(new UndefinedValue()))  //let a
                 ));
     }
 
     @Test
     void nestedFunction() {
         nameResolution("""
-                        func add(a: int, b: int) -> int {
-                            func impl(a: int, b: int) -> int {
+                        func add(a: Int, b: Int) -> Int {
+                            func impl(a: Int, b: Int) -> Int {
                                 return a + b;
                             }
                             return impl(a, b);
                         }
                         
-                        let b: int = add(3, 4);
+                        let b: Int = add(3, 4);
                         """,
                 Map.ofEntries(
                         Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
                         Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
                         Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
                         Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_RANGE)),    //range
-                        Map.entry(5, new VariableCell(NameResolver.BUILTIN_INT)),    //int
+                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_INT)),    //int
 
-                        Map.entry(6, new VariableCell(new UndefinedValue())),  //func add
-                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->a
-                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->b
+                        Map.entry(5, new VariableCell(new UndefinedValue())),  //func add
+                        Map.entry(6, new VariableCell(new UndefinedValue())),  //add->a
+                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->b
 
-                        Map.entry(9, new VariableCell(new UndefinedValue())),  //add->func impl
-                        Map.entry(10, new VariableCell(new UndefinedValue())),  //add->impl->a
-                        Map.entry(11, new VariableCell(new UndefinedValue())),  //add->impl->b
+                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->func impl
+                        Map.entry(9, new VariableCell(new UndefinedValue())),  //add->impl->a
+                        Map.entry(10, new VariableCell(new UndefinedValue())),  //add->impl->b
 
-                        Map.entry(12, new VariableCell(new UndefinedValue()))   //let b
+                        Map.entry(11, new VariableCell(new UndefinedValue()))   //let b
                 ));
     }
 }
