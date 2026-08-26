@@ -16,6 +16,7 @@ import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.ir.IRGenerator;
 import io.github.udonabe.donabe.semantic.resolve.NameResolver;
+import io.github.udonabe.donabe.semantic.type.TypeChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,8 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
         program.accept(this);
 
-        rootScope.resetChildPos();
+        new TypeChecker(rootScope, source).check(program);
+
         IRProgram ir = new IRGenerator(rootScope, resolveResult.resolution().keySet(), resolveResult.localsASTNodeMap()).generate(program);
 
         return new AnalyzeResult(ir, resolution);

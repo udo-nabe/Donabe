@@ -4,7 +4,6 @@ import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 
 public interface ASTVisitor<R> {
     R visitProgram(Program program);

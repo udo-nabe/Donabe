@@ -33,6 +33,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     }
 
     public IRProgram generate(Program program) {
+        rootScope.resetChildPos();
         return new IRProgram(program.accept(this));
     }
 
@@ -61,7 +62,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         context.pushFunction(localsASTNodeMap.get(statement));
         currentScope = currentScope.nextChildScope();
 
-        List<Integer> paramSlots = statement.args().stream()
+        List<Integer> paramSlots = statement.params().stream()
                 .map(parameter -> currentScope.getId(parameter.name().name()))
                 .toList();
 
@@ -139,25 +140,32 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             String elseLabel = context.nextLabel();
             String finLabel = context.nextLabel();
 
+            //条件がfalseならelseへ飛ぶ
             result.addAll(statement.condition().accept(this));
             result.add(new JmpFalse(new Label(elseLabel)));
 
+            //thenブロック
             result.addAll(statement.thenBlock().accept(this));
             result.add(new Jmp(new Label(finLabel)));
 
+            //elseブロック
             result.add(new LabelNop(new Label(elseLabel)));
             result.addAll(statement.elseBlock().accept(this));
             result.add(new Jmp(new Label(finLabel)));
 
+            //最終ジャンプ先
             result.add(new LabelNop(new Label(finLabel)));
         } else {
             String finLabel = context.nextLabel();
 
+            //条件がfalseならthenを飛ばす
             result.addAll(statement.condition().accept(this));
             result.add(new JmpFalse(new Label(finLabel)));
 
+            //thenブロック
             result.addAll(statement.thenBlock().accept(this));
 
+            //最終ジャンプ先
             result.add(new LabelNop(new Label(finLabel)));
         }
 

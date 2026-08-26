@@ -8,7 +8,7 @@ import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 
 import java.util.List;
 
-public record FunctionDefineStatement(Identifier identifier, List<Parameter> args, TypeAnnotation returnValue,
+public record FunctionDefineStatement(Identifier identifier, List<Parameter> params, TypeAnnotation returnType,
                                       BlockStatement block, SourceFileLocation location) implements Statement {
 
 

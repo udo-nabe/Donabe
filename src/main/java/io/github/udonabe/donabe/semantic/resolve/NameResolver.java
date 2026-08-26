@@ -93,8 +93,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         putBuiltinFunction("input", BUILTIN_INPUT, 1);
         putBuiltinFunction("string", BUILTIN_STRING, 2);
         putBuiltinFunction("length", BUILTIN_LENGTH, 3);
-        putBuiltinFunction("range", BUILTIN_RANGE, 4);
-        putBuiltinFunction("int", BUILTIN_INT, 5);
+        putBuiltinFunction("int", BUILTIN_INT, 4);
         localsASTNodeMap = new IdentityHashMap<>();
     }
 
@@ -106,6 +105,7 @@ public final class NameResolver implements ASTVisitor<Void> {
     }
 
     public ResolveResult resolve(Program program) {
+        rootScope.resetChildPos();
         program.accept(this);
         return new ResolveResult(rootScope, resolution, localsASTNodeMap);
     }
@@ -178,7 +178,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         //仮登録されているため、getIdで取得できる
         int id = currentScope.getId(functionIdentifier.name());
         putIdentifier(currentScope, functionIdentifier.name(), id);
-        return defineFunction(define.args(), define.block());
+        return defineFunction(define.params(), define.block());
     }
 
     private void visitVariableDeclaration(Expression expr, Identifier identifier, boolean isAssignable, SourceFileLocation location) {

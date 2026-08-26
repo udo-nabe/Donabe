@@ -23,7 +23,7 @@ class PrattParser {
     public static final Parser<FunctionLiteral> functionDefine =
             token(FUNC)
                     .then(parameters)
-                    .then(typeAnnotation)
+                    .then(returnType)
                     .then(blockStatement())
                     .map(p -> {
                         SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());

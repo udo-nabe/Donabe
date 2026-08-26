@@ -1,20 +1,6 @@
-func makeCounter(initial) {
-    var count = initial;
-
-    lazy func counter() {
-        count = count + 1;
-        return count;
-    }
-
-    return counter;
+func add(a: Int) -> (Int) -> Int {
+    return func(b: Int) -> Int {
+        return a + b;
+    };
 }
-
-var counterA = makeCounter(0);
-var counterB = makeCounter(100);
-
-print(counterA());
-print(counterA());
-print(counterB());
-print(counterB());
-print(counterA());
-print(counterB());
+print(add(5)(3));

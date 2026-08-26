@@ -3,10 +3,7 @@ package io.github.udonabe.donabe;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.lexer.Lexer;
-import io.github.udonabe.donabe.parser.BasicParsers;
-import io.github.udonabe.donabe.parser.ParseFailed;
-import io.github.udonabe.donabe.parser.ParseResult;
-import io.github.udonabe.donabe.parser.ParseSuccess;
+import io.github.udonabe.donabe.parser.*;
 import io.github.udonabe.donabe.runtime.IRInterpreter;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.Operations;
@@ -59,9 +56,10 @@ public class Main implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        LoggingUtil.configure(verbose);
-        log.info("Donabe launched.");
         try (Reader reader = Files.newBufferedReader(sourceFile)) {
+            LoggingUtil.configure(verbose);
+            log.info("Donabe launched.");
+
             StringBuilder source = new StringBuilder();
             for (int ch = reader.read();
                  ch != -1;
@@ -76,17 +74,18 @@ public class Main implements Callable<Integer> {
             log.debug("Lexical analysis successful.");
             log.trace("Tokens: {}", stream);
 
-            var parser = BasicParsers.program;
+            Parser<Program> parser = BasicParsers.program;
             ParseResult<Program> result = parser.parse(stream);
 
-            if (result instanceof ParseFailed<Program>(String message, int ignored))
-                throw new CompileException(message);
+            if (result instanceof ParseFailed<Program>(String message, int ignored)) {
+                    throw new CompileException(message);
+            }
 
             Program parsed = ((ParseSuccess<Program>) result).value();
             log.debug("Parse successful.");
 
             SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
-            var checkResult = semanticAnalyzer.check(parsed);
+            SemanticAnalyzer.AnalyzeResult checkResult = semanticAnalyzer.check(parsed);
             log.debug("Semantic analysis successful.");
             log.debug("IR: \n{}", new IRViewer().getIRString(checkResult.irProgram()));
 
