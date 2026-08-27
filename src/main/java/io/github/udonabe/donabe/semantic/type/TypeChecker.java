@@ -12,6 +12,8 @@ import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 import io.github.udonabe.donabe.semantic.Scope;
+import io.github.udonabe.donabe.semantic.flow.FlowAnalyzer;
+import io.github.udonabe.donabe.semantic.flow.FlowInfo;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
 
@@ -24,6 +26,7 @@ import java.util.stream.IntStream;
 public class TypeChecker implements ASTVisitor<Type> {
     private final TypeResolver typeResolver;
     private final OperationChecker operationChecker;
+    private final FlowAnalyzer flowAnalyzer;
     private final Map<Integer, Type> identifierTypeTable;
     private final TypeCheckerContext context;
     private final String source;
@@ -38,6 +41,7 @@ public class TypeChecker implements ASTVisitor<Type> {
         operationChecker = new OperationChecker(source);
 
         registerBuiltinFunctions();
+        flowAnalyzer = new FlowAnalyzer();
     }
 
     public void check(Program program) {
@@ -45,7 +49,7 @@ public class TypeChecker implements ASTVisitor<Type> {
         program.accept(this);
     }
 
-    private Type defineFunction(List<Parameter> params, TypeAnnotation returnType, BlockStatement block) {
+    private Type defineFunction(List<Parameter> params, TypeAnnotation returnType, BlockStatement block, SourceFileLocation location) {
         context.pushReturnType(typeResolver.resolve(returnType));
         pushScope();
 
@@ -61,14 +65,25 @@ public class TypeChecker implements ASTVisitor<Type> {
             statement.accept(this);
         }
 
+        FlowInfo functionFlow = flowAnalyzer.visitBlockStatement(block);    //フロー解析はステートレスのため、後から実行しても問題ない
+
+        if (isMissingReturn(functionFlow.canFallThrough(), typeResolver.resolve(returnType))) {
+            throw new CompileException(ErrorUtil.makeError(location, source,
+                    "This function has a path that can exit without returning a value."));
+        }
+
         popScope();
         context.popReturnType();
 
         return generateFunctionType(params, returnType);
     }
 
+    private boolean isMissingReturn(boolean blockCanFallThrough, Type returnType) {
+        return blockCanFallThrough && !(returnType instanceof VoidType);
+    }
+
     private void defineFunction(FunctionDefineStatement statement) {
-        defineFunction(statement.params(), statement.returnType(), statement.block());
+        defineFunction(statement.params(), statement.returnType(), statement.block(), statement.location());
     }
 
     private void defineFunctions(List<Statement> statements) {
@@ -286,7 +301,7 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitFunctionLiteral(FunctionLiteral expr) {
-        return defineFunction(expr.args(), expr.type(), expr.block());
+        return defineFunction(expr.args(), expr.type(), expr.block(), expr.location());
     }
 
     @Override

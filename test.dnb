@@ -1,3 +1,2 @@
-func add(a: Int) -> Void {}
-add(1);
-print("pan");
+func test() -> Int {
+}
