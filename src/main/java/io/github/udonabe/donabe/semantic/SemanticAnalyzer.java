@@ -118,7 +118,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitIfStatement(IfStatement statement) {
         statement.condition().accept(this);
         statement.thenBlock().accept(this);
-        statement.elseBlock().accept(this);
+        if (statement.elseBlock() != null) {
+            statement.elseBlock().accept(this);
+        }
         return null;
     }
 
