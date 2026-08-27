@@ -8,12 +8,11 @@ import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
+import io.github.udonabe.donabe.runtime.BuiltinFunctions;
 import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.UndefinedValue;
-import io.github.udonabe.donabe.semantic.resolve.NameResolver;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -194,11 +193,11 @@ class SemanticAnalyzerTest {
                         print("ADD: " + string(c));
                         """,
                 Map.ofEntries(
-                        Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
-                        Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_INT)),    //int
+                        Map.entry(0, new VariableCell(BuiltinFunctions.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(BuiltinFunctions.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(BuiltinFunctions.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(BuiltinFunctions.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(BuiltinFunctions.BUILTIN_INT)),    //int
 
                         Map.entry(5, new VariableCell(new UndefinedValue())),  //func add
                         Map.entry(6, new VariableCell(new UndefinedValue())),  //add->a
@@ -241,11 +240,11 @@ class SemanticAnalyzerTest {
                         let a: Int = add(1, 2);
                         """,
                 Map.ofEntries(
-                        Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
-                        Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_INT)),    //int
+                        Map.entry(0, new VariableCell(BuiltinFunctions.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(BuiltinFunctions.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(BuiltinFunctions.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(BuiltinFunctions.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(BuiltinFunctions.BUILTIN_INT)),    //int
 
                         Map.entry(5, new VariableCell(new UndefinedValue())),  //func add
                         Map.entry(6, new VariableCell(new UndefinedValue())),  //add->a
@@ -268,11 +267,11 @@ class SemanticAnalyzerTest {
                         let b: Int = add(3, 4);
                         """,
                 Map.ofEntries(
-                        Map.entry(0, new VariableCell(NameResolver.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(NameResolver.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(NameResolver.BUILTIN_STRING)),    //string
-                        Map.entry(3, new VariableCell(NameResolver.BUILTIN_LENGTH)),    //length
-                        Map.entry(4, new VariableCell(NameResolver.BUILTIN_INT)),    //int
+                        Map.entry(0, new VariableCell(BuiltinFunctions.BUILTIN_PRINT)),    //print
+                        Map.entry(1, new VariableCell(BuiltinFunctions.BUILTIN_INPUT)),    //input
+                        Map.entry(2, new VariableCell(BuiltinFunctions.BUILTIN_STRING)),    //string
+                        Map.entry(3, new VariableCell(BuiltinFunctions.BUILTIN_LENGTH)),    //length
+                        Map.entry(4, new VariableCell(BuiltinFunctions.BUILTIN_INT)),    //int
 
                         Map.entry(5, new VariableCell(new UndefinedValue())),  //func add
                         Map.entry(6, new VariableCell(new UndefinedValue())),  //add->a

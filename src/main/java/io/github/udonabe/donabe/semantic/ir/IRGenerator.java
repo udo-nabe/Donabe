@@ -70,15 +70,15 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             result.addAll(s.accept(this));
         }
 
-        currentScope = currentScope.parent();
-        context.popFunction();
-
         FunctionValue functionValue = new FunctionValue(
                 statement.identifier().name(),
                 paramSlots,
                 context.currentLocals(),
                 result
         );
+
+        currentScope = currentScope.parent();
+        context.popFunction();
 
         return List.of(
                 new Push(functionValue),
@@ -363,9 +363,6 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         for (Statement s : expr.block().statements()) {
             result.addAll(s.accept(this));
         }
-        currentScope = currentScope.parent();
-
-        context.popFunction();
 
         FunctionValue functionValue = new FunctionValue(
                 null,
@@ -373,6 +370,9 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
                 context.currentLocals(),
                 result
         );
+
+        currentScope = currentScope.parent();
+        context.popFunction();
         return List.of(new Push(functionValue));
     }
 

@@ -7,8 +7,7 @@ import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.runtime.InterpreterException;
-import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
+import io.github.udonabe.donabe.runtime.BuiltinFunctions;
 import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.Scope;
@@ -23,77 +22,17 @@ public final class NameResolver implements ASTVisitor<Void> {
     private final String source;
     private Scope currentScope;
 
-    public static final BuiltinFunctionValue BUILTIN_PRINT = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                System.out.println(l.getFirst().display());
-                return new VoidValue();
-            }
-    );
-    public static final BuiltinFunctionValue BUILTIN_INPUT = new BuiltinFunctionValue(
-            List.of(),
-            l -> new StringValue(RuntimeIOUtil.RUNTIME_INPUT.nextLine())
-    );
-    public static final BuiltinFunctionValue BUILTIN_STRING = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                RuntimeValue<?> value = l.getFirst();
-                return new StringValue(value.display());
-            }
-    );
-    public static final BuiltinFunctionValue BUILTIN_LENGTH = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                RuntimeValue<?> target = l.getFirst();
-                return switch (target) {
-                    case StringValue(String value) -> new IntegerValue(value.length());
-                    case ListValue(List<RuntimeValue<?>> value) -> new IntegerValue(value.size());
-                    default -> new IntegerValue(-1);
-                };
-            }
-    );
-    public static final BuiltinFunctionValue BUILTIN_RANGE = new BuiltinFunctionValue(
-            List.of("start", "end"),
-            l -> {
-                RuntimeValue<?> s = l.getFirst();
-                RuntimeValue<?> e = l.get(1);
-                if (s instanceof IntegerValue(Integer start) &&
-                    e instanceof IntegerValue(Integer end)) {
-                    List<RuntimeValue<?>> res = new ArrayList<>();
-                    for (int i = start; i < end; i++) {
-                        res.add(new IntegerValue(i));
-                    }
-                    return new ListValue(res);
-                }
-                throw new InterpreterException("range()の引数は(int, int)である必要があります。");
-            }
-    );
-    public static final BuiltinFunctionValue BUILTIN_INT = new BuiltinFunctionValue(
-            List.of("target"),
-            l -> {
-                RuntimeValue<?> target = l.getFirst();
-                if (target instanceof StringValue(String value)) {
-                    try {
-                        return new IntegerValue(Integer.parseInt(value));
-                    } catch (NumberFormatException ignored) {
-                        throw new InterpreterException("'" + value + "'を数値に変換できませんでした。");
-                    }
-                }
-                throw new InterpreterException("int()の引数は(string)である必要があります。");
-            }
-    );
-
     public NameResolver(String source) {
         this.source = source;
         this.rootScope = Scope.generateRoot();
         this.currentScope = rootScope;
         this.resolution = new HashMap<>();
 
-        putBuiltinFunction("print", BUILTIN_PRINT, 0);
-        putBuiltinFunction("input", BUILTIN_INPUT, 1);
-        putBuiltinFunction("string", BUILTIN_STRING, 2);
-        putBuiltinFunction("length", BUILTIN_LENGTH, 3);
-        putBuiltinFunction("int", BUILTIN_INT, 4);
+        putBuiltinFunction("print", BuiltinFunctions.BUILTIN_PRINT, 0);
+        putBuiltinFunction("input", BuiltinFunctions.BUILTIN_INPUT, 1);
+        putBuiltinFunction("string", BuiltinFunctions.BUILTIN_STRING, 2);
+        putBuiltinFunction("length", BuiltinFunctions.BUILTIN_LENGTH, 3);
+        putBuiltinFunction("int", BuiltinFunctions.BUILTIN_INT, 4);
         localsASTNodeMap = new IdentityHashMap<>();
     }
 
