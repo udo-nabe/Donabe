@@ -76,6 +76,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         FunctionValue functionValue = new FunctionValue(
                 statement.identifier().name(),
                 paramSlots,
+                context.currentLocals(),
                 result
         );
 
@@ -369,6 +370,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         FunctionValue functionValue = new FunctionValue(
                 null,
                 paramSlots,
+                context.currentLocals(),
                 result
         );
         return List.of(new Push(functionValue));

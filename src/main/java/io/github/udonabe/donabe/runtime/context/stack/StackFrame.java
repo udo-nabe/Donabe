@@ -6,10 +6,12 @@ import io.github.udonabe.donabe.ir.instruction.LoadLocal;
 import io.github.udonabe.donabe.ir.instruction.StoreLocal;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.VariableCell;
+import io.github.udonabe.donabe.runtime.value.UndefinedValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class StackFrame {
     private static final Logger log = LoggerFactory.getLogger(StackFrame.class);
@@ -23,34 +25,23 @@ public class StackFrame {
     private final Map<Integer, VariableCell> capturedCache;
 
 
-    public StackFrame(StackFrame caller, StackFrame parent, String name, Registers registers, List<Instruction> instructions, Map<Integer, VariableCell> global) {
+    public StackFrame(StackFrame caller, StackFrame parent, String name, Registers registers, List<Instruction> instructions, Map<Integer, VariableCell> global, Set<Integer> locals) {
         this.caller = caller;
         this.parent = parent;
         this.name = name;
         this.registers = registers;
         this.instructions = instructions;
-
-        Map<Integer, VariableCell> locals = new HashMap<>();
-
-        try {
-            for (Instruction instruction : instructions) {
-                switch (instruction) {
-                    case LoadLocal(int identifierSlot) -> locals.put(identifierSlot, new VariableCell(global.get(identifierSlot).value()));
-                    case StoreLocal(int identifierSlot) -> locals.put(identifierSlot, new VariableCell(global.get(identifierSlot).value()));
-                    default -> {}
-                }
-            }
-        } catch (NullPointerException e) {
-            throw new InterpreterException("Failed to init local variables: an undefined variable is being referenced.", e);
-        }
-
-        this.locals = locals;
-        log.trace("Local slots: {} frame={}", locals.keySet(), name);
+        this.locals = locals.stream()
+                .collect(Collectors.toMap(
+                        s -> s,
+                        s -> new VariableCell(new UndefinedValue())
+                ));
+        log.trace("Local slots: {} frame={}", locals, name);
         capturedCache = new HashMap<>();
     }
 
-    public StackFrame(StackFrame caller, StackFrame parent, String name, List<Instruction> instructions, Map<Integer, VariableCell> globals) {
-        this(caller, parent, name, new Registers(), instructions, globals);
+    public StackFrame(StackFrame caller, StackFrame parent, String name, List<Instruction> instructions, Map<Integer, VariableCell> globals, Set<Integer> locals) {
+        this(caller, parent, name, new Registers(), instructions, globals, locals);
     }
 
     public boolean hasCaller() {

@@ -8,8 +8,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IRInterpreterTest {
     private void assertStack(List<Instruction> instructions, List<RuntimeValue<?>> stack) {
@@ -20,6 +22,7 @@ class IRInterpreterTest {
                 interpreter.snapshotStack()
         );
     }
+
     private void assertStack(List<Instruction> instructions, List<RuntimeValue<?>> stack, Map<Integer, VariableCell> slots) {
         IRInterpreter interpreter = new IRInterpreter(new IRProgram(instructions), slots, new Operations());
         interpreter.run();
@@ -93,7 +96,7 @@ class IRInterpreterTest {
         assertStack(List.of(
                 new Push(new StringValue("load-captured")),
                 new StoreLocal(6),
-                new Push(new FunctionValue("captured", List.of(), List.of(
+                new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
                         new Push(new StringValue("inner")),
                         new StoreCaptured(6),
                         new VoidReturn()
@@ -112,7 +115,7 @@ class IRInterpreterTest {
                 new Push(new IntegerValue(3)),
                 new Push(new IntegerValue(1)),
                 new Push(new IntegerValue(2)),
-                new Push(new FunctionValue("add", List.of(6, 7), List.of(
+                new Push(new FunctionValue("add", List.of(6, 7), Set.of(6, 7), List.of(
                         new LoadLocal(6),
                         new LoadLocal(7),
                         new Add(),
@@ -129,7 +132,7 @@ class IRInterpreterTest {
 
         //引数が足りない
         throwInterpreterException(List.of(
-                new Push(new FunctionValue("arg", List.of(7), List.of(
+                new Push(new FunctionValue("arg", List.of(7), Set.of(7), List.of(
                         new VoidReturn()
                 ))),
                 new Call()
@@ -483,7 +486,7 @@ class IRInterpreterTest {
         assertStack(List.of(
                 new Push(new StringValue("load-captured")),
                 new StoreLocal(6),
-                new Push(new FunctionValue("captured", List.of(), List.of(
+                new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
                         new LoadCaptured(6),
                         new Return()
                 ))),
@@ -496,7 +499,7 @@ class IRInterpreterTest {
 
         //未定義
         throwInterpreterException(List.of(
-                new Push(new FunctionValue("captured", List.of(), List.of(
+                new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
                         new LoadCaptured(6)
                 ))),
                 new Call()
@@ -506,11 +509,13 @@ class IRInterpreterTest {
     @Test
     void visitLoadLocal() {
         assertStack(List.of(
+                new Push(new StringValue("load-captured")),
+                new StoreLocal(6),
                 new LoadLocal(6)
         ), List.of(
                 new StringValue("load-captured")
         ), Map.of(
-                6, new VariableCell(new StringValue("load-captured"))
+                6, new VariableCell(new UndefinedValue())
         ));
 
         throwInterpreterException(List.of(
@@ -670,7 +675,7 @@ class IRInterpreterTest {
         assertStack(List.of(
                 new Push(new IntegerValue(2)),
                 new Push(new IntegerValue(3)),
-                new Push(new FunctionValue("add", List.of(7, 8), List.of(
+                new Push(new FunctionValue("add", List.of(7, 8), Set.of(7, 8), List.of(
                         new LoadLocal(7),
                         new LoadLocal(8),
                         new Add(),
@@ -695,7 +700,7 @@ class IRInterpreterTest {
         assertStack(List.of(
                 new Push(new StringValue("load-captured")),
                 new StoreLocal(6),
-                new Push(new FunctionValue("captured", List.of(), List.of(
+                new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
                         new Push(new StringValue("inner")),
                         new StoreCaptured(6),
                         new VoidReturn()
@@ -711,7 +716,7 @@ class IRInterpreterTest {
 
         //未定義
         throwInterpreterException(List.of(
-                new Push(new FunctionValue("captured", List.of(), List.of(
+                new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
                         new StoreCaptured(6)
                 ))),
                 new Call()
@@ -769,8 +774,8 @@ class IRInterpreterTest {
     @Test
     void visitVoidReturn() {
         assertStack(List.of(
-                new Push(new FunctionValue("add", List.of(), List.of(
-                    new VoidReturn()
+                new Push(new FunctionValue("add", List.of(), Set.of(), List.of(
+                        new VoidReturn()
                 ))),
                 new Call()
         ), List.of(
