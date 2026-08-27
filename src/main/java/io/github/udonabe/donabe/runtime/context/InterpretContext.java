@@ -13,7 +13,7 @@ public class InterpretContext {
     private final Deque<RuntimeValue<?>> stack;
 
     public InterpretContext(List<Instruction> instructions, Map<Integer, VariableCell> rootStackFrame) {
-        currentFrame = new StackFrame(null, null, "<root>", instructions, rootStackFrame);
+        currentFrame = new StackFrame(null, null, "<root>", instructions, rootStackFrame, rootStackFrame.keySet());
         stack = new ArrayDeque<>();
     }
 
