@@ -70,6 +70,12 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             result.addAll(s.accept(this));
         }
 
+        if (result.isEmpty() ||
+            (!(result.getLast() instanceof Return) &&
+             !(result.getLast() instanceof VoidReturn))) {
+            result.add(new VoidReturn());
+        }
+
         FunctionValue functionValue = new FunctionValue(
                 statement.identifier().name(),
                 paramSlots,
@@ -362,6 +368,12 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
         for (Statement s : expr.block().statements()) {
             result.addAll(s.accept(this));
+        }
+
+        if (result.isEmpty() ||
+            (!(result.getLast() instanceof Return) &&
+             !(result.getLast() instanceof VoidReturn))) {
+            result.add(new VoidReturn());
         }
 
         FunctionValue functionValue = new FunctionValue(
