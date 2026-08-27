@@ -74,7 +74,11 @@ public class IRInterpreter implements IRVisitor<Void> {
     }
 
     private ClosureValue setupClosure(FunctionValue functionValue) {
-        ClosureValue closure = new ClosureValue(functionValue.name(), functionValue.paramSlots(), functionValue.instructions(), context.peekStackFrame());
+        ClosureValue closure = new ClosureValue(functionValue.name(),
+                functionValue.paramSlots(),
+                functionValue.locals(),
+                functionValue.instructions(),
+                context.peekStackFrame());
         setupLabel(closure.instructions());
         return closure;
     }
@@ -83,10 +87,13 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitCall(Call instruction) {
         RuntimeValue<?> callee = context.popStack();
         switch (callee) {
-            case ClosureValue(String name, List<Integer> paramSlots, List<Instruction> instructions, StackFrame parent) -> {
+            case ClosureValue(
+                    String name, List<Integer> paramSlots, Set<Integer> locals, List<Instruction> instructions,
+                    StackFrame parent
+            ) -> {
                 List<RuntimeValue<?>> argValues = bindArgs(paramSlots.size());
 
-                StackFrame calleeStackFrame = new StackFrame(context.peekStackFrame(), parent, name, instructions, globalIdentifiers);
+                StackFrame calleeStackFrame = new StackFrame(context.peekStackFrame(), parent, name, instructions, globalIdentifiers, locals);
 
                 context.pushStackFrame(calleeStackFrame);
 
@@ -96,7 +103,9 @@ public class IRInterpreter implements IRVisitor<Void> {
                     context.setLocalVarValue(argSlot, argValue);
                 }
             }
-            case BuiltinFunctionValue(List<String> formalArgs, Function<List<? extends RuntimeValue<?>>, RuntimeValue<?>> content) -> {
+            case BuiltinFunctionValue(
+                    List<String> formalArgs, Function<List<? extends RuntimeValue<?>>, RuntimeValue<?>> content
+            ) -> {
                 List<RuntimeValue<?>> args = bindArgs(formalArgs.size());
                 RuntimeValue<?> returnValue = content.apply(args);
                 context.pushStack(returnValue);
