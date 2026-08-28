@@ -376,7 +376,7 @@ public class TypeChecker implements ASTVisitor<Type> {
                 ));
         identifierTypeTable.put(1,
                 new FunctionType(
-                        List.of(new VoidType()),
+                        List.of(),
                         new StringType()
                 ));
         identifierTypeTable.put(2,
