@@ -4,8 +4,8 @@ Donabeは、学習を目的として開発しているプログラミング言�
 
 ## 概要
 
-Donabeは、今のところ動的型付けのインタプリタ言語として実装しています。
-静的型付けのVM言語へ徐々に転換していく予定です。
+Donabeは、今のところ静的型付けのIRインタプリタ言語として実装しています。
+VM言語へ徐々に転換していく予定です。
 
 書きやすいC系文法の言語を目指しています。
 
@@ -23,13 +23,13 @@ Donabeは、今のところ動的型付けのインタプリタ言語として�
 // Fibonacci
 // 生成する数字の数
 print("How many do you want to generate?> ");
-let limit: Int = int(input());
-var a: Int = 1;
-var b: Int = 1;
-var result: String = "[1, 1";
+let limit = int(input());
+var a = 1;
+var b = 1;
+var result = "[1, 1";
 
-for var i: Int = 0; i < limit - 2; i++ {
-  let next: Int = a + b;
+for var i = 0; i < limit - 2; i++ {
+  let next = a + b;
   a = b;
   b = next;
   result += ", " + string(next);
