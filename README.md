@@ -23,16 +23,16 @@ Donabeは、今のところ動的型付けのインタプリタ言語として�
 // Fibonacci
 // 生成する数字の数
 print("How many do you want to generate?> ");
-let limit = int(input());
-var a = 1;
-var b = 1;
-var result = "[1, 1";
+let limit: Int = int(input());
+var a: Int = 1;
+var b: Int = 1;
+var result: String = "[1, 1";
 
-for var i = 0; i < limit - 2; i++ {
-  let next = a + b;
+for var i: Int = 0; i < limit - 2; i++ {
+  let next: Int = a + b;
   a = b;
   b = next;
-  result += ", " + next;
+  result += ", " + string(next);
 }
 print(result + "]");
 ```
@@ -86,19 +86,27 @@ Hello, World!
 
 ### 変数
 letが定数、varが変数です。宣言と同時に初期化をする必要があります。
+また、`: <型>`という形式で型注釈を付ける必要があります。
 ```donabe
-let foo = 1;
-var bar = "Hello";
+let foo: Int = 1;
+var bar: String = "Hello";
+```
+型注釈と初期化値の型が一致していないとエラーです。
+
+例:
+```donabe
+let foo: String = 42;
 ```
 
 ### 型
 今のところ動的型付けです。次の型があります。
-- int: 整数
-- string: 文字列
-- boolean: 真偽値
-- void: 関数の戻り値が無い場合の特殊な値。変数へ代入したり、関数の引数にしたりは可能ですが、演算には使えません。
-- list: リスト
-- function: 関数。組み込み関数と通常の関数がありますが、型の名前上区別はつきません。print()で表示すると組み込み関数は"<builtin-function>"に、通常の関数は"<function([引数名のリスト]->?)>"になります。
+- Int: 整数
+- String: 文字列
+- Bool: 真偽値
+- Void: 関数の戻り値が無い場合の特殊な値。何にも使うことができません。
+- List\<T>: リスト
+- function: 関数。組み込み関数と通常の関数がありますが、型の名前上区別はつきません。
+print()で表示すると組み込み関数は"\<builtin-function>"に、通常の関数は"\<function(\[引数名のリスト]->?)>"になります。
 
 
 ### 関数
@@ -106,13 +114,13 @@ var bar = "Hello";
 
 しかし、
 ```donabe
-let add = func(a, b) {
+let add: (Int, Int) -> Int = func(a: Int, b: Int) -> Int {
   return a + b;
 };
 ```
 と
 ```donabe
-func add(a, b) {
+func add(a: Int, b: Int) -> Int {
   return a + b;
 }
 ```
@@ -121,6 +129,7 @@ func add(a, b) {
 ### 制御構文
 制御構文の条件式の括弧は不要で、波括弧は省略不可です。
 条件がfalseなど、到達不可な制御構文はエラーになりません。
+また、if文・while文の条件式がBool型でない場合、エラーとなります。
 - if-else if-else文
   
   単純なif文:
@@ -228,6 +237,8 @@ func add(a, b) {
     ↓
 名前解決・意味解析
     ↓
+  型解析
+    ↓
   IR生成
     ↓
 IRインタプリタ
@@ -248,6 +259,8 @@ IRインタプリタ
 プログラム中の識別子を固有のIDへ変換します。
 ##### 意味解析
 プログラムの構文エラー以外のエラー(識別子が存在しない、定数へ代入しているなど)をチェックします。
+#### 型解析
+プログラムの型を検査します。型に不整合があればエラーとなります。
 #### IR生成
 名前解決と意味解析が済んだASTを、より低レベルな表現であるIRへ変換します。
 #### IRインタプリタ
@@ -278,7 +291,7 @@ Donabe/
 - [x] 関数
 - [x] IR生成
 - [ ] VM
-- [ ] 型検査
+- [x] 型検査
 - [ ] 標準ライブラリ
 - [ ] エラーメッセージの改善
 - [ ] 最適化
