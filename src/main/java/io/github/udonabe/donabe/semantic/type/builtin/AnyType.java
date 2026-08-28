@@ -10,6 +10,6 @@ public record AnyType() implements BuiltinType {
 
     @Override
     public boolean isSubtypeOf(Type target) {
-        return false;
+        return target instanceof AnyType;
     }
 }

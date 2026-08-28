@@ -1,4 +1,4 @@
-let list: List<Int> = [1, 2, 3, 4, 5];
+let list: List<Any> = [1, 2, 3, 4, 5, "Hello"];
 
 for var i: Int = 0; i < length(list); i++ {
     print(list[i]);
