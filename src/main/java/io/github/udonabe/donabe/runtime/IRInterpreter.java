@@ -163,6 +163,22 @@ public class IRInterpreter implements IRVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitIndex(Index instruction) {
+        RuntimeValue<?> index = context.popStack();
+        RuntimeValue<?> target = context.popStack();
+
+        if (!(index instanceof IntegerValue i)) {
+            throw new InterpreterException("Index must be integer.");
+        }
+        if (!(target instanceof ListValue list)) {
+            throw new InterpreterException("The target of index must be list.");
+        }
+        RuntimeValue<?> result = list.value().get(i.value());
+        context.pushStack(result);
+        return null;
+    }
+
     private int getLabelPC(Label label) {
         if (!labelJmpMap.containsKey(label)) {
             throw new InterpreterException("Undefined label: " + label);
@@ -249,6 +265,18 @@ public class IRInterpreter implements IRVisitor<Void> {
         } else {
             context.pushStack(loaded);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitMakeList(MakeList instruction) {
+        int count = instruction.size();
+
+        List<RuntimeValue<?>> result = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            result.add(context.popStack());
+        }
+        context.pushStack(new ListValue(result.reversed()));
         return null;
     }
 

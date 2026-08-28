@@ -9,6 +9,7 @@ public interface IRVisitor<R> {
     R visitEqual(Equal instruction);
     R visitGreater(Greater instruction);
     R visitGreaterEqual(GreaterEqual instruction);
+    R visitIndex(Index instruction);
     R visitJmp(Jmp instruction);
     R visitJmpFalse(JmpFalse instruction);
     R visitJmpTrue(JmpTrue instruction);
@@ -17,6 +18,7 @@ public interface IRVisitor<R> {
     R visitLessEqual(LessEqual instruction);
     R visitLoadCaptured(LoadCaptured instruction);
     R visitLoadLocal(LoadLocal instruction);
+    R visitMakeList(MakeList instruction);
     R visitMinus(Minus instruction);
     R visitMul(Mul instruction);
     R visitNop(Nop instruction);

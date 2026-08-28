@@ -402,7 +402,11 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     @Override
     public List<Instruction> visitIndexExpression(IndexExpression expr) {
-        throw new UnsupportedOperationException("The statement for-each is not supported currently.");    //実装に追加の命令セットが多く必要になるため、未実装としておく
+        var result = new ArrayList<Instruction>();
+        result.addAll(expr.target().accept(this));
+        result.addAll(expr.index().accept(this));
+        result.add(new Index());
+        return List.copyOf(result);
     }
 
     @Override
@@ -413,7 +417,17 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     @Override
     public List<Instruction> visitListLiteral(ListLiteral expr) {
-        throw new UnsupportedOperationException("The statement for-each is not supported currently.");    //実装に追加の命令セットが多く必要になるため、未実装としておく
+        var result = new ArrayList<Instruction>();
+
+        int elementSize = 0;
+        for (Expression arg : expr.elements()) {
+            result.addAll(arg.accept(this));
+            elementSize++;
+        }
+
+        result.add(new MakeList(elementSize));
+
+        return List.copyOf(result);
     }
 
     @Override
