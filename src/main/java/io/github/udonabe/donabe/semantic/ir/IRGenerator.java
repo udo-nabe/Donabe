@@ -7,6 +7,7 @@ import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.instruction.*;
@@ -449,6 +450,12 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
         throw new AssertionError("FunctionTypeAnnotation cannot be visited.");  //FunctionTypeAnnotationに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    @Override
+    public List<Instruction> visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation) {
+        throw new AssertionError("GenericTypeAnnotation cannot be visited.");  //GenericTypeAnnotationに到達することは通常ないため、AssertionErrorを出す。
+
     }
 
     @Override

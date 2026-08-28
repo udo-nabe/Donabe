@@ -6,6 +6,7 @@ import io.github.udonabe.donabe.semantic.type.builtin.AnyType;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public record FunctionType(
         List<Type> paramTypes,
@@ -19,7 +20,20 @@ public record FunctionType(
     }
 
     @Override
-    public boolean isCompatible(Type target) {
-        return equals(target) || target instanceof AnyType;
+    public boolean isSubtypeOf(Type target) {
+        if (!(target instanceof FunctionType functionTarget)) {
+            return false;
+        }
+
+        if (!this.returnType.isSubtypeOf(functionTarget.returnType)) {
+            return false;
+        }
+        if (this.paramTypes.size() != functionTarget.paramTypes.size()) {
+            return false;
+        }
+
+        return IntStream.range(0, this.paramTypes.size())
+                .allMatch(i -> this.paramTypes.get(i).isSupertypeOf(functionTarget.paramTypes.get(i)));
     }
+
 }

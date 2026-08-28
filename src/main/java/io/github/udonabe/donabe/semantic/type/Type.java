@@ -8,5 +8,8 @@ import java.util.Objects;
 public sealed interface Type
         permits BuiltinType, FunctionType {
     String asString();
-    boolean isCompatible(Type target);
+    default boolean isSupertypeOf(Type target) {
+        return target.isSubtypeOf(this);
+    }
+    boolean isSubtypeOf(Type target);
 }

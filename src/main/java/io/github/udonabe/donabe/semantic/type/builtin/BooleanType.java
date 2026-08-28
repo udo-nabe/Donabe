@@ -9,7 +9,8 @@ public record BooleanType() implements BuiltinType {
     }
 
     @Override
-    public boolean isCompatible(Type target) {
-        return equals(target) || target instanceof AnyType;
+    public boolean isSubtypeOf(Type target) {
+        return target instanceof AnyType ||
+               target instanceof BooleanType;
     }
 }

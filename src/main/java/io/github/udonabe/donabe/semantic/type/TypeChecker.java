@@ -9,6 +9,7 @@ import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 import io.github.udonabe.donabe.semantic.Scope;
@@ -16,6 +17,8 @@ import io.github.udonabe.donabe.semantic.flow.FlowAnalyzer;
 import io.github.udonabe.donabe.semantic.flow.FlowInfo;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class TypeChecker implements ASTVisitor<Type> {
+    private static final Logger log = LoggerFactory.getLogger(TypeChecker.class);
     private final TypeResolver typeResolver;
     private final OperationChecker operationChecker;
     private final FlowAnalyzer flowAnalyzer;
@@ -164,7 +168,7 @@ public class TypeChecker implements ASTVisitor<Type> {
         Type identifierType = typeResolver.resolve(typeAnnotation);
         Type valueType = value.accept(this);
 
-        if (!identifierType.isCompatible(valueType)) {
+        if (!identifierType.isSupertypeOf(valueType)) {
             throw new CompileException(ErrorUtil.makeError(location, source,
                     "Cannot initialize a value of type '%s' with a variable of type '%s'.",
                     identifierType.asString(), valueType.asString()));
@@ -186,7 +190,7 @@ public class TypeChecker implements ASTVisitor<Type> {
         Type returnType = statement.returnValue().accept(this);
         Type expectReturnType = context.currentReturnType();
 
-        if (!expectReturnType.equals(returnType)) {
+        if (!expectReturnType.isSupertypeOf(returnType)) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source,
                     "The return type is different from what was expected. Expected: %s, Actual: %s", expectReturnType.asString(), returnType.asString()));
         }
@@ -223,7 +227,7 @@ public class TypeChecker implements ASTVisitor<Type> {
         Type targetType = expr.target().accept(this);
         Type valueType = expr.value().accept(this);
 
-        if (!targetType.isCompatible(valueType)) {
+        if (!targetType.isSupertypeOf(valueType)) {
             throw new CompileException(ErrorUtil.makeError(expr.location(), source,
                     "Cannot assign a value of type '%s' to a variable of type '%s'.",
                     targetType.asString(), valueType.asString()));
@@ -265,7 +269,7 @@ public class TypeChecker implements ASTVisitor<Type> {
         }
 
         boolean isArgsCompatible = IntStream.range(0, paramTypes.size())
-                .allMatch(i -> paramTypes.get(i).isCompatible(argTypes.get(i)));
+                .allMatch(i -> paramTypes.get(i).isSupertypeOf(argTypes.get(i)));
 
         if (!isArgsCompatible) {
             String paramsString = paramTypes.stream()
@@ -320,8 +324,19 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitIndexExpression(IndexExpression expr) {
-        //まだ型パラメータを導入していないため、保留
-        throw new UnsupportedOperationException("The for-each statement cannot be used currently.");
+        Type targetType = expr.target().accept(this);
+        if (!(targetType instanceof ListType listType)) {
+            throw new CompileException(ErrorUtil.makeError(expr.location(), source,
+                    "Cannot access elements by index for types other than 'List'. Actual: %s", targetType.asString()));
+        }
+
+        Type indexType = expr.index().accept(this);
+        if (!(indexType instanceof IntType)) {
+            throw new CompileException(ErrorUtil.makeError(expr.location(), source,
+                    "Only the 'Int' type can be used as an index. Actual: %s", indexType.asString()));
+        }
+
+        return listType.elementType();
     }
 
     @Override
@@ -331,8 +346,20 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitListLiteral(ListLiteral expr) {
-        //まだ型パラメータを導入していないため、保留
-        throw new UnsupportedOperationException("The for-each statement cannot be used currently.");
+        Type elementsType = null;
+        for (Expression listElement : expr.elements()) {
+            Type elementType = listElement.accept(this);
+            if (elementsType == null) {
+                elementsType = elementType;
+            } else if (!elementType.isSupertypeOf(elementsType)) {
+                elementsType = new AnyType();
+            }
+            log.trace("ListLiteral: elementType = {}", elementType.asString());
+            log.trace("ListLiteral: elementsType = {}", elementsType.asString());
+        }
+        elementsType = elementsType == null ? new AnyType() : elementsType;
+        log.trace("ListLiteral: inference = {}", elementsType.asString());
+        return new ListType(elementsType);
     }
 
     @Override
@@ -360,6 +387,12 @@ public class TypeChecker implements ASTVisitor<Type> {
     public Type visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
         //ここに到達することは通常あり得ない
         throw new AssertionError("The function 'visitFunctionTypeAnnotation' cannot be called.");
+    }
+
+    @Override
+    public Type visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation) {
+        //ここに到達することは通常あり得ない
+        throw new AssertionError("The function 'visitGenericTypeAnnotation' cannot be called.");
     }
 
     @Override

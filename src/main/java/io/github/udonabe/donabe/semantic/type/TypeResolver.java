@@ -3,8 +3,10 @@ package io.github.udonabe.donabe.semantic.type;
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.ErrorUtil;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
+import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
 
@@ -23,8 +25,9 @@ public class TypeResolver {
                 entry("Int", new IntType()),
                 entry("Bool", new BooleanType()),
                 entry("String", new StringType()),
-                entry("List", new ListType()),
-                entry("Void", new VoidType())
+                entry("List", new ListType(new AnyType())),
+                entry("Void", new VoidType()),
+                entry("Any", new AnyType())
         );
     }
 
@@ -32,6 +35,7 @@ public class TypeResolver {
         return switch (annotation) {
             case FunctionTypeAnnotation functionTypeAnnotation -> resolveFunction(functionTypeAnnotation);
             case NamedTypeAnnotation namedTypeAnnotation -> resolveName(namedTypeAnnotation);
+            case GenericTypeAnnotation genericTypeAnnotation -> resolveGenericType(genericTypeAnnotation);
         };
     }
 
@@ -49,5 +53,22 @@ public class TypeResolver {
                 .toList();
         Type returnType = resolve(annotation.returnType());
         return new FunctionType(paramTypes, returnType);
+    }
+
+    private Type resolveGenericType(GenericTypeAnnotation annotation) {
+        Type baseType = resolve(annotation.baseType());
+        List<Type> paramTypes = annotation.typeParameters().stream()
+                .map(this::resolve)
+                .toList();
+
+        //暫定的にList型のパラメータのみ対応する
+        if (baseType instanceof ListType) {
+            if (paramTypes.size() != 1) {
+                throw new InterpreterException(ErrorUtil.makeError(annotation.location(), source,
+                        "The 'List' type requires a single type parameter."));
+            }
+            return new ListType(paramTypes.getFirst());
+        }
+        throw new UnsupportedOperationException("Type parameters other than the 'List' type are currently not supported.");
     }
 }

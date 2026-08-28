@@ -11,6 +11,7 @@ import io.github.udonabe.donabe.ast.expr.Identifier;
 import io.github.udonabe.donabe.ast.expr.VoidExpression;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 import io.github.udonabe.donabe.lexer.Token;
@@ -40,6 +41,17 @@ public final class BasicParsers {
                         TypeAnnotation returnType = p.getRight();
 
                         return new FunctionTypeAnnotation(param, returnType, location);
+                    });
+    public static final Parser<GenericTypeAnnotation> genericType =
+            identifier
+                    .then(
+                            separatedBy(type(), token(COMMA))
+                                    .between(token(LESS), token(GREATER))
+                    )
+                    .map(p -> {
+                        TypeAnnotation baseType = new NamedTypeAnnotation(p.getLeft());
+                        List<TypeAnnotation> parameters = p.getRight();
+                        return new GenericTypeAnnotation(baseType, parameters);
                     });
     public static final Parser<TypeAnnotation> typeAnnotation = token(COLON).to(type());
 
@@ -200,7 +212,11 @@ public final class BasicParsers {
     }
 
     public static Parser<TypeAnnotation> type() {
-        return or(namedType, lazy(() -> functionType));
+        return or(
+                lazy(() -> genericType),
+                namedType,
+                lazy(() -> functionType)
+        );
     }
 
     @SuppressWarnings("unchecked")

@@ -1,2 +1,2 @@
-func test() -> Int {
-}
+let list: List<Int> = [1, 2, 3];
+print(list);

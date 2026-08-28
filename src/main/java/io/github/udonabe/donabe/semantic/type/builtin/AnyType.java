@@ -9,7 +9,7 @@ public record AnyType() implements BuiltinType {
     }
 
     @Override
-    public boolean isCompatible(Type target) {
-        return true;
+    public boolean isSubtypeOf(Type target) {
+        return false;
     }
 }

@@ -8,6 +8,7 @@ import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.runtime.InterpreterException;
@@ -267,6 +268,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public SymbolInformation visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation) {
         return null;
     }
 

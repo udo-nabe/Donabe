@@ -6,6 +6,7 @@ import io.github.udonabe.donabe.ast.*;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.runtime.BuiltinFunctions;
 import io.github.udonabe.donabe.runtime.VariableCell;
@@ -300,6 +301,11 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public Void visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation) {
         return null;
     }
 

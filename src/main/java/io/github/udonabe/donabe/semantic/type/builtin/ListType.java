@@ -2,14 +2,20 @@ package io.github.udonabe.donabe.semantic.type.builtin;
 
 import io.github.udonabe.donabe.semantic.type.Type;
 
-public record ListType() implements BuiltinType {
+public record ListType(Type elementType) implements BuiltinType {
     @Override
     public String asString() {
-        return "List";
+        return "List<" + elementType.asString() + ">";
     }
 
     @Override
-    public boolean isCompatible(Type target) {
-        return equals(target) || target instanceof AnyType;
+    public boolean isSubtypeOf(Type target) {
+        if (target instanceof AnyType) {
+            return true;
+        }
+        if (!(target instanceof ListType listType)) {
+            return false;
+        }
+        return this.elementType.isSubtypeOf(listType.elementType);
     }
 }

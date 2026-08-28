@@ -6,6 +6,7 @@ import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 
 public class FlowAnalyzer implements ASTVisitor<FlowInfo> {
@@ -160,6 +161,11 @@ public class FlowAnalyzer implements ASTVisitor<FlowInfo> {
 
     @Override
     public FlowInfo visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        throw new AssertionError();
+    }
+
+    @Override
+    public FlowInfo visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation) {
         throw new AssertionError();
     }
 
