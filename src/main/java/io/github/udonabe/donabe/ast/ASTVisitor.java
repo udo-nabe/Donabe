@@ -2,6 +2,9 @@ package io.github.udonabe.donabe.ast;
 
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 
 public interface ASTVisitor<R> {
     R visitProgram(Program program);
@@ -34,4 +37,12 @@ public interface ASTVisitor<R> {
     R visitStringLiteral(StringLiteral expr);
     R visitUnaryExpression(UnaryExpression expr);
     R visitVoidExpression(VoidExpression expr);
+
+    //Type Annotation
+    R visitNamedTypeAnnotation(NamedTypeAnnotation typeAnnotation);
+    R visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation);
+    R visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation);
+
+    //Parameter
+    R visitParameter(Parameter parameter);
 }

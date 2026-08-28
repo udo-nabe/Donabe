@@ -31,6 +31,14 @@ public class IRInterpreter implements IRVisitor<Void> {
         log.debug("resolution: {}", resolution);
     }
 
+    private void declareBuiltinFunctions() {
+        context.setLocalVarValue(0, BuiltinFunctions.BUILTIN_PRINT);
+        context.setLocalVarValue(1, BuiltinFunctions.BUILTIN_INPUT);
+        context.setLocalVarValue(2, BuiltinFunctions.BUILTIN_STRING);
+        context.setLocalVarValue(3, BuiltinFunctions.BUILTIN_LENGTH);
+        context.setLocalVarValue(4, BuiltinFunctions.BUILTIN_INT);
+    }
+
     private void setupLabel(List<Instruction> instructions) {
         List<LabelNop> labels = instructions.stream()
                 .filter(i -> i instanceof LabelNop)
@@ -45,6 +53,7 @@ public class IRInterpreter implements IRVisitor<Void> {
 
     public void run() {
         setupLabel(context.peekStackFrame().instructions());
+        declareBuiltinFunctions();
         while (!context.isFinished()) {
             Instruction fetched = context.currentInstruction();
             context.incrementPC();
@@ -111,7 +120,7 @@ public class IRInterpreter implements IRVisitor<Void> {
                 context.pushStack(returnValue);
             }
             default -> {
-                throw new InterpreterException("The callee is not callable.");
+                throw new InterpreterException("The callee is not callable. callee: " + callee + " pc=" + context.pc() + " frame=" + context.peekStackFrame().name());
             }
         }
 
@@ -150,6 +159,22 @@ public class IRInterpreter implements IRVisitor<Void> {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
         RuntimeValue<?> result = registry.applyBinary(BinaryOperator.GREATER_EQUAL, lhs, rhs);
+        context.pushStack(result);
+        return null;
+    }
+
+    @Override
+    public Void visitIndex(Index instruction) {
+        RuntimeValue<?> index = context.popStack();
+        RuntimeValue<?> target = context.popStack();
+
+        if (!(index instanceof IntegerValue i)) {
+            throw new InterpreterException("Index must be integer.");
+        }
+        if (!(target instanceof ListValue list)) {
+            throw new InterpreterException("The target of index must be list.");
+        }
+        RuntimeValue<?> result = list.value().get(i.value());
         context.pushStack(result);
         return null;
     }
@@ -240,6 +265,18 @@ public class IRInterpreter implements IRVisitor<Void> {
         } else {
             context.pushStack(loaded);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitMakeList(MakeList instruction) {
+        int count = instruction.size();
+
+        List<RuntimeValue<?>> result = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            result.add(context.popStack());
+        }
+        context.pushStack(new ListValue(result.reversed()));
         return null;
     }
 

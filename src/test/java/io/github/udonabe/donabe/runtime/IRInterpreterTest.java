@@ -6,6 +6,7 @@ import io.github.udonabe.donabe.ir.instruction.label.Label;
 import io.github.udonabe.donabe.runtime.value.*;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,16 +16,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IRInterpreterTest {
     private void assertStack(List<Instruction> instructions, List<RuntimeValue<?>> stack) {
-        IRInterpreter interpreter = new IRInterpreter(new IRProgram(instructions), Map.of(), new Operations());
-        interpreter.run();
-        assertEquals(
-                stack,
-                interpreter.snapshotStack()
-        );
+        assertStack(instructions, stack, Map.of());
     }
 
     private void assertStack(List<Instruction> instructions, List<RuntimeValue<?>> stack, Map<Integer, VariableCell> slots) {
-        IRInterpreter interpreter = new IRInterpreter(new IRProgram(instructions), slots, new Operations());
+        var merged = new HashMap<Integer, VariableCell>();
+
+        merged.put(0, new VariableCell(new UndefinedValue()));
+        merged.put(1, new VariableCell(new UndefinedValue()));
+        merged.put(2, new VariableCell(new UndefinedValue()));
+        merged.put(3, new VariableCell(new UndefinedValue()));
+        merged.put(4, new VariableCell(new UndefinedValue()));
+
+        merged.putAll(slots);
+
+        IRInterpreter interpreter = new IRInterpreter(new IRProgram(instructions), merged, new Operations());
         interpreter.run();
         assertEquals(
                 stack,

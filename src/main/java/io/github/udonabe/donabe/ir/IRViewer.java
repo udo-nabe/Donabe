@@ -46,6 +46,11 @@ public class IRViewer implements IRVisitor<String> {
     }
 
     @Override
+    public String visitIndex(Index instruction) {
+        return "index";
+    }
+
+    @Override
     public String visitJmp(Jmp instruction) {
         return "jmp " + instruction.label().name();
     }
@@ -83,6 +88,11 @@ public class IRViewer implements IRVisitor<String> {
     @Override
     public String visitLoadLocal(LoadLocal instruction) {
         return "load_local #" + instruction.identifierSlot();
+    }
+
+    @Override
+    public String visitMakeList(MakeList instruction) {
+        return "make_list " + instruction.size();
     }
 
     @Override

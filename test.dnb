@@ -1,20 +1,15 @@
-func makeCounter(initial) {
-    var count = initial;
+// Fibonacci
+// 生成する数字の数
+print("How many do you want to generate?> ");
+let limit = int(input());
+var a = 1;
+var b = 1;
+var result = "[1, 1";
 
-    lazy func counter() {
-        count = count + 1;
-        return count;
-    }
-
-    return counter;
+for var i = 0; i < limit - 2; i++ {
+  let next = a + b;
+  a = b;
+  b = next;
+  result += ", " + string(next);
 }
-
-var counterA = makeCounter(0);
-var counterB = makeCounter(100);
-
-print(counterA());
-print(counterA());
-print(counterB());
-print(counterB());
-print(counterA());
-print(counterB());
+print(result + "]");

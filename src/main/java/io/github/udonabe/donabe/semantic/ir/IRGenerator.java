@@ -2,9 +2,13 @@ package io.github.udonabe.donabe.semantic.ir;
 
 import io.github.udonabe.donabe.ast.ASTNode;
 import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
@@ -30,6 +34,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     }
 
     public IRProgram generate(Program program) {
+        rootScope.resetChildPos();
         return new IRProgram(program.accept(this));
     }
 
@@ -58,16 +63,19 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         context.pushFunction(localsASTNodeMap.get(statement));
         currentScope = currentScope.nextChildScope();
 
-        List<Integer> paramSlots = statement.args().stream()
-                .map(identifier -> currentScope.getId(identifier.name()))
+        List<Integer> paramSlots = statement.params().stream()
+                .map(parameter -> currentScope.getId(parameter.name().name()))
                 .toList();
 
         for (Statement s : statement.block().statements()) {
             result.addAll(s.accept(this));
         }
 
-        currentScope = currentScope.parent();
-        context.popFunction();
+        if (result.isEmpty() ||
+            (!(result.getLast() instanceof Return) &&
+             !(result.getLast() instanceof VoidReturn))) {
+            result.add(new VoidReturn());
+        }
 
         FunctionValue functionValue = new FunctionValue(
                 statement.identifier().name(),
@@ -75,6 +83,9 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
                 context.currentLocals(),
                 result
         );
+
+        currentScope = currentScope.parent();
+        context.popFunction();
 
         return List.of(
                 new Push(functionValue),
@@ -137,25 +148,32 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             String elseLabel = context.nextLabel();
             String finLabel = context.nextLabel();
 
+            //条件がfalseならelseへ飛ぶ
             result.addAll(statement.condition().accept(this));
             result.add(new JmpFalse(new Label(elseLabel)));
 
+            //thenブロック
             result.addAll(statement.thenBlock().accept(this));
             result.add(new Jmp(new Label(finLabel)));
 
+            //elseブロック
             result.add(new LabelNop(new Label(elseLabel)));
             result.addAll(statement.elseBlock().accept(this));
             result.add(new Jmp(new Label(finLabel)));
 
+            //最終ジャンプ先
             result.add(new LabelNop(new Label(finLabel)));
         } else {
             String finLabel = context.nextLabel();
 
+            //条件がfalseならthenを飛ばす
             result.addAll(statement.condition().accept(this));
             result.add(new JmpFalse(new Label(finLabel)));
 
+            //thenブロック
             result.addAll(statement.thenBlock().accept(this));
 
+            //最終ジャンプ先
             result.add(new LabelNop(new Label(finLabel)));
         }
 
@@ -346,15 +364,18 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         currentScope = currentScope.nextChildScope();
 
         List<Integer> paramSlots = expr.args().stream()
-                .map(identifier -> currentScope.getId(identifier.name()))
+                .map(parameter -> currentScope.getId(parameter.name().name()))
                 .toList();
 
         for (Statement s : expr.block().statements()) {
             result.addAll(s.accept(this));
         }
-        currentScope = currentScope.parent();
 
-        context.popFunction();
+        if (result.isEmpty() ||
+            (!(result.getLast() instanceof Return) &&
+             !(result.getLast() instanceof VoidReturn))) {
+            result.add(new VoidReturn());
+        }
 
         FunctionValue functionValue = new FunctionValue(
                 null,
@@ -362,6 +383,9 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
                 context.currentLocals(),
                 result
         );
+
+        currentScope = currentScope.parent();
+        context.popFunction();
         return List.of(new Push(functionValue));
     }
 
@@ -378,7 +402,11 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     @Override
     public List<Instruction> visitIndexExpression(IndexExpression expr) {
-        throw new UnsupportedOperationException("The statement for-each is not supported currently.");    //実装に追加の命令セットが多く必要になるため、未実装としておく
+        var result = new ArrayList<Instruction>();
+        result.addAll(expr.target().accept(this));
+        result.addAll(expr.index().accept(this));
+        result.add(new Index());
+        return List.copyOf(result);
     }
 
     @Override
@@ -389,7 +417,17 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     @Override
     public List<Instruction> visitListLiteral(ListLiteral expr) {
-        throw new UnsupportedOperationException("The statement for-each is not supported currently.");    //実装に追加の命令セットが多く必要になるため、未実装としておく
+        var result = new ArrayList<Instruction>();
+
+        int elementSize = 0;
+        for (Expression arg : expr.elements()) {
+            result.addAll(arg.accept(this));
+            elementSize++;
+        }
+
+        result.add(new MakeList(elementSize));
+
+        return List.copyOf(result);
     }
 
     @Override
@@ -416,5 +454,26 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitVoidExpression(VoidExpression expr) {
         throw new AssertionError("VoidExpression cannot be visited.");  //VoidExpressionに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    @Override
+    public List<Instruction> visitNamedTypeAnnotation(NamedTypeAnnotation typeAnnotation) {
+        throw new AssertionError("NamedTypeAnnotation cannot be visited.");  //NamedTypeAnnotationに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    @Override
+    public List<Instruction> visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        throw new AssertionError("FunctionTypeAnnotation cannot be visited.");  //FunctionTypeAnnotationに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    @Override
+    public List<Instruction> visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation) {
+        throw new AssertionError("GenericTypeAnnotation cannot be visited.");  //GenericTypeAnnotationに到達することは通常ないため、AssertionErrorを出す。
+
+    }
+
+    @Override
+    public List<Instruction> visitParameter(Parameter parameter) {
+        throw new AssertionError("Parameter cannot be visited.");  //Parameterに到達することは通常ないため、AssertionErrorを出す。
     }
 }

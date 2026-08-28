@@ -3,9 +3,13 @@ package io.github.udonabe.donabe.semantic;
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.ErrorUtil;
 import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
@@ -13,6 +17,7 @@ import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.ir.IRGenerator;
 import io.github.udonabe.donabe.semantic.resolve.NameResolver;
+import io.github.udonabe.donabe.semantic.type.TypeChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +48,8 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
         program.accept(this);
 
-        rootScope.resetChildPos();
+        new TypeChecker(rootScope, source).check(program);
+
         IRProgram ir = new IRGenerator(rootScope, resolveResult.resolution().keySet(), resolveResult.localsASTNodeMap()).generate(program);
 
         return new AnalyzeResult(ir, resolution);
@@ -113,7 +119,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitIfStatement(IfStatement statement) {
         statement.condition().accept(this);
         statement.thenBlock().accept(this);
-        statement.elseBlock().accept(this);
+        if (statement.elseBlock() != null) {
+            statement.elseBlock().accept(this);
+        }
         return null;
     }
 
@@ -251,6 +259,26 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitVoidExpression(VoidExpression expr) {
         return new SymbolInformation(false);
+    }
+
+    @Override
+    public SymbolInformation visitNamedTypeAnnotation(NamedTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public SymbolInformation visitFunctionTypeAnnotation(FunctionTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public SymbolInformation visitGenericTypeAnnotation(GenericTypeAnnotation typeAnnotation) {
+        return null;
+    }
+
+    @Override
+    public SymbolInformation visitParameter(Parameter parameter) {
+        return null;
     }
 
     public record AnalyzeResult(IRProgram irProgram, Map<Integer, VariableCell> resolution) {}
