@@ -99,7 +99,7 @@ class TypeCheckerTest {
                 ), dummyLocation()), root,
                 Map.of(
                         0, new FunctionType(List.of(new AnyType()), new VoidType()),
-                        1, new FunctionType(List.of(new VoidType()), new StringType()),
+                        1, new FunctionType(List.of(), new StringType()),
                         2, new FunctionType(List.of(new AnyType()), new StringType()),
                         3, new FunctionType(List.of(new AnyType()), new IntType()),
                         4, new FunctionType(List.of(new StringType()), new IntType()),
@@ -130,7 +130,7 @@ class TypeCheckerTest {
                 ), generateSimpleScope("pot"),
                 Map.of(
                         0, new FunctionType(List.of(new AnyType()), new VoidType()),
-                        1, new FunctionType(List.of(new VoidType()), new StringType()),
+                        1, new FunctionType(List.of(), new StringType()),
                         2, new FunctionType(List.of(new AnyType()), new StringType()),
                         3, new FunctionType(List.of(new AnyType()), new IntType()),
                         4, new FunctionType(List.of(new StringType()), new IntType()),
@@ -185,7 +185,7 @@ class TypeCheckerTest {
         ), generateSimpleScope("pot"),
                 Map.of(
                         0, new FunctionType(List.of(new AnyType()), new VoidType()),
-                        1, new FunctionType(List.of(new VoidType()), new StringType()),
+                        1, new FunctionType(List.of(), new StringType()),
                         2, new FunctionType(List.of(new AnyType()), new StringType()),
                         3, new FunctionType(List.of(new AnyType()), new IntType()),
                         4, new FunctionType(List.of(new StringType()), new IntType()),

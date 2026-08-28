@@ -2,10 +2,7 @@ package io.github.udonabe.donabe.semantic.type;
 
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.ErrorUtil;
-import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.TypeAnnotation;
+import io.github.udonabe.donabe.ast.type.*;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
@@ -36,6 +33,7 @@ public class TypeResolver {
             case FunctionTypeAnnotation functionTypeAnnotation -> resolveFunction(functionTypeAnnotation);
             case NamedTypeAnnotation namedTypeAnnotation -> resolveName(namedTypeAnnotation);
             case GenericTypeAnnotation genericTypeAnnotation -> resolveGenericType(genericTypeAnnotation);
+            case UnknownTypeAnnotation ignored -> throw new IllegalStateException("UnknownTypeAnnotation has not been inferred. location=" + annotation.location());
         };
     }
 

@@ -192,7 +192,7 @@ class IRGeneratorTest {
         FunctionValue functionValue = new FunctionValue(
                 "add",
                 List.of(8, 9),
-                Set.of(6, 7, 8, 9),
+                Set.of(8, 9),
                 List.of(
                         new LoadCaptured(7),
                         new Pop(),
@@ -527,7 +527,7 @@ class IRGeneratorTest {
         FunctionValue functionValue = new FunctionValue(
                 "add",
                 List.of(7, 8),
-                Set.of(6, 7, 8),
+                Set.of(7, 8),
                 List.of(
                         new LoadLocal(7),
                         new LoadLocal(8),

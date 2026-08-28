@@ -10,10 +10,7 @@ import io.github.udonabe.donabe.ast.expr.FunctionLiteral;
 import io.github.udonabe.donabe.ast.expr.Identifier;
 import io.github.udonabe.donabe.ast.expr.VoidExpression;
 import io.github.udonabe.donabe.ast.statement.*;
-import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.TypeAnnotation;
+import io.github.udonabe.donabe.ast.type.*;
 import io.github.udonabe.donabe.lexer.Token;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -69,14 +66,14 @@ public final class BasicParsers {
     public static final Parser<LetDeclaration> letDeclaration =
             token(LET)
                     .then(identifier)
-                    .then(typeAnnotation)
+                    .then(typeAnnotation.optional())
                     .skip(token(ASSIGN))
                     .then(expression)
                     .skip(token(SEMICOLON))
                     .map(p -> {
                         SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
                         Identifier identifier = p.getLeft().getLeft().getRight();
-                        TypeAnnotation type = p.getKey().getRight();
+                        TypeAnnotation type = p.getKey().getRight().orElse(new UnknownTypeAnnotation(location));
                         Expression expr = p.getRight();
 
                         return new LetDeclaration(identifier, expr, type, location);
@@ -84,14 +81,14 @@ public final class BasicParsers {
     public static final Parser<VarDeclaration> varDeclaration =
             token(VAR)
                     .then(identifier)
-                    .then(typeAnnotation)
+                    .then(typeAnnotation.optional())
                     .skip(token(ASSIGN))
                     .then(expression)
                     .skip(token(SEMICOLON))
                     .map(p -> {
                         SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
                         Identifier identifier = p.getLeft().getLeft().getRight();
-                        TypeAnnotation type = p.getKey().getRight();
+                        TypeAnnotation type = p.getKey().getRight().orElse(new UnknownTypeAnnotation(location));
                         Expression expr = p.getRight();
 
                         return new VarDeclaration(identifier, expr, type, location);

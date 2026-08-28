@@ -17,6 +17,7 @@ import io.github.udonabe.donabe.semantic.flow.FlowAnalyzer;
 import io.github.udonabe.donabe.semantic.flow.FlowInfo;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
+import io.github.udonabe.donabe.semantic.type.inferrer.TypeInferrer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ import java.util.stream.IntStream;
 public class TypeChecker implements ASTVisitor<Type> {
     private static final Logger log = LoggerFactory.getLogger(TypeChecker.class);
     private final TypeResolver typeResolver;
+    private final TypeInferrer typeInferrer;
     private final OperationChecker operationChecker;
     private final FlowAnalyzer flowAnalyzer;
     private final Map<Integer, Type> identifierTypeTable;
@@ -46,6 +48,7 @@ public class TypeChecker implements ASTVisitor<Type> {
 
         registerBuiltinFunctions();
         flowAnalyzer = new FlowAnalyzer();
+        typeInferrer = new TypeInferrer(source);
     }
 
     public void check(Program program) {
@@ -165,8 +168,8 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     private void declareVariable(Identifier identifier, TypeAnnotation typeAnnotation, Expression value, SourceFileLocation location) {
-        Type identifierType = typeResolver.resolve(typeAnnotation);
         Type valueType = value.accept(this);
+        Type identifierType = typeInferrer.inferVariableDeclaration(typeAnnotation, valueType);
 
         if (!identifierType.isSupertypeOf(valueType)) {
             throw new CompileException(ErrorUtil.makeError(location, source,

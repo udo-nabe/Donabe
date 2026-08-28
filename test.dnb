@@ -1,5 +1,15 @@
-let list: List<Any> = [1, 2, 3, 4, 5, "Hello"];
+// Fibonacci
+// 生成する数字の数
+print("How many do you want to generate?> ");
+let limit = int(input());
+var a = 1;
+var b = 1;
+var result = "[1, 1";
 
-for var i: Int = 0; i < length(list); i++ {
-    print(list[i]);
+for var i = 0; i < limit - 2; i++ {
+  let next = a + b;
+  a = b;
+  b = next;
+  result += ", " + string(next);
 }
+print(result + "]");
