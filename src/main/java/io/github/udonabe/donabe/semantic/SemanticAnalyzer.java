@@ -246,6 +246,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     }
 
     @Override
+    public SymbolInformation visitMemberAccessExpression(MemberAccessExpression expr) {
+        return null;
+    }
+
+    @Override
     public SymbolInformation visitStringLiteral(StringLiteral expr) {
         return new SymbolInformation(false);
     }

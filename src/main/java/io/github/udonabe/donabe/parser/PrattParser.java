@@ -36,6 +36,7 @@ class PrattParser {
     private static final int PREFIX_PRECEDENCE = 100;
     private static final int MIN_PRECEDENCE = 1;
     private static final Map<Token.Kind, Integer> PRECEDENCES = Map.ofEntries(
+            entry(Token.Kind.DOT, 110),
             entry(Token.Kind.PLUS, 60),
             entry(Token.Kind.MINUS, 60),
             entry(Token.Kind.ASTERISK, 70),
@@ -167,6 +168,13 @@ class PrattParser {
             case GREATER_EQUAL ->
                     new BinaryExpression(prefix, BinaryOperator.GREATER_EQUAL, parseExpression(precedence), prefix.location());
             case ASSIGN, PLUS_ASSIGN, MINUS_ASSIGN, ASTERISK_ASSIGN, SLASH_ASSIGN -> assign(prefix, infix, precedence);
+            case DOT -> {
+                Expression member = parseExpression(precedence);
+                if (!(member instanceof Identifier identifier)) {
+                    throw new CompileException(ErrorUtil.makeCompileError(infix, infix.lexeme(), "identifier"));
+                }
+                yield new MemberAccessExpression(prefix, identifier, prefix.location());
+            }
             default -> throw new CompileException(ErrorUtil.makeCompileError(infix, infix.lexeme(), "operator"));
         };
     }

@@ -279,6 +279,11 @@ public final class NameResolver implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visitMemberAccessExpression(MemberAccessExpression expr) {
+        return null;
+    }
+
+    @Override
     public Void visitStringLiteral(StringLiteral expr) {
         return null;
     }

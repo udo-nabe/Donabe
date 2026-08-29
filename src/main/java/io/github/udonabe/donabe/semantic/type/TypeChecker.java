@@ -366,6 +366,11 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     @Override
+    public Type visitMemberAccessExpression(MemberAccessExpression expr) {
+        return null;
+    }
+
+    @Override
     public Type visitStringLiteral(StringLiteral expr) {
         return new StringType();
     }

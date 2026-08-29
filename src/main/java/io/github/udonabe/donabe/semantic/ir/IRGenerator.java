@@ -431,6 +431,11 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     }
 
     @Override
+    public List<Instruction> visitMemberAccessExpression(MemberAccessExpression expr) {
+        return List.of();
+    }
+
+    @Override
     public List<Instruction> visitStringLiteral(StringLiteral expr) {
         var value = new StringValue(expr.value());
         return List.of(new Push(value));

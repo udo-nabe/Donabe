@@ -140,6 +140,11 @@ public class FlowAnalyzer implements ASTVisitor<FlowInfo> {
     }
 
     @Override
+    public FlowInfo visitMemberAccessExpression(MemberAccessExpression expr) {
+        return new FlowInfo(true);
+    }
+
+    @Override
     public FlowInfo visitStringLiteral(StringLiteral expr) {
         return new FlowInfo(true);
     }
