@@ -1,10 +1,12 @@
 package io.github.udonabe.donabe.semantic.type.function;
 
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
+import io.github.udonabe.donabe.semantic.type.MemberInfo;
 import io.github.udonabe.donabe.semantic.type.Type;
 import io.github.udonabe.donabe.semantic.type.builtin.AnyType;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -17,6 +19,11 @@ public record FunctionType(
                 .map(Type::asString)
                 .collect(Collectors.joining(", ", "(", ")"));
         return paramString + " -> " + returnType.asString();
+    }
+
+    @Override
+    public Map<String, MemberInfo> members() {
+        return Map.of();
     }
 
     @Override
