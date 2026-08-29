@@ -91,6 +91,11 @@ public class IRViewer implements IRVisitor<String> {
     }
 
     @Override
+    public String visitLoadMember(LoadMember instruction) {
+        return "load_member " + instruction.memberName();
+    }
+
+    @Override
     public String visitMakeList(MakeList instruction) {
         return "make_list " + instruction.size();
     }

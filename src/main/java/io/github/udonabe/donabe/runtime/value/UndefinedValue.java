@@ -22,4 +22,9 @@ public record UndefinedValue() implements RuntimeValue<Void> {
     public String display() {
         throw new IllegalStateException("Undefined identifier.");
     }
+
+    @Override
+    public RuntimeValue<?> getMember(String memberName) {
+        throw new IllegalStateException("Undefined identifier.");
+    }
 }

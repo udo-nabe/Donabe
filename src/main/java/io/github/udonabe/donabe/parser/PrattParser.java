@@ -83,6 +83,9 @@ class PrattParser {
             } else if (next == Token.Kind.DECREMENT) {
                 left = parseDecrement(left);
                 continue;
+            } else if (next == DOT) {
+                left = parseMemberAccess(left);
+                continue;
             }
 
             if (!PRECEDENCES.containsKey(next)) {
@@ -168,13 +171,6 @@ class PrattParser {
             case GREATER_EQUAL ->
                     new BinaryExpression(prefix, BinaryOperator.GREATER_EQUAL, parseExpression(precedence), prefix.location());
             case ASSIGN, PLUS_ASSIGN, MINUS_ASSIGN, ASTERISK_ASSIGN, SLASH_ASSIGN -> assign(prefix, infix, precedence);
-            case DOT -> {
-                Expression member = parseExpression(precedence);
-                if (!(member instanceof Identifier identifier)) {
-                    throw new CompileException(ErrorUtil.makeCompileError(infix, infix.lexeme(), "identifier"));
-                }
-                yield new MemberAccessExpression(prefix, identifier, prefix.location());
-            }
             default -> throw new CompileException(ErrorUtil.makeCompileError(infix, infix.lexeme(), "operator"));
         };
     }
@@ -235,5 +231,14 @@ class PrattParser {
         } else {
             throw new CompileException("[line %d, column %d] Unexpected expression: ".formatted(prefix.location().line(), prefix.location().column()) + prefix + ". Expected: IDENTIFIER.");
         }
+    }
+
+    private MemberAccessExpression parseMemberAccess(Expression prefix) {
+        stream.consume(DOT);
+        ParseResult<Identifier> memberRes = identifier.parse(stream);
+        if (!(memberRes instanceof ParseSuccess<Identifier>(Identifier member))) {
+            throw new CompileException(((ParseFailed<Identifier>) memberRes).message());
+        }
+        return new MemberAccessExpression(prefix, member, prefix.location());
     }
 }

@@ -8,7 +8,7 @@ public final class VoidValue implements RuntimeValue<String> {
 
     @Override
     public String typeName() {
-        return "void";
+        return "Void";
     }
 
     @Override
@@ -19,5 +19,10 @@ public final class VoidValue implements RuntimeValue<String> {
     @Override
     public boolean equals(Object obj) {
         return true;
+    }
+
+    @Override
+    public RuntimeValue<?> getMember(String name) {
+        throw new IllegalStateException("Cannot use 'Void' type value.");
     }
 }

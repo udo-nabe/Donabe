@@ -5,4 +5,5 @@ public sealed interface RuntimeValue<T>
     T value();
     String typeName();
     String display();
+    RuntimeValue<?> getMember(String name);
 }

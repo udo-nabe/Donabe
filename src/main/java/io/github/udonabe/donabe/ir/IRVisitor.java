@@ -18,6 +18,7 @@ public interface IRVisitor<R> {
     R visitLessEqual(LessEqual instruction);
     R visitLoadCaptured(LoadCaptured instruction);
     R visitLoadLocal(LoadLocal instruction);
+    R visitLoadMember(LoadMember instruction);
     R visitMakeList(MakeList instruction);
     R visitMinus(Minus instruction);
     R visitMul(Mul instruction);
