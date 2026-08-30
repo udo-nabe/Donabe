@@ -38,7 +38,7 @@ public class StackTraceGenerator {
                 traceLines.removeFirst();
                 traceLines.add(buffer.toString());
             } else {
-                result.append("\t...more ").append(mores).append(" frames\n");
+                result.append("\t... ").append(mores).append(" more frames\n");
                 mores = 0;
 
                 result.append(buffer);
