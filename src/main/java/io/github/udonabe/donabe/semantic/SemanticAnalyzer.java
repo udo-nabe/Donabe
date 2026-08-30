@@ -1,7 +1,7 @@
 package io.github.udonabe.donabe.semantic;
 
 import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.ErrorUtil;
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
@@ -11,10 +11,7 @@ import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
-import io.github.udonabe.donabe.runtime.InterpreterException;
-import io.github.udonabe.donabe.runtime.RuntimeIOUtil;
 import io.github.udonabe.donabe.runtime.VariableCell;
-import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.ir.IRGenerator;
 import io.github.udonabe.donabe.semantic.resolve.NameResolver;
 import io.github.udonabe.donabe.semantic.type.TypeChecker;

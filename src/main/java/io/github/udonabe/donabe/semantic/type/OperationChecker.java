@@ -1,7 +1,7 @@
 package io.github.udonabe.donabe.semantic.type;
 
 import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.ErrorUtil;
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.CompoundAssignOperator;

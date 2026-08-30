@@ -1,7 +1,7 @@
 package io.github.udonabe.donabe.lexer;
 
 import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.ErrorUtil;
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.TokenStream;
 
 import java.util.ArrayList;

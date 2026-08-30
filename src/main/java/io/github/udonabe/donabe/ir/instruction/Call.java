@@ -1,8 +1,9 @@
 package io.github.udonabe.donabe.ir.instruction;
 
+import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRVisitor;
 
-public record Call() implements Instruction {
+public record Call(IRLocation location) implements Instruction {
     @Override
     public <R> R accept(IRVisitor<R> visitor) {
         return visitor.visitCall(this);

@@ -7,6 +7,7 @@ import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
+import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
 import io.github.udonabe.donabe.runtime.value.BooleanValue;
@@ -49,6 +50,10 @@ class IRGeneratorTest {
         assertIterableEquals(instructions, actualInstructions);
     }
 
+    private IRLocation dummyLocation() {
+        return new IRLocation(1);
+    }
+
     @Test
     void visitProgram() {
         assertIR(
@@ -86,16 +91,16 @@ class IRGeneratorTest {
                 generateSimpleScope("foo", "bar"),
                 Set.of(6, 7),
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new StoreLocal(6),
-                        new LoadLocal(6),
-                        new Push(new IntegerValue(1)),
-                        new Add(),
-                        new StoreLocal(7),
-                        new LoadLocal(6),
-                        new LoadLocal(7),
-                        new Sub(),
-                        new Pop()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Add(dummyLocation()),
+                        new StoreLocal(7, dummyLocation()),
+                        new LoadLocal(6, dummyLocation()),
+                        new LoadLocal(7, dummyLocation()),
+                        new Sub(dummyLocation()),
+                        new Pop(dummyLocation())
                 )
         );
     }
@@ -141,16 +146,16 @@ class IRGeneratorTest {
                 ), root,
                 Set.of(6, 7),
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new StoreLocal(6),
-                        new LoadLocal(6),
-                        new Push(new IntegerValue(1)),
-                        new Add(),
-                        new StoreLocal(7),
-                        new LoadLocal(6),
-                        new LoadLocal(7),
-                        new Sub(),
-                        new Pop()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Add(dummyLocation()),
+                        new StoreLocal(7, dummyLocation()),
+                        new LoadLocal(6, dummyLocation()),
+                        new LoadLocal(7, dummyLocation()),
+                        new Sub(dummyLocation()),
+                        new Pop(dummyLocation())
                 )
         );
     }
@@ -171,8 +176,8 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 List.of(
-                        new Push(new IntegerValue(123)),
-                        new Pop()
+                        new Push(new IntegerValue(123), dummyLocation()),
+                        new Pop(dummyLocation())
                 )
         );
     }
@@ -194,12 +199,12 @@ class IRGeneratorTest {
                 List.of(8, 9),
                 Set.of(8, 9),
                 List.of(
-                        new LoadCaptured(7),
-                        new Pop(),
-                        new LoadLocal(8),
-                        new LoadLocal(9),
-                        new Add(),
-                        new Return()
+                        new LoadCaptured(7, dummyLocation()),
+                        new Pop(dummyLocation()),
+                        new LoadLocal(8, dummyLocation()),
+                        new LoadLocal(9, dummyLocation()),
+                        new Add(dummyLocation()),
+                        new Return(dummyLocation())
                 )
         );
 
@@ -251,10 +256,10 @@ class IRGeneratorTest {
                 ),
                 root,
                 List.of(
-                        new Push(functionValue),
-                        new StoreLocal(6),
-                        new Push(new IntegerValue(42)),
-                        new StoreLocal(7)
+                        new Push(functionValue, dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new StoreLocal(7, dummyLocation())
                 ),
                 Set.of(6, 7, 8, 9),
                 Map.of(
@@ -295,19 +300,19 @@ class IRGeneratorTest {
                 root,
                 Set.of(),
                 List.of(
-                        new Push(new BooleanValue(true)),
-                        new JmpFalse(new Label(".0")),
+                        new Push(new BooleanValue(true), dummyLocation()),
+                        new JmpFalse(new Label(".0"), dummyLocation()),
 
-                        new Push(new IntegerValue(1)),
-                        new Pop(),
-                        new Jmp(new Label(".1")),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Pop(dummyLocation()),
+                        new Jmp(new Label(".1"), dummyLocation()),
 
-                        new LabelNop(new Label(".0")),
-                        new Push(new IntegerValue(3)),
-                        new Pop(),
-                        new Jmp(new Label(".1")),
+                        new LabelNop(new Label(".0"), dummyLocation()),
+                        new Push(new IntegerValue(3), dummyLocation()),
+                        new Pop(dummyLocation()),
+                        new Jmp(new Label(".1"), dummyLocation()),
 
-                        new LabelNop(new Label(".1"))
+                        new LabelNop(new Label(".1"), dummyLocation())
                 )
         );
 
@@ -333,13 +338,13 @@ class IRGeneratorTest {
                 rootOnlyIf,
                 Set.of(),
                 List.of(
-                        new Push(new BooleanValue(true)),
-                        new JmpFalse(new Label(".0")),
+                        new Push(new BooleanValue(true), dummyLocation()),
+                        new JmpFalse(new Label(".0"), dummyLocation()),
 
-                        new Push(new IntegerValue(1)),
-                        new Pop(),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Pop(dummyLocation()),
 
-                        new LabelNop(new Label(".0"))
+                        new LabelNop(new Label(".0"), dummyLocation())
                 )
         );
     }
@@ -356,8 +361,8 @@ class IRGeneratorTest {
                 generateSimpleScope("bar"),
                 Set.of(6),
                 List.of(
-                        new Push(new StringValue("Hello")),
-                        new StoreLocal(6)
+                        new Push(new StringValue("Hello"), dummyLocation()),
+                        new StoreLocal(6, dummyLocation())
                 )
         );
     }
@@ -371,8 +376,8 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 List.of(
-                        new Push(new IntegerValue(1234)),
-                        new Return()
+                        new Push(new IntegerValue(1234), dummyLocation()),
+                        new Return(dummyLocation())
                 )
         );
 
@@ -383,7 +388,7 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 List.of(
-                        new VoidReturn()
+                        new VoidReturn(dummyLocation())
                 )
         );
     }
@@ -400,8 +405,8 @@ class IRGeneratorTest {
                 generateSimpleScope("hoge"),
                 Set.of(6),
                 List.of(
-                        new Push(new StringValue("Hello")),
-                        new StoreLocal(6)
+                        new Push(new StringValue("Hello"), dummyLocation()),
+                        new StoreLocal(6, dummyLocation())
                 )
         );
     }
@@ -426,17 +431,17 @@ class IRGeneratorTest {
                 root,
                 Set.of(),
                 List.of(
-                        new LabelNop(new Label(".0")),
+                        new LabelNop(new Label(".0"), dummyLocation()),
 
-                        new Push(new BooleanValue(true)),
-                        new JmpFalse(new Label(".1")),
+                        new Push(new BooleanValue(true), dummyLocation()),
+                        new JmpFalse(new Label(".1"), dummyLocation()),
 
-                        new Push(new IntegerValue(42)),
-                        new Pop(),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Pop(dummyLocation()),
 
-                        new Jmp(new Label(".0")),
+                        new Jmp(new Label(".0"), dummyLocation()),
 
-                        new LabelNop(new Label(".1"))
+                        new LabelNop(new Label(".1"), dummyLocation())
                 )
         );
     }
@@ -457,24 +462,24 @@ class IRGeneratorTest {
                 generateSimpleScope("bar"),
                 Set.of(6),
                 List.of(
-                        new Push(new StringValue("Hello")),
-                        new StoreLocal(6),
-                        new LoadLocal(6)
+                        new Push(new StringValue("Hello"), dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation())
                 )
         );
     }
 
     private void binaryExpression(BinaryOperator operator) {
         Instruction operatorInstruction = switch (operator) {
-            case PLUS -> new Add();
-            case MINUS -> new Sub();
-            case MULTIPLICATION -> new Mul();
-            case DIVISION -> new Div();
-            case EQUAL -> new Equal();
-            case LESS -> new Less();
-            case GREATER -> new Greater();
-            case LESS_EQUAL -> new LessEqual();
-            case GREATER_EQUAL -> new GreaterEqual();
+            case PLUS -> new Add(dummyLocation());
+            case MINUS -> new Sub(dummyLocation());
+            case MULTIPLICATION -> new Mul(dummyLocation());
+            case DIVISION -> new Div(dummyLocation());
+            case EQUAL -> new Equal(dummyLocation());
+            case LESS -> new Less(dummyLocation());
+            case GREATER -> new Greater(dummyLocation());
+            case LESS_EQUAL -> new LessEqual(dummyLocation());
+            case GREATER_EQUAL -> new GreaterEqual(dummyLocation());
         };
 
         assertIRSimple(
@@ -485,8 +490,8 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(3)),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(3), dummyLocation()),
                         operatorInstruction
                 )
         );
@@ -509,7 +514,7 @@ class IRGeneratorTest {
     void visitBooleanLiteral() {
         assertIRSimple(new BooleanLiteral(true, new SourceFileLocation(1, 1)),
                 List.of(
-                        new Push(new BooleanValue(true))
+                        new Push(new BooleanValue(true), dummyLocation())
                 ));
     }
 
@@ -529,10 +534,10 @@ class IRGeneratorTest {
                 List.of(7, 8),
                 Set.of(7, 8),
                 List.of(
-                        new LoadLocal(7),
-                        new LoadLocal(8),
-                        new Add(),
-                        new Return()
+                        new LoadLocal(7, dummyLocation()),
+                        new LoadLocal(8, dummyLocation()),
+                        new Add(dummyLocation()),
+                        new Return(dummyLocation())
                 )
         );
 
@@ -585,13 +590,13 @@ class IRGeneratorTest {
                 ),
                 root,
                 List.of(
-                        new Push(functionValue),
-                        new StoreLocal(6),
-                        new Push(new IntegerValue(1234)),
-                        new Push(new IntegerValue(123)),
-                        new LoadLocal(6),
-                        new Call(),
-                        new Pop()
+                        new Push(functionValue, dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1234), dummyLocation()),
+                        new Push(new IntegerValue(123), dummyLocation()),
+                        new LoadLocal(6, dummyLocation()),
+                        new Call(dummyLocation()),
+                        new Pop(dummyLocation())
                 ),
                 Set.of(6, 7, 8),
                 Map.of(
@@ -612,11 +617,11 @@ class IRGeneratorTest {
                 generateSimpleScope("bar"),
                 Set.of(6),
                 List.of(
-                        new LoadLocal(6),
-                        new Push(new IntegerValue(1234)),
-                        new Add(),
-                        new StoreLocal(6),
-                        new LoadLocal(6)
+                        new LoadLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1234), dummyLocation()),
+                        new Add(dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation())
                 )
         );
     }
@@ -633,11 +638,11 @@ class IRGeneratorTest {
                 generateSimpleScope("hoge"),
                 Set.of(6),
                 List.of(
-                        new LoadLocal(6),
-                        new Push(new IntegerValue(1)),
-                        new Sub(),
-                        new StoreLocal(6),
-                        new LoadLocal(6)
+                        new LoadLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Sub(dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation())
                 )
         );
 
@@ -651,11 +656,11 @@ class IRGeneratorTest {
                 generateSimpleScope("hoge"),
                 Set.of(6),
                 List.of(
-                        new LoadLocal(6),
-                        new LoadLocal(6),
-                        new Push(new IntegerValue(1)),
-                        new Sub(),
-                        new StoreLocal(6)
+                        new LoadLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Sub(dummyLocation()),
+                        new StoreLocal(6, dummyLocation())
                 )
         );
     }
@@ -674,10 +679,10 @@ class IRGeneratorTest {
                 List.of(6, 7),
                 Set.of(6, 7),
                 List.of(
-                        new LoadLocal(6),
-                        new LoadLocal(7),
-                        new Add(),
-                        new Return()
+                        new LoadLocal(6, dummyLocation()),
+                        new LoadLocal(7, dummyLocation()),
+                        new Add(dummyLocation()),
+                        new Return(dummyLocation())
                 )
         );
 
@@ -713,7 +718,7 @@ class IRGeneratorTest {
                 define,
                 root,
                 List.of(
-                        new Push(functionValue)
+                        new Push(functionValue, dummyLocation())
                 ),
                 Set.of(6, 7),
                 Map.of(
@@ -729,7 +734,7 @@ class IRGeneratorTest {
                 generateSimpleScope("foo"),
                 Set.of(6),
                 List.of(
-                        new LoadLocal(6)
+                        new LoadLocal(6, dummyLocation())
                 )
         );
     }
@@ -746,11 +751,11 @@ class IRGeneratorTest {
                 generateSimpleScope("hoge"),
                 Set.of(6),
                 List.of(
-                        new LoadLocal(6),
-                        new Push(new IntegerValue(1)),
-                        new Add(),
-                        new StoreLocal(6),
-                        new LoadLocal(6)
+                        new LoadLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Add(dummyLocation()),
+                        new StoreLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation())
                 )
         );
 
@@ -764,11 +769,11 @@ class IRGeneratorTest {
                 generateSimpleScope("hoge"),
                 Set.of(6),
                 List.of(
-                        new LoadLocal(6),
-                        new LoadLocal(6),
-                        new Push(new IntegerValue(1)),
-                        new Add(),
-                        new StoreLocal(6)
+                        new LoadLocal(6, dummyLocation()),
+                        new LoadLocal(6, dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Add(dummyLocation()),
+                        new StoreLocal(6, dummyLocation())
                 )
         );
     }
@@ -782,7 +787,7 @@ class IRGeneratorTest {
     void visitIntegerLiteral() {
         assertIRSimple(new IntegerLiteral(42, new SourceFileLocation(1, 1)),
                 List.of(
-                        new Push(new IntegerValue(42))
+                        new Push(new IntegerValue(42), dummyLocation())
                 ));
     }
 
@@ -795,7 +800,7 @@ class IRGeneratorTest {
     void visitStringLiteral() {
         assertIRSimple(new StringLiteral("Hoge", new SourceFileLocation(1, 1)),
                 List.of(
-                        new Push(new StringValue("Hoge"))
+                        new Push(new StringValue("Hoge"), dummyLocation())
                 ));
     }
 
@@ -808,8 +813,8 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 List.of(
-                        new Push(new IntegerValue(2)),
-                        new Plus()
+                        new Push(new IntegerValue(2), dummyLocation()),
+                        new Plus(dummyLocation())
                 )
         );
 
@@ -820,8 +825,8 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 List.of(
-                        new Push(new IntegerValue(2)),
-                        new Minus()
+                        new Push(new IntegerValue(2), dummyLocation()),
+                        new Minus(dummyLocation())
                 )
         );
 
@@ -832,8 +837,8 @@ class IRGeneratorTest {
                         new SourceFileLocation(1, 1)
                 ),
                 List.of(
-                        new Push(new BooleanValue(false)),
-                        new Not()
+                        new Push(new BooleanValue(false), dummyLocation()),
+                        new Not(dummyLocation())
                 )
         );
     }

@@ -2,6 +2,7 @@ package io.github.udonabe.donabe.runtime;
 
 import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.UnaryOperator;
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.IRVisitor;
 import io.github.udonabe.donabe.ir.instruction.*;
@@ -63,7 +64,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitAdd(Add instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.PLUS, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.PLUS, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -74,7 +75,8 @@ public class IRInterpreter implements IRVisitor<Void> {
             try {
                 result.add(context.popStack());
             } catch (InterpreterException e) {
-                throw new InterpreterException("The lengths of the actual argument list and the formal argument list differ.");
+                throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
+                        "The lengths of the actual argument list and the formal argument list differ."));
             }
         }
         return result;
@@ -113,12 +115,17 @@ public class IRInterpreter implements IRVisitor<Void> {
             case BuiltinFunctionValue(
                     List<String> formalArgs, Function<List<? extends RuntimeValue<?>>, RuntimeValue<?>> content
             ) -> {
-                List<RuntimeValue<?>> args = bindArgs(formalArgs.size());
-                RuntimeValue<?> returnValue = content.apply(args);
-                context.pushStack(returnValue);
+                try {
+                    List<RuntimeValue<?>> args = bindArgs(formalArgs.size());
+                    RuntimeValue<?> returnValue = content.apply(args);
+                    context.pushStack(returnValue);
+                } catch (InterpreterException e) {
+                    throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(), e.getMessage()), e);
+                }
             }
             default -> {
-                throw new InterpreterException("The callee is not callable. callee: " + callee + " pc=" + context.pc() + " frame=" + context.peekStackFrame().name());
+                throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
+                        "The callee is not callable. callee: %s", callee));
             }
         }
 
@@ -129,7 +136,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitDiv(Div instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.DIVISION, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.DIVISION, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -138,7 +145,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitEqual(Equal instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.EQUAL, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.EQUAL, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -147,7 +154,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitGreater(Greater instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.GREATER, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.GREATER, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -156,7 +163,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitGreaterEqual(GreaterEqual instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.GREATER_EQUAL, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.GREATER_EQUAL, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -167,10 +174,12 @@ public class IRInterpreter implements IRVisitor<Void> {
         RuntimeValue<?> target = context.popStack();
 
         if (!(index instanceof IntegerValue i)) {
-            throw new InterpreterException("Index must be integer.");
+            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
+                    "Index must be integer."));
         }
         if (!(target instanceof ListValue list)) {
-            throw new InterpreterException("The target of index must be list.");
+            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
+                    "The target of index must be list."));
         }
         RuntimeValue<?> result = list.value().get(i.value());
         context.pushStack(result);
@@ -179,7 +188,8 @@ public class IRInterpreter implements IRVisitor<Void> {
 
     private int getLabelPC(Label label) {
         if (!labelJmpMap.containsKey(label)) {
-            throw new InterpreterException("Undefined label: " + label);
+            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
+                    "Undefined label: %s", label));
         }
         return labelJmpMap.get(label);
     }
@@ -195,7 +205,8 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitJmpFalse(JmpFalse instruction) {
         RuntimeValue<?> condition = context.popStack();
         if (!(condition instanceof BooleanValue(Boolean value))) {
-            throw new InterpreterException("Condition of jmp_false must be type of boolean.");
+            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
+                    "Condition of jmp_false must be type of boolean."));
         }
 
         if (!value) {
@@ -209,7 +220,8 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitJmpTrue(JmpTrue instruction) {
         RuntimeValue<?> condition = context.popStack();
         if (!(condition instanceof BooleanValue(Boolean value))) {
-            throw new InterpreterException("Condition of jmp_true must be type of boolean.");
+            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
+                    "Condition of jmp_true must be type of boolean."));
         }
 
         if (value) {
@@ -228,7 +240,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitLess(Less instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.LESS, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.LESS, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -237,7 +249,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitLessEqual(LessEqual instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.LESS_EQUAL, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.LESS_EQUAL, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -269,7 +281,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     @Override
     public Void visitLoadMember(LoadMember instruction) {
         RuntimeValue<?> target = context.popStack();
-        context.pushStack(target.findMember(instruction.memberName()));
+        context.pushStack(target.findMember(instruction.memberName(), context.peekStackFrame()));
         return null;
     }
 
@@ -288,7 +300,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     @Override
     public Void visitMinus(Minus instruction) {
         RuntimeValue<?> target = context.popStack();
-        RuntimeValue<?> result = registry.applyUnary(UnaryOperator.MINUS, target);
+        RuntimeValue<?> result = registry.applyUnary(UnaryOperator.MINUS, target, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -297,7 +309,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitMul(Mul instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.MULTIPLICATION, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.MULTIPLICATION, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -310,7 +322,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     @Override
     public Void visitNot(Not instruction) {
         RuntimeValue<?> target = context.popStack();
-        RuntimeValue<?> result = registry.applyUnary(UnaryOperator.NOT, target);
+        RuntimeValue<?> result = registry.applyUnary(UnaryOperator.NOT, target, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -318,7 +330,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     @Override
     public Void visitPlus(Plus instruction) {
         RuntimeValue<?> target = context.popStack();
-        RuntimeValue<?> result = registry.applyUnary(UnaryOperator.PLUS, target);
+        RuntimeValue<?> result = registry.applyUnary(UnaryOperator.PLUS, target, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }
@@ -366,7 +378,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitSub(Sub instruction) {
         RuntimeValue<?> rhs = context.popStack();
         RuntimeValue<?> lhs = context.popStack();
-        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.MINUS, lhs, rhs);
+        RuntimeValue<?> result = registry.applyBinary(BinaryOperator.MINUS, lhs, rhs, context.peekStackFrame());
         context.pushStack(result);
         return null;
     }

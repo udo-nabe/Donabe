@@ -1,14 +1,12 @@
 package io.github.udonabe.donabe.semantic.ir;
 
-import io.github.udonabe.donabe.ast.ASTNode;
-import io.github.udonabe.donabe.ast.ASTVisitor;
-import io.github.udonabe.donabe.ast.Parameter;
-import io.github.udonabe.donabe.ast.Program;
+import io.github.udonabe.donabe.ast.*;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
+import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
@@ -77,7 +75,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         if (result.isEmpty() ||
             (!(result.getLast() instanceof Return) &&
              !(result.getLast() instanceof VoidReturn))) {
-            result.add(new VoidReturn());
+            result.add(new VoidReturn(generateLocation(statement.location())));
         }
 
         FunctionValue functionValue = new FunctionValue(
@@ -91,24 +89,24 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         context.popFunction();
 
         return List.of(
-                new Push(functionValue),
-                store(functionID)
+                new Push(functionValue, generateLocation(statement.location())),
+                store(functionID, statement.location())
         );
     }
 
-    private Instruction load(int slot) {
+    private Instruction load(int slot, SourceFileLocation location) {
         if (context.inFunction() && context.shouldUseLocal(slot)) {
-            return new LoadLocal(slot);
+            return new LoadLocal(slot, generateLocation(location));
         } else {
-            return new LoadCaptured(slot);
+            return new LoadCaptured(slot, generateLocation(location));
         }
     }
 
-    private Instruction store(int slot) {
+    private Instruction store(int slot, SourceFileLocation location) {
         if (context.inFunction() && context.shouldUseLocal(slot)) {
-            return new StoreLocal(slot);
+            return new StoreLocal(slot, generateLocation(location));
         } else {
-            return new StoreCaptured(slot);
+            return new StoreCaptured(slot, generateLocation(location));
         }
     }
 
@@ -133,7 +131,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitExpressionStatement(ExpressionStatement statement) {
         var result = new ArrayList<>(statement.expression().accept(this));
-        result.add(new Pop());
+        result.add(new Pop(generateLocation(statement.location())));
         return List.copyOf(result);
     }
 
@@ -153,31 +151,31 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
             //条件がfalseならelseへ飛ぶ
             result.addAll(statement.condition().accept(this));
-            result.add(new JmpFalse(new Label(elseLabel)));
+            result.add(new JmpFalse(new Label(elseLabel), generateLocation(statement.location())));
 
             //thenブロック
             result.addAll(statement.thenBlock().accept(this));
-            result.add(new Jmp(new Label(finLabel)));
+            result.add(new Jmp(new Label(finLabel), generateLocation(statement.thenBlock().location())));
 
             //elseブロック
-            result.add(new LabelNop(new Label(elseLabel)));
+            result.add(new LabelNop(new Label(elseLabel), generateLocation(statement.elseBlock().location())));
             result.addAll(statement.elseBlock().accept(this));
-            result.add(new Jmp(new Label(finLabel)));
+            result.add(new Jmp(new Label(finLabel), generateLocation(statement.elseBlock().location())));
 
             //最終ジャンプ先
-            result.add(new LabelNop(new Label(finLabel)));
+            result.add(new LabelNop(new Label(finLabel), generateLocation(statement.location())));
         } else {
             String finLabel = context.nextLabel();
 
             //条件がfalseならthenを飛ばす
             result.addAll(statement.condition().accept(this));
-            result.add(new JmpFalse(new Label(finLabel)));
+            result.add(new JmpFalse(new Label(finLabel), generateLocation(statement.thenBlock().location())));
 
             //thenブロック
             result.addAll(statement.thenBlock().accept(this));
 
             //最終ジャンプ先
-            result.add(new LabelNop(new Label(finLabel)));
+            result.add(new LabelNop(new Label(finLabel), generateLocation(statement.location())));
         }
 
         return List.copyOf(result);
@@ -190,10 +188,10 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
             List<Instruction> result = new ArrayList<>();
             result.addAll(exprInstructions);
-            result.add(store(identifierID));
+            result.add(store(identifierID, identifier.location()));
 
             if (!isDeclaration) {
-                result.add(load(identifierID));
+                result.add(load(identifierID, identifier.location()));
             }
 
             return List.copyOf(result);
@@ -213,10 +211,10 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         var returnValue = statement.returnValue();
 
         if (returnValue instanceof VoidExpression) {
-            return List.of(new VoidReturn());
+            return List.of(new VoidReturn(generateLocation(statement.location())));
         } else {
             result.addAll(returnValue.accept(this));
-            result.add(new Return());
+            result.add(new Return(generateLocation(statement.location())));
             return List.copyOf(result);
         }
     }
@@ -233,16 +231,16 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         String loopLabel = context.nextLabel();
         String finLabel = context.nextLabel();
 
-        result.add(new LabelNop(new Label(loopLabel)));
+        result.add(new LabelNop(new Label(loopLabel), generateLocation(statement.location())));
 
         result.addAll(statement.condition().accept(this));
-        result.add(new JmpFalse(new Label(finLabel)));
+        result.add(new JmpFalse(new Label(finLabel), generateLocation(statement.location())));
 
         result.addAll(statement.loop().accept(this));
 
-        result.add(new Jmp(new Label(loopLabel)));
+        result.add(new Jmp(new Label(loopLabel), generateLocation(statement.location())));
 
-        result.add(new LabelNop(new Label(finLabel)));
+        result.add(new LabelNop(new Label(finLabel), generateLocation(statement.location())));
 
         return List.copyOf(result);
     }
@@ -264,15 +262,15 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         result.addAll(expr.left().accept(this));
         result.addAll(expr.right().accept(this));
         result.add(switch (expr.operator()) {
-            case PLUS -> new Add();
-            case MINUS -> new Sub();
-            case MULTIPLICATION -> new Mul();
-            case DIVISION -> new Div();
-            case EQUAL -> new Equal();
-            case LESS -> new Less();
-            case GREATER -> new Greater();
-            case LESS_EQUAL -> new LessEqual();
-            case GREATER_EQUAL -> new GreaterEqual();
+            case PLUS -> new Add(generateLocation(expr.location()));
+            case MINUS -> new Sub(generateLocation(expr.location()));
+            case MULTIPLICATION -> new Mul(generateLocation(expr.location()));
+            case DIVISION -> new Div(generateLocation(expr.location()));
+            case EQUAL -> new Equal(generateLocation(expr.location()));
+            case LESS -> new Less(generateLocation(expr.location()));
+            case GREATER -> new Greater(generateLocation(expr.location()));
+            case LESS_EQUAL -> new LessEqual(generateLocation(expr.location()));
+            case GREATER_EQUAL -> new GreaterEqual(generateLocation(expr.location()));
         });
 
         return List.copyOf(result);
@@ -281,7 +279,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitBooleanLiteral(BooleanLiteral expr) {
         var value = new BooleanValue(expr.value());
-        return List.of(new Push(value));
+        return List.of(new Push(value, generateLocation(expr.location())));
     }
 
     @Override
@@ -295,7 +293,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         }
 
         result.addAll(callee);
-        result.add(new Call());
+        result.add(new Call(generateLocation(expr.location())));
 
         return List.copyOf(result);
     }
@@ -308,18 +306,18 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
             List<Instruction> result = new ArrayList<>();
 
-            result.add(load(identifierID));
+            result.add(load(identifierID, expr.location()));
             result.addAll(exprInstructions);
             result.add(switch (expr.operator()) {
-                case PLUS -> new Add();
-                case MINUS -> new Sub();
-                case MULTIPLICATION -> new Mul();
-                case DIVISION -> new Div();
+                case PLUS -> new Add(generateLocation(expr.location()));
+                case MINUS -> new Sub(generateLocation(expr.location()));
+                case MULTIPLICATION -> new Mul(generateLocation(expr.location()));
+                case DIVISION -> new Div(generateLocation(expr.location()));
             });
 
-            result.add(store(identifierID));
+            result.add(store(identifierID, expr.location()));
 
-            result.add(load(identifierID));
+            result.add(load(identifierID, expr.location()));
 
             return List.copyOf(result);
         } else {
@@ -333,19 +331,19 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             List<Instruction> result = new ArrayList<>();
 
             if (prefix) {
-                result.add(load(identifierID));
-                result.add(new Push(new IntegerValue(1)));
-                result.add(increment ? new Add() : new Sub());
+                result.add(load(identifierID, identifier.location()));
+                result.add(new Push(new IntegerValue(1), generateLocation(identifier.location())));
+                result.add(increment ? new Add(generateLocation(identifier.location())) : new Sub(generateLocation(identifier.location())));
 
-                result.add(store(identifierID));
-                result.add(load(identifierID));
+                result.add(store(identifierID, identifier.location()));
+                result.add(load(identifierID, identifier.location()));
             } else {
-                result.add(load(identifierID));
-                result.add(load(identifierID));
-                result.add(new Push(new IntegerValue(1)));
-                result.add(increment ? new Add() : new Sub());
+                result.add(load(identifierID, identifier.location()));
+                result.add(load(identifierID, identifier.location()));
+                result.add(new Push(new IntegerValue(1), generateLocation(identifier.location())));
+                result.add(increment ? new Add(generateLocation(identifier.location())) : new Sub(generateLocation(identifier.location())));
 
-                result.add(store(identifierID));
+                result.add(store(identifierID, identifier.location()));
             }
 
             return List.copyOf(result);
@@ -377,7 +375,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         if (result.isEmpty() ||
             (!(result.getLast() instanceof Return) &&
              !(result.getLast() instanceof VoidReturn))) {
-            result.add(new VoidReturn());
+            result.add(new VoidReturn(generateLocation(expr.location())));
         }
 
         FunctionValue functionValue = new FunctionValue(
@@ -389,13 +387,13 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
         currentScope = currentScope.parent();
         context.popFunction();
-        return List.of(new Push(functionValue));
+        return List.of(new Push(functionValue, generateLocation(expr.location())));
     }
 
     @Override
     public List<Instruction> visitIdentifier(Identifier expr) {
         int identifierID = currentScope.getId(expr.name());
-        return List.of(load(identifierID));
+        return List.of(load(identifierID, expr.location()));
     }
 
     @Override
@@ -408,14 +406,14 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         var result = new ArrayList<Instruction>();
         result.addAll(expr.target().accept(this));
         result.addAll(expr.index().accept(this));
-        result.add(new Index());
+        result.add(new Index(generateLocation(expr.location())));
         return List.copyOf(result);
     }
 
     @Override
     public List<Instruction> visitIntegerLiteral(IntegerLiteral expr) {
         var value = new IntegerValue(expr.value());
-        return List.of(new Push(value));
+        return List.of(new Push(value, generateLocation(expr.location())));
     }
 
     @Override
@@ -428,7 +426,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             elementSize++;
         }
 
-        result.add(new MakeList(elementSize));
+        result.add(new MakeList(elementSize, generateLocation(expr.location())));
 
         return List.copyOf(result);
     }
@@ -438,7 +436,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         var result = new ArrayList<Instruction>();
 
         result.addAll(expr.target().accept(this));
-        result.add(new LoadMember(expr.member().name()));
+        result.add(new LoadMember(expr.member().name(), generateLocation(expr.location())));
 
         log.trace("load_member: name={}", expr.member().name());
         return List.copyOf(result);
@@ -447,7 +445,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitStringLiteral(StringLiteral expr) {
         var value = new StringValue(expr.value());
-        return List.of(new Push(value));
+        return List.of(new Push(value, generateLocation(expr.location())));
     }
 
     @Override
@@ -457,9 +455,9 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         result.addAll(expr.expr().accept(this));
 
         result.add(switch (expr.operator()) {
-            case MINUS -> new Minus();
-            case PLUS -> new Plus();
-            case NOT -> new Not();
+            case MINUS -> new Minus(generateLocation(expr.location()));
+            case PLUS -> new Plus(generateLocation(expr.location()));
+            case NOT -> new Not(generateLocation(expr.location()));
         });
 
         return List.copyOf(result);
@@ -489,5 +487,9 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitParameter(Parameter parameter) {
         throw new AssertionError("Parameter cannot be visited.");  //Parameterに到達することは通常ないため、AssertionErrorを出す。
+    }
+
+    private IRLocation generateLocation(SourceFileLocation location) {
+        return new IRLocation(location.line());
     }
 }

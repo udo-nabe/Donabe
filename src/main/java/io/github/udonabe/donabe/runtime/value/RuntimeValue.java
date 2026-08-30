@@ -1,6 +1,8 @@
 package io.github.udonabe.donabe.runtime.value;
 
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
 import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
 import java.util.List;
@@ -14,13 +16,15 @@ public sealed interface RuntimeValue<T>
     String typeName();
     String display();
     MemberProvider<?> memberProvider();
-    default RuntimeValue<?> findMember(String name) {
+    default RuntimeValue<?> findMember(String name, StackFrame currentFrame) {
         try {
             return memberProvider().findMember(name, this);
         } catch (InterpreterException e) {
-            throw new InterpreterException(
-                    "The type '%s' does not have member '%s'.".formatted(typeName(), name),
-                    e);
+            throw new InterpreterException(ErrorUtil.makeRuntimeError(
+                    currentFrame,
+                    "The type '%s' does not have member '%s'.",
+                    typeName(), name
+            ), e);
         }
     }
 }

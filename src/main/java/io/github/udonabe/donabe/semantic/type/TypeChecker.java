@@ -1,7 +1,7 @@
 package io.github.udonabe.donabe.semantic.type;
 
 import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.ErrorUtil;
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
