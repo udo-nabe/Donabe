@@ -10,11 +10,8 @@ public final class Operations {
     public Operations() {
     }
 
-    public String errorBinary(BinaryOperator operator, RuntimeValue<?> left, RuntimeValue<?> right, StackFrame currentFrame) {
-        return ErrorUtil.makeRuntimeError(
-                currentFrame,
-                "Operator '%s' cannot be applied to types '%s' and '%s'.", operator, left.typeName(), right.typeName()
-        );
+    public String errorBinary(BinaryOperator operator, RuntimeValue<?> left, RuntimeValue<?> right) {
+        return "Operator '%s' cannot be applied to types '%s' and '%s'.".formatted(operator, left.typeName(), right.typeName());
     }
 
     public RuntimeValue<?> applyBinary(BinaryOperator operator,
@@ -35,7 +32,7 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l + r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case MINUS -> {
                 //どちらかがintでない場合、エラー
@@ -43,7 +40,7 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l - r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case MULTIPLICATION -> {
                 //どちらかがintでない場合、エラー
@@ -51,7 +48,7 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l * r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case DIVISION -> {
                 //どちらかがintでない場合、エラー
@@ -59,7 +56,7 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l / r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case EQUAL -> new BooleanValue(left.equals(right));
             case LESS -> {
@@ -68,7 +65,7 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l < r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case GREATER -> {
                 //どちらかがintでない場合、エラー
@@ -76,7 +73,7 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l > r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case LESS_EQUAL -> {
                 //どちらかがintでない場合、エラー
@@ -84,7 +81,7 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l <= r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case GREATER_EQUAL -> {
                 //どちらかがintでない場合、エラー
@@ -92,16 +89,13 @@ public final class Operations {
                     right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l >= r);
                 }
-                throw new InterpreterException(errorBinary(operator, left, right, currentFrame));
+                throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
         };
     }
 
-    private String errorUnary(UnaryOperator operator, RuntimeValue<?> target, StackFrame currentFrame) {
-        return ErrorUtil.makeRuntimeError(
-                currentFrame,
-                "Operator '%s' cannot be applied to type '%s'.", operator, target.typeName()
-        );
+    private String errorUnary(UnaryOperator operator, RuntimeValue<?> target) {
+        return "Operator '%s' cannot be applied to type '%s'.".formatted(operator, target.typeName());
     }
 
     public RuntimeValue<?> applyUnary(UnaryOperator operator, RuntimeValue<?> target, StackFrame currentFrame) {
@@ -110,19 +104,19 @@ public final class Operations {
                 if (target instanceof IntegerValue(Integer value)) {
                     yield new IntegerValue(-value);
                 }
-                throw new InterpreterException(errorUnary(operator, target, currentFrame));
+                throw new InterpreterException(errorUnary(operator, target), currentFrame);
             }
             case PLUS -> {
                 if (target instanceof IntegerValue(Integer value)) {
                     yield new IntegerValue(+value);
                 }
-                throw new InterpreterException(errorUnary(operator, target, currentFrame));
+                throw new InterpreterException(errorUnary(operator, target), currentFrame);
             }
             case NOT -> {
                 if (target instanceof BooleanValue(Boolean value)) {
                     yield new BooleanValue(!value);
                 }
-                throw new InterpreterException(errorUnary(operator, target, currentFrame));
+                throw new InterpreterException(errorUnary(operator, target), currentFrame);
             }
         };
     }

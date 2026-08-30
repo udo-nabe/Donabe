@@ -75,8 +75,7 @@ public class IRInterpreter implements IRVisitor<Void> {
             try {
                 result.add(context.popStack());
             } catch (InterpreterException e) {
-                throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
-                        "The lengths of the actual argument list and the formal argument list differ."));
+                throw new InterpreterException("The lengths of the actual argument list and the formal argument list differ.", context.peekStackFrame());
             }
         }
         return result;
@@ -120,12 +119,11 @@ public class IRInterpreter implements IRVisitor<Void> {
                     RuntimeValue<?> returnValue = content.apply(args);
                     context.pushStack(returnValue);
                 } catch (InterpreterException e) {
-                    throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(), e.getMessage()), e);
+                    throw new InterpreterException(e.getMessage(), e, e.occurredFrame() == null ? context.peekStackFrame() : e.occurredFrame());
                 }
             }
             default -> {
-                throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
-                        "The callee is not callable. callee: %s", callee));
+                throw new InterpreterException("The callee is not callable. callee: %s", context.peekStackFrame());
             }
         }
 
@@ -174,12 +172,10 @@ public class IRInterpreter implements IRVisitor<Void> {
         RuntimeValue<?> target = context.popStack();
 
         if (!(index instanceof IntegerValue i)) {
-            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
-                    "Index must be integer."));
+            throw new InterpreterException("Index must be integer.", context.peekStackFrame());
         }
         if (!(target instanceof ListValue list)) {
-            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
-                    "The target of index must be list."));
+            throw new InterpreterException("The target of index must be list.", context.peekStackFrame());
         }
         RuntimeValue<?> result = list.value().get(i.value());
         context.pushStack(result);
@@ -188,8 +184,7 @@ public class IRInterpreter implements IRVisitor<Void> {
 
     private int getLabelPC(Label label) {
         if (!labelJmpMap.containsKey(label)) {
-            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
-                    "Undefined label: %s", label));
+            throw new InterpreterException("Undefined label: " + label.name(), context.peekStackFrame());
         }
         return labelJmpMap.get(label);
     }
@@ -205,8 +200,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitJmpFalse(JmpFalse instruction) {
         RuntimeValue<?> condition = context.popStack();
         if (!(condition instanceof BooleanValue(Boolean value))) {
-            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
-                    "Condition of jmp_false must be type of boolean."));
+            throw new InterpreterException("Condition of jmp_false must be type of boolean.", context.peekStackFrame());
         }
 
         if (!value) {
@@ -220,8 +214,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     public Void visitJmpTrue(JmpTrue instruction) {
         RuntimeValue<?> condition = context.popStack();
         if (!(condition instanceof BooleanValue(Boolean value))) {
-            throw new InterpreterException(ErrorUtil.makeRuntimeError(context.peekStackFrame(),
-                    "Condition of jmp_true must be type of boolean."));
+            throw new InterpreterException("Condition of jmp_true must be type of boolean.", context.peekStackFrame());
         }
 
         if (value) {

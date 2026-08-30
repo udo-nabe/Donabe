@@ -17,7 +17,7 @@ public class StringMemberProvider implements MemberProvider<StringValue> {
                             try {
                                 return new IntegerValue(Integer.parseInt(receiver.value()));
                             } catch (NumberFormatException e) {
-                                throw new InterpreterException("Could not convert \"%s\" to Int.".formatted(receiver.value()), e);
+                                throw new InterpreterException("Could not convert \"%s\" to Int.".formatted(receiver.value()), e, null);
                             }
                         }
                 )

@@ -20,11 +20,7 @@ public sealed interface RuntimeValue<T>
         try {
             return memberProvider().findMember(name, this);
         } catch (InterpreterException e) {
-            throw new InterpreterException(ErrorUtil.makeRuntimeError(
-                    currentFrame,
-                    "The type '%s' does not have member '%s'.",
-                    typeName(), name
-            ), e);
+            throw new InterpreterException("The type '%s' does not have member '%s'.".formatted(typeName(), name), e, currentFrame);
         }
     }
 }

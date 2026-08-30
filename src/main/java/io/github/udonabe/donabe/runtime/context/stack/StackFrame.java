@@ -50,7 +50,7 @@ public class StackFrame {
 
     public VariableCell getLocal(int slot) {
         if (!locals.containsKey(slot)) {
-            throw new InterpreterException("Local variable not found. frame=" + name + " slot=" + slot);
+            throw new InterpreterException("Local variable not found. slot=" + slot, this);
         }
         log.trace("Found local variable. frame={} slot={}", name, slot);
         return locals.get(slot);
@@ -58,7 +58,7 @@ public class StackFrame {
 
     public VariableCell getCaptured(int slot) {
         if (parent == null) {
-            throw new InterpreterException("Could not find captured variable: parent is null. frame=" + name);
+            throw new InterpreterException("Could not find captured variable: parent is null.", this);
         }
         if (capturedCache.containsKey(slot)) {
             log.trace("Found captured variable in cache. frame={} slot={}", name, slot);
@@ -81,7 +81,7 @@ public class StackFrame {
             return locals.get(slot);
         } else {
             if (parent == null) {
-                throw new InterpreterException("Could not find captured variable: parent is null. frame=" + name);
+                throw new InterpreterException("Could not find captured variable: parent is null.", this);
             }
             log.trace("Delegate to parent to find local variable parent. frame={} slot={}", name, slot);
             return parent.getCapturedImpl(slot);

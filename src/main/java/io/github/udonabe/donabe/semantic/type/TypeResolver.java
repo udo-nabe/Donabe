@@ -61,7 +61,7 @@ public class TypeResolver {
         //暫定的にList型のパラメータのみ対応する
         if (baseType instanceof ListType) {
             if (paramTypes.size() != 1) {
-                throw new InterpreterException(ErrorUtil.makeError(annotation.location(), source,
+                throw new CompileException(ErrorUtil.makeError(annotation.location(), source,
                         "The 'List' type requires a single type parameter."));
             }
             return new ListType(paramTypes.getFirst());
