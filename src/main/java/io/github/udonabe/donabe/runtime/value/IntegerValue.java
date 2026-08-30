@@ -2,6 +2,7 @@ package io.github.udonabe.donabe.runtime.value;
 
 import io.github.udonabe.donabe.runtime.InterpreterException;
 
+import java.util.Map;
 import java.util.Objects;
 
 public record IntegerValue(Integer value) implements RuntimeValue<Integer> {
@@ -19,7 +20,7 @@ public record IntegerValue(Integer value) implements RuntimeValue<Integer> {
     }
 
     @Override
-    public RuntimeValue<?> getMember(String name) {
-        throw new InterpreterException("The type 'Int' does not have nothing members.");
+    public Map<String, RuntimeValue<?>> declaredMembers() {
+        return Map.of();
     }
 }

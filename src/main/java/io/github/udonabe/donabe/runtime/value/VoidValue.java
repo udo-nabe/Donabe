@@ -1,5 +1,7 @@
 package io.github.udonabe.donabe.runtime.value;
 
+import java.util.Map;
+
 public final class VoidValue implements RuntimeValue<String> {
     @Override
     public String value() {
@@ -22,7 +24,7 @@ public final class VoidValue implements RuntimeValue<String> {
     }
 
     @Override
-    public RuntimeValue<?> getMember(String name) {
-        throw new IllegalStateException("Cannot use 'Void' type value.");
+    public Map<String, RuntimeValue<?>> declaredMembers() {
+        return Map.of();
     }
 }

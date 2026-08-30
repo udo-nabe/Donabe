@@ -22,12 +22,20 @@ public record FunctionType(
     }
 
     @Override
+    public Type parent() {
+        return new AnyType();
+    }
+
+    @Override
     public Map<String, MemberInfo> members() {
         return Map.of();
     }
 
     @Override
     public boolean isSubtypeOf(Type target) {
+        if (target instanceof AnyType) {
+            return true;
+        }
         if (!(target instanceof FunctionType functionTarget)) {
             return false;
         }

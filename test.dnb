@@ -13,4 +13,4 @@ for var i = 0; i < limit - 2; i++ {
   result += ", " + string(next);
 }
 print(result + "]");
-print("length: " + string(result.length));
+print("length: " + result.length.toString());

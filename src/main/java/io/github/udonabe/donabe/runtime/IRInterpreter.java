@@ -271,7 +271,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     @Override
     public Void visitLoadMember(LoadMember instruction) {
         RuntimeValue<?> target = context.popStack();
-        context.pushStack(target.getMember(instruction.memberName()));
+        context.pushStack(target.findMember(instruction.memberName()));
         return null;
     }
 

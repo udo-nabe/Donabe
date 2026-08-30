@@ -27,10 +27,9 @@ public record ListValue(List<RuntimeValue<?>> value) implements RuntimeValue<Lis
     }
 
     @Override
-    public RuntimeValue<?> getMember(String name) {
-        return switch (name) {
-            case "length" -> new IntegerValue(value.size());
-            default -> throw new InterpreterException("The type 'List' does not have member '%s'".formatted(name));
-        };
+    public Map<String, RuntimeValue<?>> declaredMembers() {
+        return Map.of(
+                "length", new IntegerValue(value.size())
+        );
     }
 }

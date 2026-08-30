@@ -12,6 +12,11 @@ public record IntType() implements BuiltinType {
     }
 
     @Override
+    public Type parent() {
+        return new AnyType();
+    }
+
+    @Override
     public Map<String, MemberInfo> members() {
         return Map.of();
     }

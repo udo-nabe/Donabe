@@ -5,6 +5,7 @@ import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public record ClosureValue(String name,
@@ -27,7 +28,7 @@ public record ClosureValue(String name,
     }
 
     @Override
-    public RuntimeValue<?> getMember(String name) {
-        throw new InterpreterException("The type 'Function' does not have nothing members.");
+    public Map<String, RuntimeValue<?>> declaredMembers() {
+        return Map.of();
     }
 }

@@ -370,13 +370,14 @@ public class TypeChecker implements ASTVisitor<Type> {
         Type targetType = expr.target().accept(this);
         String memberName = expr.member().name();
 
-        if (!targetType.members().containsKey(memberName)) {
+        MemberInfo member = targetType.findMember(memberName);
+        if (member == null) {
             throw new CompileException(ErrorUtil.makeError(expr.location(), source,
                     "Type '%s' does not have a member '%s'.",
                     targetType.asString(), memberName));
         }
 
-        return targetType.members().get(memberName).type();
+        return member.type();
     }
 
     @Override

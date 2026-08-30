@@ -4,6 +4,7 @@ import io.github.udonabe.donabe.ir.instruction.Instruction;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public record FunctionValue(String name,
@@ -26,7 +27,7 @@ public record FunctionValue(String name,
     }
 
     @Override
-    public RuntimeValue<?> getMember(String name) {
-        throw new UnsupportedOperationException("Undefined identifier.");
+    public Map<String, RuntimeValue<?>> declaredMembers() {
+        return Map.of();
     }
 }

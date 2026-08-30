@@ -14,6 +14,11 @@ public record StringType() implements BuiltinType {
     }
 
     @Override
+    public Type parent() {
+        return new AnyType();
+    }
+
+    @Override
     public Map<String, MemberInfo> members() {
         return Map.ofEntries(
                 Map.entry("length", new MemberInfo(false, new IntType())),

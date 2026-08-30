@@ -12,6 +12,11 @@ public record VoidType() implements BuiltinType {
     }
 
     @Override
+    public Type parent() {
+        return null;
+    }
+
+    @Override
     public Map<String, MemberInfo> members() {
         return Map.of();
     }
