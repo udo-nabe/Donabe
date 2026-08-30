@@ -25,7 +25,7 @@ public class StackFrame {
     private final Map<Integer, VariableCell> capturedCache;
 
 
-    public StackFrame(StackFrame caller, StackFrame parent, String name, Registers registers, List<Instruction> instructions, Map<Integer, VariableCell> global, Set<Integer> locals) {
+    public StackFrame(StackFrame caller, StackFrame parent, String name, Registers registers, List<Instruction> instructions, Set<Integer> locals) {
         this.caller = caller;
         this.parent = parent;
         this.name = name;
@@ -40,8 +40,8 @@ public class StackFrame {
         capturedCache = new HashMap<>();
     }
 
-    public StackFrame(StackFrame caller, StackFrame parent, String name, List<Instruction> instructions, Map<Integer, VariableCell> globals, Set<Integer> locals) {
-        this(caller, parent, name, new Registers(), instructions, globals, locals);
+    public StackFrame(StackFrame caller, StackFrame parent, String name, List<Instruction> instructions, Set<Integer> locals) {
+        this(caller, parent, name, new Registers(), instructions, locals);
     }
 
     public boolean hasCaller() {

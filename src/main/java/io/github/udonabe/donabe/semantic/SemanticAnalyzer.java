@@ -25,7 +25,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     private final String source;
     private Scope currentScope;
     private final AnalyzeContext context;
-    private Map<Integer, VariableCell> resolution;
+    private Set<Integer> resolution;
 
     public SemanticAnalyzer(String source) {
         this.source = source;
@@ -45,9 +45,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
         program.accept(this);
 
-        new TypeChecker(rootScope, source).check(program);
+        new TypeChecker(source, resolveResult.resolutionMap()).check(program);
 
-        IRProgram ir = new IRGenerator(rootScope, resolveResult.resolution().keySet(), resolveResult.localsASTNodeMap()).generate(program);
+        IRProgram ir = new IRGenerator(resolveResult.resolutionMap(), resolveResult.resolution(), resolveResult.localsASTNodeMap()).generate(program);
 
         return new AnalyzeResult(ir, resolution);
     }
@@ -283,5 +283,5 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         return null;
     }
 
-    public record AnalyzeResult(IRProgram irProgram, Map<Integer, VariableCell> resolution) {}
+    public record AnalyzeResult(IRProgram irProgram, Set<Integer> resolution) {}
 }

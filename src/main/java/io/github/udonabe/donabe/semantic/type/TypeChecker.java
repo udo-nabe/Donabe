@@ -12,7 +12,6 @@ import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
-import io.github.udonabe.donabe.semantic.Scope;
 import io.github.udonabe.donabe.semantic.flow.FlowAnalyzer;
 import io.github.udonabe.donabe.semantic.flow.FlowInfo;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
@@ -36,11 +35,11 @@ public class TypeChecker implements ASTVisitor<Type> {
     private final Map<Integer, Type> identifierTypeTable;
     private final TypeCheckerContext context;
     private final String source;
-    private Scope currentScope;
+    private final Map<Identifier, Integer> resolution;
 
-    public TypeChecker(Scope rootScope, String source) {
-        this.currentScope = rootScope;
+    public TypeChecker(String source, Map<Identifier, Integer> resolution) {
         this.source = source;
+        this.resolution = resolution;
         this.identifierTypeTable = new HashMap<>();
         typeResolver = new TypeResolver(source);
         context = new TypeCheckerContext();
@@ -52,16 +51,14 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     public void check(Program program) {
-        currentScope.resetChildPos();
         program.accept(this);
     }
 
     private Type defineFunction(List<Parameter> params, TypeAnnotation returnType, BlockStatement block, SourceFileLocation location) {
         context.pushReturnType(typeResolver.resolve(returnType));
-        pushScope();
 
         for (Parameter param : params) {
-            int paramID = currentScope.getId(param.name().name());
+            int paramID = resolution.get(param.name());
             Type paramType = typeResolver.resolve(param.type());
             identifierTypeTable.put(paramID, paramType);
         }
@@ -79,7 +76,6 @@ public class TypeChecker implements ASTVisitor<Type> {
                     "This function has a path that can exit without returning a value."));
         }
 
-        popScope();
         context.popReturnType();
 
         return generateFunctionType(params, returnType);
@@ -105,7 +101,7 @@ public class TypeChecker implements ASTVisitor<Type> {
             List<Parameter> params = define.params();
             TypeAnnotation returnType = define.returnType();
 
-            int functionID = currentScope.getId(functionName.name());
+            int functionID = resolution.get(functionName);
             FunctionType functionType = generateFunctionType(params, returnType);
             identifierTypeTable.put(functionID, functionType);
         }
@@ -126,12 +122,10 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitBlockStatement(BlockStatement statement) {
-        pushScope();
         defineFunctions(statement.statements());
         for (Statement s : statement.statements()) {
             s.accept(this);
         }
-        popScope();
         return null;
     }
 
@@ -177,7 +171,7 @@ public class TypeChecker implements ASTVisitor<Type> {
                     identifierType.asString(), valueType.asString()));
         }
 
-        int identifierID = currentScope.getId(identifier.name());
+        int identifierID = resolution.get(identifier);
 
         identifierTypeTable.put(identifierID, identifierType);
     }
@@ -313,7 +307,7 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitIdentifier(Identifier expr) {
-        int identifierID = currentScope.getId(expr.name());
+        int identifierID = resolution.get(expr);
         if (!identifierTypeTable.containsKey(identifierID)) {
             throw new AssertionError("Identifier not found: " + expr.name() + ", slot: " + identifierID);
         }
@@ -432,27 +426,9 @@ public class TypeChecker implements ASTVisitor<Type> {
                 ));
         identifierTypeTable.put(2,
                 new FunctionType(
-                        List.of(new AnyType()),
-                        new StringType()
+                        List.of(new IntType(), new IntType()),
+                        new ListType(new IntType())
                 ));
-        identifierTypeTable.put(3,
-                new FunctionType(
-                        List.of(new AnyType()),
-                        new IntType()
-                ));
-        identifierTypeTable.put(4,
-                new FunctionType(
-                        List.of(new StringType()),
-                        new IntType()
-                ));
-    }
-
-    private void pushScope() {
-        currentScope = currentScope.nextChildScope();
-    }
-
-    private void popScope() {
-        currentScope = currentScope.parent();
     }
 
     private FunctionType generateFunctionType(List<Parameter> params, TypeAnnotation retType) {

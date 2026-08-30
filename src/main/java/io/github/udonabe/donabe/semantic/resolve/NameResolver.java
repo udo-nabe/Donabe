@@ -18,8 +18,9 @@ import java.util.*;
 
 public final class NameResolver implements ASTVisitor<Void> {
     private final Scope rootScope;
-    private final Map<Integer, VariableCell> resolution;
+    private final Set<Integer> resolution;
     private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
+    private final Map<Identifier, Integer> resolutionMap;
     private final String source;
     private Scope currentScope;
 
@@ -27,17 +28,18 @@ public final class NameResolver implements ASTVisitor<Void> {
         this.source = source;
         this.rootScope = Scope.generateRoot();
         this.currentScope = rootScope;
-        this.resolution = new HashMap<>();
+        this.resolution = new HashSet<>();
 
-        putBuiltinFunction("print", BuiltinFunctions.BUILTIN_PRINT, 0);
-        putBuiltinFunction("input", BuiltinFunctions.BUILTIN_INPUT, 1);
-        putBuiltinFunction("range", BuiltinFunctions.BUILTIN_RANGE, 2);
-        localsASTNodeMap = new IdentityHashMap<>();
+        putBuiltinFunction("print", 0);
+        putBuiltinFunction("input", 1);
+        putBuiltinFunction("range", 2);
+        localsASTNodeMap = new HashMap<>();
+        resolutionMap = new HashMap<>();
     }
 
 
-    private void putBuiltinFunction(String name, BuiltinFunctionValue value, int id) {
-        resolution.put(id, new VariableCell(value));
+    private void putBuiltinFunction(String name, int id) {
+        resolution.add(id);
         rootScope.put(name, new SymbolInformation(false));
         rootScope.putId(name, id);
     }
@@ -45,16 +47,17 @@ public final class NameResolver implements ASTVisitor<Void> {
     public ResolveResult resolve(Program program) {
         rootScope.resetChildPos();
         program.accept(this);
-        return new ResolveResult(rootScope, resolution, localsASTNodeMap);
+        return new ResolveResult(rootScope, resolution, localsASTNodeMap, Map.copyOf(resolutionMap));
     }
 
     private int nextId() {
         return resolution.size();
     }
 
-    private void putIdentifier(Scope currentScope, String name, int id) {
-        currentScope.putId(name, id);
-        resolution.put(id, new VariableCell(new UndefinedValue()));
+    private void putIdentifier(Scope currentScope, Identifier identifier, int id) {
+        currentScope.putId(identifier.name(), id);
+        resolution.add(id);
+        resolutionMap.put(identifier, id);
     }
 
     private void defineFunctions(List<Statement> statements) {
@@ -66,7 +69,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         //相互再帰を可能にするため、先に全て仮登録する
         for (var define : defines) {
             currentScope.put(define.identifier().name(), new SymbolInformation(false, true));
-            putIdentifier(currentScope, define.identifier().name(), nextId());
+            putIdentifier(currentScope, define.identifier(), nextId());
         }
 
         for (var define : defines) {
@@ -84,7 +87,7 @@ public final class NameResolver implements ASTVisitor<Void> {
 
             int argID = nextId();
             currentScope.put(argName, new SymbolInformation(false));
-            putIdentifier(currentScope, argName, argID);
+            putIdentifier(currentScope, param.name(), argID);
             locals.add(argID);
         }
 
@@ -115,7 +118,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         }
         //仮登録されているため、getIdで取得できる
         int id = currentScope.getId(functionIdentifier.name());
-        putIdentifier(currentScope, functionIdentifier.name(), id);
+        putIdentifier(currentScope, functionIdentifier, id);
         return defineFunction(define.params(), define.block());
     }
 
@@ -123,7 +126,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         if (!currentScope.put(identifier.name(), new SymbolInformation(isAssignable))) {
             throw new CompileException(ErrorUtil.makeError(location, source, "識別子\"%s\"は既に宣言されています。", identifier.name()));
         }
-        putIdentifier(currentScope, identifier.name(), nextId());
+        putIdentifier(currentScope, identifier, nextId());
 
         expr.accept(this);
     }
@@ -218,7 +221,7 @@ public final class NameResolver implements ASTVisitor<Void> {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source, "識別子\"%s\"は既に宣言されています。", variable.name()));
         }
 
-        putIdentifier(currentScope, variable.name(), nextId());
+        putIdentifier(currentScope, variable, nextId());
 
         statement.body().accept(this);
         return null;
@@ -242,6 +245,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         if (currentScope.get(identifier.name()) == null) {
             throw new CompileException(ErrorUtil.makeError(identifier.location(), source, "識別子\"%s\"は宣言されていません。", identifier.name()));
         }
+        resolutionMap.put(identifier, currentScope.getId(identifier.name()));
         return null;
     }
 
@@ -278,6 +282,7 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitMemberAccessExpression(MemberAccessExpression expr) {
+        expr.target().accept(this);
         return null;
     }
 
@@ -355,7 +360,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         return null;
     }
 
-    public record ResolveResult(Scope root, Map<Integer, VariableCell> resolution, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
+    public record ResolveResult(Scope root, Set<Integer> resolution, Map<ASTNode, Set<Integer>> localsASTNodeMap, Map<Identifier, Integer> resolutionMap) {
 
     }
 }

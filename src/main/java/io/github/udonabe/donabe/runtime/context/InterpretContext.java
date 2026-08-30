@@ -15,8 +15,8 @@ public class InterpretContext {
     private StackFrame currentFrame;
     private final Deque<RuntimeValue<?>> stack;
 
-    public InterpretContext(List<Instruction> instructions, Map<Integer, VariableCell> rootStackFrame) {
-        currentFrame = new StackFrame(null, null, "<root>", instructions, rootStackFrame, rootStackFrame.keySet());
+    public InterpretContext(List<Instruction> instructions, Set<Integer> resolution) {
+        currentFrame = new StackFrame(null, null, "<root>", instructions, resolution);
         stack = new ArrayDeque<>();
         callDepth = 0;
     }

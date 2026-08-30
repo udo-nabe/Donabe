@@ -22,20 +22,17 @@ import java.util.Set;
 
 public class IRGenerator implements ASTVisitor<List<Instruction>> {
     private static final Logger log = LoggerFactory.getLogger(IRGenerator.class);
-    private final Scope rootScope;
+    private final Map<Identifier, Integer> resolution;
     private final IRGenerateContext context;
     private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
-    private Scope currentScope;
 
-    public IRGenerator(Scope rootScope, Set<Integer> resolution, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
-        this.rootScope = rootScope;
-        this.currentScope = rootScope;
+    public IRGenerator(Map<Identifier, Integer> resolution, Set<Integer> slots, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
+        this.resolution = resolution;
         this.localsASTNodeMap = localsASTNodeMap;
-        context = new IRGenerateContext(resolution);
+        context = new IRGenerateContext(slots);
     }
 
     public IRProgram generate(Program program) {
-        rootScope.resetChildPos();
         return new IRProgram(program.accept(this));
     }
 
@@ -59,13 +56,12 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     private List<Instruction> defineFunction(FunctionDefineStatement statement) {
         var result = new ArrayList<Instruction>();
-        int functionID = currentScope.getId(statement.identifier().name());
+        int functionID = resolution.get(statement.identifier());
 
         context.pushFunction(localsASTNodeMap.get(statement));
-        currentScope = currentScope.nextChildScope();
 
         List<Integer> paramSlots = statement.params().stream()
-                .map(parameter -> currentScope.getId(parameter.name().name()))
+                .map(parameter -> resolution.get(parameter.name()))
                 .toList();
 
         for (Statement s : statement.block().statements()) {
@@ -85,7 +81,6 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
                 result
         );
 
-        currentScope = currentScope.parent();
         context.popFunction();
 
         return List.of(
@@ -95,7 +90,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     }
 
     private Instruction load(int slot, SourceFileLocation location) {
-        if (context.inFunction() && context.shouldUseLocal(slot)) {
+        if (context.shouldUseLocal(slot)) {
             return new LoadLocal(slot, generateLocation(location));
         } else {
             return new LoadCaptured(slot, generateLocation(location));
@@ -103,7 +98,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     }
 
     private Instruction store(int slot, SourceFileLocation location) {
-        if (context.inFunction() && context.shouldUseLocal(slot)) {
+        if (context.shouldUseLocal(slot)) {
             return new StoreLocal(slot, generateLocation(location));
         } else {
             return new StoreCaptured(slot, generateLocation(location));
@@ -117,9 +112,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     @Override
     public List<Instruction> visitBlockStatement(BlockStatement statement) {
-        currentScope = currentScope.nextChildScope();
         var result = forEach(statement.statements());
-        currentScope = currentScope.parent();
         return result;
     }
 
@@ -183,7 +176,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     private List<Instruction> assign(Expression target, Expression expr, boolean isDeclaration) {
         if (target instanceof Identifier identifier) {
-            int identifierID = currentScope.getId(identifier.name());
+            int identifierID = resolution.get(identifier);
             List<Instruction> exprInstructions = expr.accept(this);
 
             List<Instruction> result = new ArrayList<>();
@@ -301,7 +294,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitCompoundAssignExpression(CompoundAssignExpression expr) {
         if (expr.target() instanceof Identifier identifier) {
-            int identifierID = currentScope.getId(identifier.name());
+            int identifierID = resolution.get(identifier);
             List<Instruction> exprInstructions = expr.value().accept(this);
 
             List<Instruction> result = new ArrayList<>();
@@ -327,7 +320,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     private List<Instruction> incrementOrDecrement(Expression target, boolean prefix, boolean increment) {
         if (target instanceof Identifier identifier) {
-            int identifierID = currentScope.getId(identifier.name());
+            int identifierID = resolution.get(identifier);
             List<Instruction> result = new ArrayList<>();
 
             if (prefix) {
@@ -362,10 +355,9 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         context.pushFunction(localsASTNodeMap.get(expr));
         var result = new ArrayList<Instruction>();
 
-        currentScope = currentScope.nextChildScope();
 
         List<Integer> paramSlots = expr.args().stream()
-                .map(parameter -> currentScope.getId(parameter.name().name()))
+                .map(parameter -> resolution.get(parameter.name()))
                 .toList();
 
         for (Statement s : expr.block().statements()) {
@@ -385,14 +377,13 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
                 result
         );
 
-        currentScope = currentScope.parent();
         context.popFunction();
         return List.of(new Push(functionValue, generateLocation(expr.location())));
     }
 
     @Override
     public List<Instruction> visitIdentifier(Identifier expr) {
-        int identifierID = currentScope.getId(expr.name());
+        int identifierID = resolution.get(expr);
         return List.of(load(identifierID, expr.location()));
     }
 

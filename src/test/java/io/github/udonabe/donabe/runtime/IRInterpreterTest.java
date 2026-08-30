@@ -7,29 +7,24 @@ import io.github.udonabe.donabe.ir.instruction.label.Label;
 import io.github.udonabe.donabe.runtime.value.*;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IRInterpreterTest {
     private void assertStack(List<Instruction> instructions, List<RuntimeValue<?>> stack) {
-        assertStack(instructions, stack, Map.of());
+        assertStack(instructions, stack, Set.of());
     }
 
-    private void assertStack(List<Instruction> instructions, List<RuntimeValue<?>> stack, Map<Integer, VariableCell> slots) {
-        var merged = new HashMap<Integer, VariableCell>();
+    private void assertStack(List<Instruction> instructions, List<RuntimeValue<?>> stack, Set<Integer> slots) {
+        var merged = new HashSet<Integer>();
 
-        merged.put(0, new VariableCell(new UndefinedValue()));
-        merged.put(1, new VariableCell(new UndefinedValue()));
-        merged.put(2, new VariableCell(new UndefinedValue()));
-        merged.put(3, new VariableCell(new UndefinedValue()));
-        merged.put(4, new VariableCell(new UndefinedValue()));
+        merged.add(0);
+        merged.add(1);
+        merged.add(2);
 
-        merged.putAll(slots);
+        merged.addAll(slots);
 
         IRInterpreter interpreter = new IRInterpreter(new IRProgram(instructions), merged, new Operations());
         interpreter.run();
@@ -40,7 +35,7 @@ class IRInterpreterTest {
     }
 
     private void throwInterpreterException(List<Instruction> instructions) {
-        assertThrows(InterpreterException.class, () -> new IRInterpreter(new IRProgram(instructions), Map.of(), new Operations()).run());
+        assertThrows(InterpreterException.class, () -> new IRInterpreter(new IRProgram(instructions), Set.of(), new Operations()).run());
     }
 
     private IRLocation dummyLocation() {
@@ -117,8 +112,8 @@ class IRInterpreterTest {
                 new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("inner")
-        ), Map.of(
-                6, new VariableCell(new UndefinedValue())
+        ), Set.of(
+                6
         ));
 
         //スタックが引数より多い
@@ -136,9 +131,9 @@ class IRInterpreterTest {
         ), List.of(
                 new IntegerValue(3),
                 new IntegerValue(3)
-        ), Map.of(
-                6, new VariableCell(new UndefinedValue()),
-                7, new VariableCell(new UndefinedValue())
+        ), Set.of(
+                6,
+                7
         ));
 
         //引数が足りない
@@ -504,8 +499,8 @@ class IRInterpreterTest {
                 new Call(dummyLocation())
         ), List.of(
                 new StringValue("load-captured")
-        ), Map.of(
-                6, new VariableCell(new UndefinedValue())
+        ), Set.of(
+                6
         ));
 
         //未定義
@@ -525,8 +520,8 @@ class IRInterpreterTest {
                 new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("load-captured")
-        ), Map.of(
-                6, new VariableCell(new UndefinedValue())
+        ), Set.of(
+                6
         ));
 
         throwInterpreterException(List.of(
@@ -686,18 +681,17 @@ class IRInterpreterTest {
         assertStack(List.of(
                 new Push(new IntegerValue(2), dummyLocation()),
                 new Push(new IntegerValue(3), dummyLocation()),
-                new Push(new FunctionValue("add", List.of(7, 8), Set.of(7, 8), List.of(
+                new Push(new FunctionValue("add", List.of(6, 7), Set.of(6, 7), List.of(
+                        new LoadLocal(6, dummyLocation()),
                         new LoadLocal(7, dummyLocation()),
-                        new LoadLocal(8, dummyLocation()),
                         new Add(dummyLocation()),
                         new Return(dummyLocation())
                 )), dummyLocation()),
                 new Call(dummyLocation())
         ), List.of(
                 new IntegerValue(5)
-        ), Map.of(
-                7, new VariableCell(new UndefinedValue()),
-                8, new VariableCell(new UndefinedValue())
+        ), Set.of(
+                6, 7
         ));
 
         throwInterpreterException(List.of(
@@ -721,8 +715,8 @@ class IRInterpreterTest {
                 new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("inner")
-        ), Map.of(
-                6, new VariableCell(new UndefinedValue())
+        ), Set.of(
+                6
         ));
 
         //未定義
@@ -742,8 +736,8 @@ class IRInterpreterTest {
                 new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("load-local")
-        ), Map.of(
-                6, new VariableCell(new UndefinedValue())
+        ), Set.of(
+                6
         ));
 
         throwInterpreterException(List.of(
