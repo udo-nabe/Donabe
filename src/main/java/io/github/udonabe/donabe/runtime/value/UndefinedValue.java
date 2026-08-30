@@ -2,6 +2,7 @@ package io.github.udonabe.donabe.runtime.value;
 
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
 import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
 import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
@@ -28,7 +29,7 @@ public record UndefinedValue() implements RuntimeValue<Void> {
     }
 
     @Override
-    public RuntimeValue<?> findMember(String memberName) {
+    public RuntimeValue<?> findMember(String memberName, StackFrame currentFrame) {
         throw new IllegalStateException("Undefined identifier.");
     }
 

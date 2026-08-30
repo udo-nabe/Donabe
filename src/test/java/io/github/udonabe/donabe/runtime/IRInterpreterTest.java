@@ -1,5 +1,6 @@
 package io.github.udonabe.donabe.runtime;
 
+import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
@@ -42,6 +43,10 @@ class IRInterpreterTest {
         assertThrows(InterpreterException.class, () -> new IRInterpreter(new IRProgram(instructions), Map.of(), new Operations()).run());
     }
 
+    private IRLocation dummyLocation() {
+        return new IRLocation(1);
+    }
+
     @Test
     void run() {
     }
@@ -50,9 +55,9 @@ class IRInterpreterTest {
     void visitAdd() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(1)),
-                        new Add()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Add(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(43)
@@ -60,9 +65,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new StringValue("1")),
-                        new Add()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new StringValue("1"), dummyLocation()),
+                        new Add(dummyLocation())
                 ),
                 List.of(
                         new StringValue("421")
@@ -70,9 +75,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new StringValue("42")),
-                        new Push(new IntegerValue(1)),
-                        new Add()
+                        new Push(new StringValue("42"), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Add(dummyLocation())
                 ),
                 List.of(
                         new StringValue("421")
@@ -80,9 +85,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new StringValue("42")),
-                        new Push(new StringValue("1")),
-                        new Add()
+                        new Push(new StringValue("42"), dummyLocation()),
+                        new Push(new StringValue("1"), dummyLocation()),
+                        new Add(dummyLocation())
                 ),
                 List.of(
                         new StringValue("421")
@@ -90,9 +95,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new BooleanValue(true)),
-                        new Push(new IntegerValue(1)),
-                        new Add()
+                        new Push(new BooleanValue(true), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Add(dummyLocation())
                 )
         );
     }
@@ -100,16 +105,16 @@ class IRInterpreterTest {
     @Test
     void visitCall() {
         assertStack(List.of(
-                new Push(new StringValue("load-captured")),
-                new StoreLocal(6),
+                new Push(new StringValue("load-captured"), dummyLocation()),
+                new StoreLocal(6, dummyLocation()),
                 new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
-                        new Push(new StringValue("inner")),
-                        new StoreCaptured(6),
-                        new VoidReturn()
-                ))),
-                new Call(),
-                new Pop(),
-                new LoadLocal(6)
+                        new Push(new StringValue("inner"), dummyLocation()),
+                        new StoreCaptured(6, dummyLocation()),
+                        new VoidReturn(dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation()),
+                new Pop(dummyLocation()),
+                new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("inner")
         ), Map.of(
@@ -118,16 +123,16 @@ class IRInterpreterTest {
 
         //スタックが引数より多い
         assertStack(List.of(
-                new Push(new IntegerValue(3)),
-                new Push(new IntegerValue(1)),
-                new Push(new IntegerValue(2)),
+                new Push(new IntegerValue(3), dummyLocation()),
+                new Push(new IntegerValue(1), dummyLocation()),
+                new Push(new IntegerValue(2), dummyLocation()),
                 new Push(new FunctionValue("add", List.of(6, 7), Set.of(6, 7), List.of(
-                        new LoadLocal(6),
-                        new LoadLocal(7),
-                        new Add(),
-                        new Return()
-                ))),
-                new Call()
+                        new LoadLocal(6, dummyLocation()),
+                        new LoadLocal(7, dummyLocation()),
+                        new Add(dummyLocation()),
+                        new Return(dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation())
         ), List.of(
                 new IntegerValue(3),
                 new IntegerValue(3)
@@ -139,14 +144,14 @@ class IRInterpreterTest {
         //引数が足りない
         throwInterpreterException(List.of(
                 new Push(new FunctionValue("arg", List.of(7), Set.of(7), List.of(
-                        new VoidReturn()
-                ))),
-                new Call()
+                        new VoidReturn(dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation())
         ));
         //関数でない
         throwInterpreterException(List.of(
-                new Push(new StringValue("non-callable")),
-                new Call()
+                new Push(new StringValue("non-callable"), dummyLocation()),
+                new Call(dummyLocation())
         ));
     }
 
@@ -154,9 +159,9 @@ class IRInterpreterTest {
     void visitDiv() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(3)),
-                        new Div()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(3), dummyLocation()),
+                        new Div(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(14)
@@ -164,9 +169,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(10)),
-                        new Push(new IntegerValue(3)),
-                        new Div()
+                        new Push(new IntegerValue(10), dummyLocation()),
+                        new Push(new IntegerValue(3), dummyLocation()),
+                        new Div(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(3)
@@ -174,9 +179,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new StringValue("hoge")),
-                        new Push(new IntegerValue(1)),
-                        new Div()
+                        new Push(new StringValue("hoge"), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Div(dummyLocation())
                 )
         );
     }
@@ -185,9 +190,9 @@ class IRInterpreterTest {
     void visitEqual() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(42)),
-                        new Equal()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Equal(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -195,9 +200,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(1)),
-                        new Equal()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Equal(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -205,9 +210,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new StringValue("42")),
-                        new Equal()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new StringValue("42"), dummyLocation()),
+                        new Equal(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -215,9 +220,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new StringValue("42")),
-                        new Push(new StringValue("42")),
-                        new Equal()
+                        new Push(new StringValue("42"), dummyLocation()),
+                        new Push(new StringValue("42"), dummyLocation()),
+                        new Equal(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -229,9 +234,9 @@ class IRInterpreterTest {
     void visitGreater() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(1)),
-                        new Greater()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Greater(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -239,9 +244,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(1)),
-                        new Push(new IntegerValue(42)),
-                        new Greater()
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Greater(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -249,9 +254,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(42)),
-                        new Greater()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Greater(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -259,9 +264,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new StringValue("1")),
-                        new Greater()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new StringValue("1"), dummyLocation()),
+                        new Greater(dummyLocation())
                 )
         );
     }
@@ -270,9 +275,9 @@ class IRInterpreterTest {
     void visitGreaterEqual() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(1)),
-                        new GreaterEqual()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new GreaterEqual(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -280,9 +285,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(1)),
-                        new Push(new IntegerValue(42)),
-                        new GreaterEqual()
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new GreaterEqual(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -290,9 +295,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(42)),
-                        new GreaterEqual()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new GreaterEqual(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -300,9 +305,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new StringValue("1")),
-                        new GreaterEqual()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new StringValue("1"), dummyLocation()),
+                        new GreaterEqual(dummyLocation())
                 )
         );
     }
@@ -311,15 +316,15 @@ class IRInterpreterTest {
     void visitJmp() {
         assertStack(
                 List.of(
-                        new Jmp(new Label(".test")),
-                        new Nop(),
-                        new Push(new StringValue("no-push")),
-                        new LabelNop(new Label(".test"))
+                        new Jmp(new Label(".test"), dummyLocation()),
+                        new Nop(dummyLocation()),
+                        new Push(new StringValue("no-push"), dummyLocation()),
+                        new LabelNop(new Label(".test"), dummyLocation())
                 ),
                 List.of()
         );
         throwInterpreterException(List.of(
-                new Jmp(new Label(".not-found"))
+                new Jmp(new Label(".not-found"), dummyLocation())
         ));
     }
 
@@ -327,35 +332,35 @@ class IRInterpreterTest {
     void visitJmpFalse() {
         assertStack(
                 List.of(
-                        new Push(new BooleanValue(false)),
-                        new JmpFalse(new Label(".test")),
-                        new Nop(),
-                        new Push(new StringValue("no-push")),
-                        new LabelNop(new Label(".test"))
+                        new Push(new BooleanValue(false), dummyLocation()),
+                        new JmpFalse(new Label(".test"), dummyLocation()),
+                        new Nop(dummyLocation()),
+                        new Push(new StringValue("no-push"), dummyLocation()),
+                        new LabelNop(new Label(".test"), dummyLocation())
                 ),
                 List.of()
         );
         assertStack(
                 List.of(
-                        new Push(new BooleanValue(true)),
-                        new JmpFalse(new Label(".test")),
-                        new Nop(),
-                        new Push(new StringValue("push")),
-                        new LabelNop(new Label(".test"))
+                        new Push(new BooleanValue(true), dummyLocation()),
+                        new JmpFalse(new Label(".test"), dummyLocation()),
+                        new Nop(dummyLocation()),
+                        new Push(new StringValue("push"), dummyLocation()),
+                        new LabelNop(new Label(".test"), dummyLocation())
                 ),
                 List.of(new StringValue("push"))
         );
         throwInterpreterException(List.of(
-                new Jmp(new Label(".not-found"))
+                new Jmp(new Label(".not-found"), dummyLocation())
         ));
         throwInterpreterException(List.of(
-                new JmpFalse(new Label(".stack-empty")),
-                new LabelNop(new Label(".stack-empty"))
+                new JmpFalse(new Label(".stack-empty"), dummyLocation()),
+                new LabelNop(new Label(".stack-empty"), dummyLocation())
         ));
         throwInterpreterException(List.of(
-                new Push(new StringValue("string")),
-                new JmpFalse(new Label(".not-boolean")),
-                new LabelNop(new Label(".not-boolean"))
+                new Push(new StringValue("string"), dummyLocation()),
+                new JmpFalse(new Label(".not-boolean"), dummyLocation()),
+                new LabelNop(new Label(".not-boolean"), dummyLocation())
         ));
     }
 
@@ -363,43 +368,43 @@ class IRInterpreterTest {
     void visitJmpTrue() {
         assertStack(
                 List.of(
-                        new Push(new BooleanValue(true)),
-                        new JmpTrue(new Label(".test")),
-                        new Nop(),
-                        new Push(new StringValue("no-push")),
-                        new LabelNop(new Label(".test"))
+                        new Push(new BooleanValue(true), dummyLocation()),
+                        new JmpTrue(new Label(".test"), dummyLocation()),
+                        new Nop(dummyLocation()),
+                        new Push(new StringValue("no-push"), dummyLocation()),
+                        new LabelNop(new Label(".test"), dummyLocation())
                 ),
                 List.of()
         );
         assertStack(
                 List.of(
-                        new Push(new BooleanValue(false)),
-                        new JmpTrue(new Label(".test")),
-                        new Nop(),
-                        new Push(new StringValue("push")),
-                        new LabelNop(new Label(".test"))
+                        new Push(new BooleanValue(false), dummyLocation()),
+                        new JmpTrue(new Label(".test"), dummyLocation()),
+                        new Nop(dummyLocation()),
+                        new Push(new StringValue("push"), dummyLocation()),
+                        new LabelNop(new Label(".test"), dummyLocation())
                 ),
                 List.of(new StringValue("push"))
         );
         throwInterpreterException(List.of(
-                new Jmp(new Label(".not-found"))
+                new Jmp(new Label(".not-found"), dummyLocation())
         ));
         throwInterpreterException(List.of(
-                new JmpFalse(new Label(".stack-empty")),
-                new LabelNop(new Label(".stack-empty"))
+                new JmpFalse(new Label(".stack-empty"), dummyLocation()),
+                new LabelNop(new Label(".stack-empty"), dummyLocation())
         ));
         throwInterpreterException(List.of(
-                new Push(new StringValue("string")),
-                new JmpFalse(new Label(".not-boolean")),
-                new LabelNop(new Label(".not-boolean"))
+                new Push(new StringValue("string"), dummyLocation()),
+                new JmpFalse(new Label(".not-boolean"), dummyLocation()),
+                new LabelNop(new Label(".not-boolean"), dummyLocation())
         ));
     }
 
     @Test
     void visitLabelNop() {
         assertStack(List.of(
-                new Push(new StringValue("string")),
-                new LabelNop(new Label(".label"))
+                new Push(new StringValue("string"), dummyLocation()),
+                new LabelNop(new Label(".label"), dummyLocation())
         ), List.of(
                 new StringValue("string")
         ));
@@ -409,9 +414,9 @@ class IRInterpreterTest {
     void visitLess() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(1)),
-                        new Less()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Less(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -419,9 +424,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(1)),
-                        new Push(new IntegerValue(42)),
-                        new Less()
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Less(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -429,9 +434,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(42)),
-                        new Less()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Less(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -439,9 +444,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new StringValue("1")),
-                        new Less()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new StringValue("1"), dummyLocation()),
+                        new Less(dummyLocation())
                 )
         );
     }
@@ -450,9 +455,9 @@ class IRInterpreterTest {
     void visitLessEqual() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(1)),
-                        new LessEqual()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new LessEqual(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -460,9 +465,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(1)),
-                        new Push(new IntegerValue(42)),
-                        new LessEqual()
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new LessEqual(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -470,9 +475,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(42)),
-                        new LessEqual()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new LessEqual(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -480,9 +485,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new StringValue("1")),
-                        new LessEqual()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new StringValue("1"), dummyLocation()),
+                        new LessEqual(dummyLocation())
                 )
         );
     }
@@ -490,13 +495,13 @@ class IRInterpreterTest {
     @Test
     void visitLoadCaptured() {
         assertStack(List.of(
-                new Push(new StringValue("load-captured")),
-                new StoreLocal(6),
+                new Push(new StringValue("load-captured"), dummyLocation()),
+                new StoreLocal(6, dummyLocation()),
                 new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
-                        new LoadCaptured(6),
-                        new Return()
-                ))),
-                new Call()
+                        new LoadCaptured(6, dummyLocation()),
+                        new Return(dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation())
         ), List.of(
                 new StringValue("load-captured")
         ), Map.of(
@@ -506,18 +511,18 @@ class IRInterpreterTest {
         //未定義
         throwInterpreterException(List.of(
                 new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
-                        new LoadCaptured(6)
-                ))),
-                new Call()
+                        new LoadCaptured(6, dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation())
         ));
     }
 
     @Test
     void visitLoadLocal() {
         assertStack(List.of(
-                new Push(new StringValue("load-captured")),
-                new StoreLocal(6),
-                new LoadLocal(6)
+                new Push(new StringValue("load-captured"), dummyLocation()),
+                new StoreLocal(6, dummyLocation()),
+                new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("load-captured")
         ), Map.of(
@@ -525,7 +530,7 @@ class IRInterpreterTest {
         ));
 
         throwInterpreterException(List.of(
-                new LoadLocal(42)
+                new LoadLocal(42, dummyLocation())
         ));
     }
 
@@ -533,8 +538,8 @@ class IRInterpreterTest {
     void visitMinus() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Minus()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Minus(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(-42)
@@ -542,8 +547,8 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(-10)),
-                        new Minus()
+                        new Push(new IntegerValue(-10), dummyLocation()),
+                        new Minus(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(10)
@@ -551,8 +556,8 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new StringValue("hoge")),
-                        new Minus()
+                        new Push(new StringValue("hoge"), dummyLocation()),
+                        new Minus(dummyLocation())
                 )
         );
     }
@@ -561,9 +566,9 @@ class IRInterpreterTest {
     void visitMul() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(3)),
-                        new Push(new IntegerValue(3)),
-                        new Mul()
+                        new Push(new IntegerValue(3), dummyLocation()),
+                        new Push(new IntegerValue(3), dummyLocation()),
+                        new Mul(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(9)
@@ -571,9 +576,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(10)),
-                        new Push(new IntegerValue(-3)),
-                        new Mul()
+                        new Push(new IntegerValue(10), dummyLocation()),
+                        new Push(new IntegerValue(-3), dummyLocation()),
+                        new Mul(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(-30)
@@ -581,9 +586,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new StringValue("hoge")),
-                        new Push(new IntegerValue(1)),
-                        new Mul()
+                        new Push(new StringValue("hoge"), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Mul(dummyLocation())
                 )
         );
     }
@@ -591,8 +596,8 @@ class IRInterpreterTest {
     @Test
     void visitNop() {
         assertStack(List.of(
-                new Push(new StringValue("string")),
-                new Nop()
+                new Push(new StringValue("string"), dummyLocation()),
+                new Nop(dummyLocation())
         ), List.of(
                 new StringValue("string")
         ));
@@ -602,8 +607,8 @@ class IRInterpreterTest {
     void visitNot() {
         assertStack(
                 List.of(
-                        new Push(new BooleanValue(true)),
-                        new Not()
+                        new Push(new BooleanValue(true), dummyLocation()),
+                        new Not(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(false)
@@ -611,8 +616,8 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new BooleanValue(false)),
-                        new Not()
+                        new Push(new BooleanValue(false), dummyLocation()),
+                        new Not(dummyLocation())
                 ),
                 List.of(
                         new BooleanValue(true)
@@ -620,8 +625,8 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new StringValue("hoge")),
-                        new Not()
+                        new Push(new StringValue("hoge"), dummyLocation()),
+                        new Not(dummyLocation())
                 )
         );
     }
@@ -630,8 +635,8 @@ class IRInterpreterTest {
     void visitPlus() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Plus()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Plus(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(42)
@@ -639,8 +644,8 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(-10)),
-                        new Plus()
+                        new Push(new IntegerValue(-10), dummyLocation()),
+                        new Plus(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(-10)
@@ -648,8 +653,8 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new StringValue("hoge")),
-                        new Plus()
+                        new Push(new StringValue("hoge"), dummyLocation()),
+                        new Plus(dummyLocation())
                 )
         );
     }
@@ -657,9 +662,9 @@ class IRInterpreterTest {
     @Test
     void visitPop() {
         assertStack(List.of(
-                new Push(new IntegerValue(1234)),
-                new Push(new IntegerValue(1)),
-                new Pop()
+                new Push(new IntegerValue(1234), dummyLocation()),
+                new Push(new IntegerValue(1), dummyLocation()),
+                new Pop(dummyLocation())
         ), List.of(
                 new IntegerValue(1234)
         ));
@@ -668,8 +673,8 @@ class IRInterpreterTest {
     @Test
     void visitPush() {
         assertStack(List.of(
-                new Push(new IntegerValue(1234)),
-                new Push(new IntegerValue(1))
+                new Push(new IntegerValue(1234), dummyLocation()),
+                new Push(new IntegerValue(1), dummyLocation())
         ), List.of(
                 new IntegerValue(1),
                 new IntegerValue(1234)
@@ -679,15 +684,15 @@ class IRInterpreterTest {
     @Test
     void visitReturn() {
         assertStack(List.of(
-                new Push(new IntegerValue(2)),
-                new Push(new IntegerValue(3)),
+                new Push(new IntegerValue(2), dummyLocation()),
+                new Push(new IntegerValue(3), dummyLocation()),
                 new Push(new FunctionValue("add", List.of(7, 8), Set.of(7, 8), List.of(
-                        new LoadLocal(7),
-                        new LoadLocal(8),
-                        new Add(),
-                        new Return()
-                ))),
-                new Call()
+                        new LoadLocal(7, dummyLocation()),
+                        new LoadLocal(8, dummyLocation()),
+                        new Add(dummyLocation()),
+                        new Return(dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation())
         ), List.of(
                 new IntegerValue(5)
         ), Map.of(
@@ -696,24 +701,24 @@ class IRInterpreterTest {
         ));
 
         throwInterpreterException(List.of(
-                new Push(new IntegerValue(-42)),
-                new Return()
+                new Push(new IntegerValue(-42), dummyLocation()),
+                new Return(dummyLocation())
         ));
     }
 
     @Test
     void visitStoreCaptured() {
         assertStack(List.of(
-                new Push(new StringValue("load-captured")),
-                new StoreLocal(6),
+                new Push(new StringValue("load-captured"), dummyLocation()),
+                new StoreLocal(6, dummyLocation()),
                 new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
-                        new Push(new StringValue("inner")),
-                        new StoreCaptured(6),
-                        new VoidReturn()
-                ))),
-                new Call(),
-                new Pop(),
-                new LoadLocal(6)
+                        new Push(new StringValue("inner"), dummyLocation()),
+                        new StoreCaptured(6, dummyLocation()),
+                        new VoidReturn(dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation()),
+                new Pop(dummyLocation()),
+                new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("inner")
         ), Map.of(
@@ -723,18 +728,18 @@ class IRInterpreterTest {
         //未定義
         throwInterpreterException(List.of(
                 new Push(new FunctionValue("captured", List.of(), Set.of(), List.of(
-                        new StoreCaptured(6)
-                ))),
-                new Call()
+                        new StoreCaptured(6, dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation())
         ));
     }
 
     @Test
     void visitStoreLocal() {
         assertStack(List.of(
-                new Push(new StringValue("load-local")),
-                new StoreLocal(6),
-                new LoadLocal(6)
+                new Push(new StringValue("load-local"), dummyLocation()),
+                new StoreLocal(6, dummyLocation()),
+                new LoadLocal(6, dummyLocation())
         ), List.of(
                 new StringValue("load-local")
         ), Map.of(
@@ -742,7 +747,7 @@ class IRInterpreterTest {
         ));
 
         throwInterpreterException(List.of(
-                new LoadLocal(42)
+                new LoadLocal(42, dummyLocation())
         ));
     }
 
@@ -750,9 +755,9 @@ class IRInterpreterTest {
     void visitSub() {
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(42)),
-                        new Push(new IntegerValue(3)),
-                        new Sub()
+                        new Push(new IntegerValue(42), dummyLocation()),
+                        new Push(new IntegerValue(3), dummyLocation()),
+                        new Sub(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(39)
@@ -760,9 +765,9 @@ class IRInterpreterTest {
         );
         assertStack(
                 List.of(
-                        new Push(new IntegerValue(3)),
-                        new Push(new IntegerValue(10)),
-                        new Sub()
+                        new Push(new IntegerValue(3), dummyLocation()),
+                        new Push(new IntegerValue(10), dummyLocation()),
+                        new Sub(dummyLocation())
                 ),
                 List.of(
                         new IntegerValue(-7)
@@ -770,9 +775,9 @@ class IRInterpreterTest {
         );
         throwInterpreterException(
                 List.of(
-                        new Push(new StringValue("hoge")),
-                        new Push(new IntegerValue(1)),
-                        new Sub()
+                        new Push(new StringValue("hoge"), dummyLocation()),
+                        new Push(new IntegerValue(1), dummyLocation()),
+                        new Sub(dummyLocation())
                 )
         );
     }
@@ -781,15 +786,15 @@ class IRInterpreterTest {
     void visitVoidReturn() {
         assertStack(List.of(
                 new Push(new FunctionValue("add", List.of(), Set.of(), List.of(
-                        new VoidReturn()
-                ))),
-                new Call()
+                        new VoidReturn(dummyLocation())
+                )), dummyLocation()),
+                new Call(dummyLocation())
         ), List.of(
                 new VoidValue()
         ));
 
         throwInterpreterException(List.of(
-                new VoidReturn()
+                new VoidReturn(dummyLocation())
         ));
     }
 }

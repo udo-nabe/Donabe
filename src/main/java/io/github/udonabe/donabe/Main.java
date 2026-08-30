@@ -1,6 +1,8 @@
 package io.github.udonabe.donabe;
 
 import io.github.udonabe.donabe.ast.Program;
+import io.github.udonabe.donabe.error.ErrorUtil;
+import io.github.udonabe.donabe.error.StackTraceGenerator;
 import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.lexer.Lexer;
 import io.github.udonabe.donabe.parser.*;
@@ -98,11 +100,12 @@ public class Main implements Callable<Integer> {
             log.info("Normal termination.");
         } catch (CompileException e) {
             log.warn("Compile error.", e);
-            System.err.println("コンパイルエラー: " + e.getMessage());
+            System.err.println("Compile error: " + e.getMessage());
             return 1;
         } catch (InterpreterException e) {
+            String msg = ErrorUtil.makeRuntimeError(e.occurredFrame(), e.getMessage());
             log.warn("Runtime error.", e);
-            System.err.println("実行時エラー: " + e.getMessage());
+            System.err.println("Runtime error: " + msg);
             return 1;
         } catch (Exception | AssertionError e) {
             log.error("An internal error has occurred.", e);

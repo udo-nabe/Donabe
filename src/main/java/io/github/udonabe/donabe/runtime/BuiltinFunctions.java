@@ -30,7 +30,7 @@ public class BuiltinFunctions {
                     }
                     return new ListValue(res);
                 }
-                throw new InterpreterException("range()の引数は(int, int)である必要があります。");
+                throw new InterpreterException("range()の引数は(int, int)である必要があります。", null);
             }
     );
 }

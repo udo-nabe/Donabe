@@ -1,7 +1,7 @@
 package io.github.udonabe.donabe.parser;
 
 import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.ErrorUtil;
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.TokenStream;
 import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
@@ -15,7 +15,6 @@ import java.util.Map;
 
 import static io.github.udonabe.donabe.lexer.Token.Kind.*;
 import static io.github.udonabe.donabe.parser.BasicParsers.*;
-import static io.github.udonabe.donabe.parser.Parsers.separatedBy;
 import static io.github.udonabe.donabe.parser.Parsers.token;
 import static java.util.Map.entry;
 

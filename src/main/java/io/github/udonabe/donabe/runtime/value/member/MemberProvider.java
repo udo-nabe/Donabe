@@ -16,7 +16,7 @@ public interface MemberProvider<T extends RuntimeValue<?>> {
             return members.get(name);
         }
         if (parent() == null) {
-            throw new InterpreterException("Member '%s' not found.".formatted(name));
+            throw new InterpreterException("Member '%s' not found.".formatted(name), null);
         }
         return parent().findMember(name, receiver);
     }

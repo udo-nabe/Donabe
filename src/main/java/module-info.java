@@ -7,4 +7,5 @@ module io.github.udonabe.donabe {
     requires java.desktop;
 
     opens io.github.udonabe.donabe;
+    opens io.github.udonabe.donabe.error;
 }

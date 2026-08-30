@@ -1,5 +1,6 @@
 package io.github.udonabe.donabe.runtime.context;
 
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ir.instruction.Instruction;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.VariableCell;
@@ -22,14 +23,14 @@ public class InterpretContext {
 
     public void pushStackFrame(StackFrame newStackFrame) {
         if (++callDepth >= MAX_CALL_STACK_DEPTH) {
-            throw new InterpreterException("Stack overflow.");
+            throw new InterpreterException("Stack overflow.", currentFrame);
         }
         currentFrame = newStackFrame;
     }
 
     public StackFrame popStackFrame() {
         if (!currentFrame.hasCaller()) {
-            throw new InterpreterException("Cannot call popStackFrame when callStack is 1 or less.");
+            throw new InterpreterException("Cannot call popStackFrame when callStack is 1 or less.", currentFrame);
         }
         currentFrame = currentFrame.caller();
         callDepth--;
@@ -66,7 +67,7 @@ public class InterpretContext {
 
     public RuntimeValue<?> popStack() {
         if (stack.isEmpty()) {
-            throw new InterpreterException("Stack is empty. pc=" + currentFrame.registers().pc());
+            throw new InterpreterException("Stack is empty.", currentFrame);
         }
         return stack.pop();
     }

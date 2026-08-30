@@ -1,9 +1,10 @@
 package io.github.udonabe.donabe.ir.instruction;
 
+import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRVisitor;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
 
-public record JmpTrue(Label label) implements Instruction {
+public record JmpTrue(Label label, IRLocation location) implements Instruction {
     @Override
     public <R> R accept(IRVisitor<R> visitor) {
         return visitor.visitJmpTrue(this);

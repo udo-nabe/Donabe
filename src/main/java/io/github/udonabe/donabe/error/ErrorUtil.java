@@ -1,7 +1,10 @@
-package io.github.udonabe.donabe;
+package io.github.udonabe.donabe.error;
 
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.lexer.Token;
+import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
+
+import java.util.Objects;
 
 public class ErrorUtil {
     public static String makeError(int line, int column, String message, Object... format) {
@@ -25,5 +28,9 @@ public class ErrorUtil {
                        source.split("\n", -1)[location.line() - 1] + "\n" +
                        " ".repeat(Math.max(0, location.column() - 1)) + "^";
         return makeError(location.line(), location.column(), error, format);
+    }
+    public static String makeRuntimeError(StackFrame currentFrame, String message, Object... format) {
+        return message.formatted(format) + "\n" +
+               StackTraceGenerator.generateStackTrace(currentFrame);
     }
 }

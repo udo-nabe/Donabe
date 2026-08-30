@@ -1,5 +1,6 @@
 package io.github.udonabe.donabe;
 
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.lexer.Token;
 
 import java.util.List;
