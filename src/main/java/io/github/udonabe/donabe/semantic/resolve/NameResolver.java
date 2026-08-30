@@ -31,9 +31,7 @@ public final class NameResolver implements ASTVisitor<Void> {
 
         putBuiltinFunction("print", BuiltinFunctions.BUILTIN_PRINT, 0);
         putBuiltinFunction("input", BuiltinFunctions.BUILTIN_INPUT, 1);
-        putBuiltinFunction("string", BuiltinFunctions.BUILTIN_STRING, 2);
-        putBuiltinFunction("length", BuiltinFunctions.BUILTIN_LENGTH, 3);
-        putBuiltinFunction("int", BuiltinFunctions.BUILTIN_INT, 4);
+        putBuiltinFunction("range", BuiltinFunctions.BUILTIN_RANGE, 2);
         localsASTNodeMap = new IdentityHashMap<>();
     }
 
@@ -275,6 +273,11 @@ public final class NameResolver implements ASTVisitor<Void> {
         for (Expression e : expression.elements()) {
             e.accept(this);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitMemberAccessExpression(MemberAccessExpression expr) {
         return null;
     }
 

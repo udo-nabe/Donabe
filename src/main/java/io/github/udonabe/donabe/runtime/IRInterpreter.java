@@ -34,9 +34,7 @@ public class IRInterpreter implements IRVisitor<Void> {
     private void declareBuiltinFunctions() {
         context.setLocalVarValue(0, BuiltinFunctions.BUILTIN_PRINT);
         context.setLocalVarValue(1, BuiltinFunctions.BUILTIN_INPUT);
-        context.setLocalVarValue(2, BuiltinFunctions.BUILTIN_STRING);
-        context.setLocalVarValue(3, BuiltinFunctions.BUILTIN_LENGTH);
-        context.setLocalVarValue(4, BuiltinFunctions.BUILTIN_INT);
+        context.setLocalVarValue(2, BuiltinFunctions.BUILTIN_RANGE);
     }
 
     private void setupLabel(List<Instruction> instructions) {
@@ -265,6 +263,13 @@ public class IRInterpreter implements IRVisitor<Void> {
         } else {
             context.pushStack(loaded);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitLoadMember(LoadMember instruction) {
+        RuntimeValue<?> target = context.popStack();
+        context.pushStack(target.findMember(instruction.memberName()));
         return null;
     }
 

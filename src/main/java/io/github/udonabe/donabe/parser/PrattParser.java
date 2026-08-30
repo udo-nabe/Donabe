@@ -36,6 +36,7 @@ class PrattParser {
     private static final int PREFIX_PRECEDENCE = 100;
     private static final int MIN_PRECEDENCE = 1;
     private static final Map<Token.Kind, Integer> PRECEDENCES = Map.ofEntries(
+            entry(Token.Kind.DOT, 110),
             entry(Token.Kind.PLUS, 60),
             entry(Token.Kind.MINUS, 60),
             entry(Token.Kind.ASTERISK, 70),
@@ -81,6 +82,9 @@ class PrattParser {
                 continue;
             } else if (next == Token.Kind.DECREMENT) {
                 left = parseDecrement(left);
+                continue;
+            } else if (next == DOT) {
+                left = parseMemberAccess(left);
                 continue;
             }
 
@@ -227,5 +231,14 @@ class PrattParser {
         } else {
             throw new CompileException("[line %d, column %d] Unexpected expression: ".formatted(prefix.location().line(), prefix.location().column()) + prefix + ". Expected: IDENTIFIER.");
         }
+    }
+
+    private MemberAccessExpression parseMemberAccess(Expression prefix) {
+        stream.consume(DOT);
+        ParseResult<Identifier> memberRes = identifier.parse(stream);
+        if (!(memberRes instanceof ParseSuccess<Identifier>(Identifier member))) {
+            throw new CompileException(((ParseFailed<Identifier>) memberRes).message());
+        }
+        return new MemberAccessExpression(prefix, member, prefix.location());
     }
 }

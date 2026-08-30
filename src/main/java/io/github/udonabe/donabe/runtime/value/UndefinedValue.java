@@ -2,6 +2,10 @@ package io.github.udonabe.donabe.runtime.value;
 
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
+
+import java.util.Map;
 
 /**
  * この値に対して行う操作は全て意味解析器で弾くべきであるため、
@@ -20,6 +24,16 @@ public record UndefinedValue() implements RuntimeValue<Void> {
 
     @Override
     public String display() {
+        throw new IllegalStateException("Undefined identifier.");
+    }
+
+    @Override
+    public RuntimeValue<?> findMember(String memberName) {
+        throw new IllegalStateException("Undefined identifier.");
+    }
+
+    @Override
+    public MemberProvider<?> memberProvider() {
         throw new IllegalStateException("Undefined identifier.");
     }
 }

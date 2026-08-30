@@ -60,7 +60,8 @@ public class Lexer {
             entry("<", Token.Kind.LESS),
             entry(">", Token.Kind.GREATER),
             entry(",", Token.Kind.COMMA),
-            entry(":", Token.Kind.COLON)
+            entry(":", Token.Kind.COLON),
+            entry(".", Token.Kind.DOT)
     );
 
     private final String source;

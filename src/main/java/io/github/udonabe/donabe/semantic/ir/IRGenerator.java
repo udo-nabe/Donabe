@@ -14,6 +14,8 @@ import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
 import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.Scope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class IRGenerator implements ASTVisitor<List<Instruction>> {
+    private static final Logger log = LoggerFactory.getLogger(IRGenerator.class);
     private final Scope rootScope;
     private final IRGenerateContext context;
     private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
@@ -427,6 +430,17 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
         result.add(new MakeList(elementSize));
 
+        return List.copyOf(result);
+    }
+
+    @Override
+    public List<Instruction> visitMemberAccessExpression(MemberAccessExpression expr) {
+        var result = new ArrayList<Instruction>();
+
+        result.addAll(expr.target().accept(this));
+        result.add(new LoadMember(expr.member().name()));
+
+        log.trace("load_member: name={}", expr.member().name());
         return List.copyOf(result);
     }
 

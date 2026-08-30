@@ -1,10 +1,12 @@
 package io.github.udonabe.donabe.semantic.type.function;
 
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
+import io.github.udonabe.donabe.semantic.type.MemberInfo;
 import io.github.udonabe.donabe.semantic.type.Type;
 import io.github.udonabe.donabe.semantic.type.builtin.AnyType;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -20,7 +22,20 @@ public record FunctionType(
     }
 
     @Override
+    public Type parent() {
+        return new AnyType();
+    }
+
+    @Override
+    public Map<String, MemberInfo> members() {
+        return Map.of();
+    }
+
+    @Override
     public boolean isSubtypeOf(Type target) {
+        if (target instanceof AnyType) {
+            return true;
+        }
         if (!(target instanceof FunctionType functionTarget)) {
             return false;
         }

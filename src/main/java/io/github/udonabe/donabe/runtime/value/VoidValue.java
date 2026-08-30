@@ -1,5 +1,11 @@
 package io.github.udonabe.donabe.runtime.value;
 
+import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.VoidMemberProvider;
+
+import java.util.Map;
+
 public final class VoidValue implements RuntimeValue<String> {
     @Override
     public String value() {
@@ -8,7 +14,7 @@ public final class VoidValue implements RuntimeValue<String> {
 
     @Override
     public String typeName() {
-        return "void";
+        return "Void";
     }
 
     @Override
@@ -19,5 +25,10 @@ public final class VoidValue implements RuntimeValue<String> {
     @Override
     public boolean equals(Object obj) {
         return true;
+    }
+
+    @Override
+    public MemberProvider<?> memberProvider() {
+        return new VoidMemberProvider();
     }
 }

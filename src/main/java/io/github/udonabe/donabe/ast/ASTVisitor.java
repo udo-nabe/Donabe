@@ -34,6 +34,7 @@ public interface ASTVisitor<R> {
     R visitIndexExpression(IndexExpression expr);
     R visitIntegerLiteral(IntegerLiteral expr);
     R visitListLiteral(ListLiteral expr);
+    R visitMemberAccessExpression(MemberAccessExpression expr);
     R visitStringLiteral(StringLiteral expr);
     R visitUnaryExpression(UnaryExpression expr);
     R visitVoidExpression(VoidExpression expr);

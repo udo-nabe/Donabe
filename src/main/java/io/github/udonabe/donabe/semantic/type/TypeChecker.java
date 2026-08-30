@@ -366,6 +366,21 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     @Override
+    public Type visitMemberAccessExpression(MemberAccessExpression expr) {
+        Type targetType = expr.target().accept(this);
+        String memberName = expr.member().name();
+
+        MemberInfo member = targetType.findMember(memberName);
+        if (member == null) {
+            throw new CompileException(ErrorUtil.makeError(expr.location(), source,
+                    "Type '%s' does not have a member '%s'.",
+                    targetType.asString(), memberName));
+        }
+
+        return member.type();
+    }
+
+    @Override
     public Type visitStringLiteral(StringLiteral expr) {
         return new StringType();
     }
