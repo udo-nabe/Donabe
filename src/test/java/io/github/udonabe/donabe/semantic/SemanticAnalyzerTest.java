@@ -190,7 +190,7 @@ class SemanticAnalyzerTest {
                         var b: Int = 2;
                         func add(a: Int, b: Int) -> Int { return a + b;};
                         let c: Int = add(a, b);
-                        print("ADD: " + string(c));
+                        print("ADD: " + c.toString());
                         """,
                 Map.ofEntries(
                         Map.entry(0, new VariableCell(BuiltinFunctions.BUILTIN_PRINT)),    //print
