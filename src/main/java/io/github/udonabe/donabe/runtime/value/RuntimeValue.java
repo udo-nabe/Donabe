@@ -1,6 +1,7 @@
 package io.github.udonabe.donabe.runtime.value;
 
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -12,21 +13,14 @@ public sealed interface RuntimeValue<T>
     T value();
     String typeName();
     String display();
+    MemberProvider<?> memberProvider();
     default RuntimeValue<?> findMember(String name) {
-        Map<String, RuntimeValue<?>> anyTypeMembers = Map.of(
-                "toString", new BuiltinFunctionValue(
-                        List.of(),
-                        args -> new StringValue(display())
-                )
-        );
-
-        if (declaredMembers().containsKey(name)) {
-            return declaredMembers().get(name);
+        try {
+            return memberProvider().findMember(name, this);
+        } catch (InterpreterException e) {
+            throw new InterpreterException(
+                    "The type '%s' does not have member '%s'.".formatted(typeName(), name),
+                    e);
         }
-        if (anyTypeMembers.containsKey(name)) {
-            return anyTypeMembers.get(name);
-        }
-        throw new InterpreterException("The type '%s' does not have member '%s'.".formatted(typeName(), name));
     }
-    Map<String, RuntimeValue<?>> declaredMembers();
 }

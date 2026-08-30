@@ -10,7 +10,7 @@ for var i = 0; i < limit - 2; i++ {
   let next = a + b;
   a = b;
   b = next;
-  result += ", " + string(next);
+  result += ", " + next.toString();
 }
 print(result + "]");
 print("length: " + result.length.toString());

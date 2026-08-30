@@ -1,5 +1,9 @@
 package io.github.udonabe.donabe.runtime.value;
 
+import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.VoidMemberProvider;
+
 import java.util.Map;
 
 public final class VoidValue implements RuntimeValue<String> {
@@ -24,7 +28,7 @@ public final class VoidValue implements RuntimeValue<String> {
     }
 
     @Override
-    public Map<String, RuntimeValue<?>> declaredMembers() {
-        return Map.of();
+    public MemberProvider<?> memberProvider() {
+        return new VoidMemberProvider();
     }
 }

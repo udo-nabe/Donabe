@@ -2,6 +2,8 @@ package io.github.udonabe.donabe.runtime.value;
 
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
 import java.util.Map;
 
@@ -31,7 +33,7 @@ public record UndefinedValue() implements RuntimeValue<Void> {
     }
 
     @Override
-    public Map<String, RuntimeValue<?>> declaredMembers() {
-        return Map.of();
+    public MemberProvider<?> memberProvider() {
+        throw new IllegalStateException("Undefined identifier.");
     }
 }

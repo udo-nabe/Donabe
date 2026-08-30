@@ -1,6 +1,9 @@
 package io.github.udonabe.donabe.runtime.value;
 
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.FunctionMemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -23,7 +26,7 @@ public record BuiltinFunctionValue(List<String> formalArgs, Function<List<? exte
     }
 
     @Override
-    public Map<String, RuntimeValue<?>> declaredMembers() {
-        return Map.of();
+    public MemberProvider<?> memberProvider() {
+        return new FunctionMemberProvider();
     }
 }

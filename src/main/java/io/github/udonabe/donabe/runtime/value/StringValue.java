@@ -1,6 +1,9 @@
 package io.github.udonabe.donabe.runtime.value;
 
 import io.github.udonabe.donabe.runtime.InterpreterException;
+import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
+import io.github.udonabe.donabe.runtime.value.member.StringMemberProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -21,18 +24,7 @@ public record StringValue(String value) implements RuntimeValue<String> {
     }
 
     @Override
-    public Map<String, RuntimeValue<?>> declaredMembers() {
-        return Map.of(
-                "length", new IntegerValue(value.length()),
-                "toInt", new BuiltinFunctionValue(
-                        List.of(),
-                        args -> {
-                            if (!value.chars().allMatch(ch -> Character.isDigit((char) ch))) {
-                                throw new InterpreterException("Could not convert 'String' to 'Int'.");
-                            }
-                            return new IntegerValue(Integer.parseInt(value));
-                        }
-                )
-        );
+    public MemberProvider<?> memberProvider() {
+        return new StringMemberProvider();
     }
 }
