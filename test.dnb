@@ -14,3 +14,8 @@ for var i = 0; i < limit - 2; i++ {
 }
 print(result + "]");
 print("length: " + result.length.toString());
+
+func recursive() -> Void {
+    recursive();
+}
+recursive();

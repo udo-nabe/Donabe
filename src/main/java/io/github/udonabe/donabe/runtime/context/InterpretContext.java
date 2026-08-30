@@ -9,15 +9,21 @@ import io.github.udonabe.donabe.runtime.value.RuntimeValue;
 import java.util.*;
 
 public class InterpretContext {
+    private final int MAX_CALL_STACK_DEPTH = 1000;
+    private int callDepth;
     private StackFrame currentFrame;
     private final Deque<RuntimeValue<?>> stack;
 
     public InterpretContext(List<Instruction> instructions, Map<Integer, VariableCell> rootStackFrame) {
         currentFrame = new StackFrame(null, null, "<root>", instructions, rootStackFrame, rootStackFrame.keySet());
         stack = new ArrayDeque<>();
+        callDepth = 0;
     }
 
     public void pushStackFrame(StackFrame newStackFrame) {
+        if (++callDepth >= MAX_CALL_STACK_DEPTH) {
+            throw new InterpreterException("Stack overflow.");
+        }
         currentFrame = newStackFrame;
     }
 
@@ -26,6 +32,7 @@ public class InterpretContext {
             throw new InterpreterException("Cannot call popStackFrame when callStack is 1 or less.");
         }
         currentFrame = currentFrame.caller();
+        callDepth--;
         return currentFrame;
     }
 
