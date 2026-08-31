@@ -8,12 +8,8 @@ import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
-import io.github.udonabe.donabe.runtime.BuiltinFunctions;
-import io.github.udonabe.donabe.runtime.VariableCell;
-import io.github.udonabe.donabe.runtime.value.UndefinedValue;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;

@@ -1,12 +1,7 @@
 package io.github.udonabe.donabe.runtime.value;
 
-import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
-import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
 import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
-
-import java.util.Map;
 
 /**
  * この値に対して行う操作は全て意味解析器で弾くべきであるため、

@@ -8,9 +8,6 @@ import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.runtime.BuiltinFunctions;
-import io.github.udonabe.donabe.runtime.VariableCell;
-import io.github.udonabe.donabe.runtime.value.*;
 import io.github.udonabe.donabe.semantic.Scope;
 import io.github.udonabe.donabe.semantic.SymbolInformation;
 
@@ -214,7 +211,7 @@ public final class NameResolver implements ASTVisitor<Void> {
     public Void visitForEachStatement(ForEachStatement statement) {
         statement.iterable().accept(this);
 
-        Scope inner = currentScope.newChild();
+        currentScope.newChild();
         Identifier variable = statement.variable();
 
         if (!currentScope.put(variable.name(), new SymbolInformation(false))) {

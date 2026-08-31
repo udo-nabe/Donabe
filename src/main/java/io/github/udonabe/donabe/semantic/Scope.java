@@ -1,7 +1,5 @@
 package io.github.udonabe.donabe.semantic;
 
-import io.github.udonabe.donabe.ast.expr.Identifier;
-
 import java.util.*;
 
 public final class Scope {

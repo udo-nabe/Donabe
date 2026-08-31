@@ -37,6 +37,7 @@ application {
 
 tasks.named("run") {
     standardInput = System.in
+    args("--verbose", "test.dnb")
 }
 
 tasks.withType(JavaCompile).configureEach {

@@ -1,10 +1,8 @@
 package io.github.udonabe.donabe.runtime.value;
 
-import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
 import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
-import java.util.Map;
 import java.util.Objects;
 
 public record BooleanValue(Boolean value) implements RuntimeValue<Boolean> {

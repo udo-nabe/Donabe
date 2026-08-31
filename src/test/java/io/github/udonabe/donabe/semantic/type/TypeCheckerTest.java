@@ -8,7 +8,6 @@ import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.semantic.Scope;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
 import org.junit.jupiter.api.Test;
@@ -20,17 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TypeCheckerTest {
-    private static final int FIRST_IDENTIFIER_ID = 5;
-
-    private Scope generateSimpleScope(String... identifiers) {
-        Scope result = Scope.generateRoot();
-        for (int i = 0; i < identifiers.length; i++) {
-            String identifier = identifiers[i];
-            result.putId(identifier, FIRST_IDENTIFIER_ID + i);
-        }
-        return result;
-    }
-
     private void assertType(ASTNode target, Map<Identifier, Integer> resolution, Type type) {
         var checker = new TypeChecker("", resolution);
         assertEquals(type, target.accept(checker));

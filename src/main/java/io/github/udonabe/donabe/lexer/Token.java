@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe.lexer;
 
-import java.util.regex.Pattern;
 
 public record Token(Kind kind, String lexeme, String lineSource, int line, int column) {
     public enum Kind {

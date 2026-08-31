@@ -11,7 +11,6 @@ import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
 import io.github.udonabe.donabe.runtime.value.*;
-import io.github.udonabe.donabe.semantic.Scope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

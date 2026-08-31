@@ -1,9 +1,6 @@
 package io.github.udonabe.donabe.runtime.context.stack;
 
-import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.ir.instruction.Instruction;
-import io.github.udonabe.donabe.ir.instruction.LoadLocal;
-import io.github.udonabe.donabe.ir.instruction.StoreLocal;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.runtime.value.UndefinedValue;

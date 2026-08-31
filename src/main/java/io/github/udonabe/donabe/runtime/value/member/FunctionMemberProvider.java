@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe.runtime.value.member;
 
-import io.github.udonabe.donabe.runtime.value.ClosureValue;
 import io.github.udonabe.donabe.runtime.value.FunctionValue;
 import io.github.udonabe.donabe.runtime.value.RuntimeValue;
 

@@ -26,17 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IRGeneratorTest {
-    private static final int FIRST_IDENTIFIER_ID = 6;
-
-    private Scope generateSimpleScope(String... identifiers) {
-        Scope result = Scope.generateRoot();
-        for (int i = 0; i < identifiers.length; i++) {
-            String identifier = identifiers[i];
-            result.putId(identifier, FIRST_IDENTIFIER_ID + i);
-        }
-        return result;
-    }
-
     private void assertIRSimple(ASTNode ast, List<Instruction> instructions) {
         assertIR(ast, Map.of(), instructions);
     }

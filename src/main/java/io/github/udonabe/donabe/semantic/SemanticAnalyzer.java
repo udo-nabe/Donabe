@@ -11,7 +11,6 @@ import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
 import io.github.udonabe.donabe.ir.IRProgram;
-import io.github.udonabe.donabe.runtime.VariableCell;
 import io.github.udonabe.donabe.semantic.ir.IRGenerator;
 import io.github.udonabe.donabe.semantic.resolve.NameResolver;
 import io.github.udonabe.donabe.semantic.type.TypeChecker;
@@ -31,11 +30,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         this.source = source;
         this.context = new AnalyzeContext();
     }
-
-    private int nextId() {
-        return resolution.size();
-    }
-
+    
     public AnalyzeResult check(Program program) {
         NameResolver.ResolveResult resolveResult = new NameResolver(source).resolve(program);
 

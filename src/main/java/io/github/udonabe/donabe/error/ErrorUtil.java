@@ -4,8 +4,6 @@ import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.lexer.Token;
 import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
 
-import java.util.Objects;
-
 public class ErrorUtil {
     public static String makeError(int line, int column, String message, Object... format) {
         String formatted = String.format(message, format);

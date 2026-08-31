@@ -3,7 +3,6 @@ package io.github.udonabe.donabe.semantic.type;
 import io.github.udonabe.donabe.CompileException;
 import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ast.type.*;
-import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
 

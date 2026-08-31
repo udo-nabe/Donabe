@@ -2,7 +2,6 @@ package io.github.udonabe.donabe.runtime;
 
 import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.UnaryOperator;
-import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.IRVisitor;
 import io.github.udonabe.donabe.ir.instruction.*;

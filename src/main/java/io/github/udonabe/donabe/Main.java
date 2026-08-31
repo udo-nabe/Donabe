@@ -2,7 +2,6 @@ package io.github.udonabe.donabe;
 
 import io.github.udonabe.donabe.ast.Program;
 import io.github.udonabe.donabe.error.ErrorUtil;
-import io.github.udonabe.donabe.error.StackTraceGenerator;
 import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.lexer.Lexer;
 import io.github.udonabe.donabe.parser.*;
