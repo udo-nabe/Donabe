@@ -19,19 +19,18 @@ import static io.github.udonabe.donabe.parser.Parsers.token;
 import static java.util.Map.entry;
 
 class PrattParser {
-    public static final Parser<FunctionLiteral> functionDefine =
-            token(FUNC)
-                    .then(parameters)
-                    .then(returnType)
-                    .then(blockStatement())
-                    .map(p -> {
-                        SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
-                        List<Parameter> params = p.getLeft().getLeft().getRight();
-                        TypeAnnotation type = p.getLeft().getRight();
-                        BlockStatement block = p.getRight();
+    public static final Parser<FunctionLiteral> functionDefine = token(FUNC)
+            .then(parameters)
+            .then(returnType)
+            .then(blockStatement())
+            .map(p -> {
+                SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
+                List<Parameter> params = p.getLeft().getLeft().getRight();
+                TypeAnnotation type = p.getLeft().getRight();
+                BlockStatement block = p.getRight();
 
-                        return new FunctionLiteral(params, type, block, location);
-                    });
+                return new FunctionLiteral(params, type, block, location);
+            });
     private static final int PREFIX_PRECEDENCE = 100;
     private static final int MIN_PRECEDENCE = 1;
     private static final Map<Token.Kind, Integer> PRECEDENCES = Map.ofEntries(
@@ -49,8 +48,7 @@ class PrattParser {
             entry(Token.Kind.PLUS_ASSIGN, MIN_PRECEDENCE),
             entry(Token.Kind.MINUS_ASSIGN, MIN_PRECEDENCE),
             entry(Token.Kind.ASTERISK_ASSIGN, MIN_PRECEDENCE),
-            entry(Token.Kind.SLASH_ASSIGN, MIN_PRECEDENCE)
-    );
+            entry(Token.Kind.SLASH_ASSIGN, MIN_PRECEDENCE));
     private TokenStream stream;
 
     PrattParser(TokenStream stream) {
@@ -91,7 +89,8 @@ class PrattParser {
                 return left;
             }
             int operatorPrecedence = PRECEDENCES.get(next);
-            if (operatorPrecedence <= precedence) break;
+            if (operatorPrecedence <= precedence)
+                break;
             left = parseInfix(left, operatorPrecedence);
         }
         return left;
@@ -108,7 +107,7 @@ class PrattParser {
             case FUNC -> {
                 var result = functionDefine.parse(before);
                 if (result instanceof ParseSuccess<FunctionLiteral>(FunctionLiteral value)) {
-                    stream.from(before);
+                    stream.commit(before);
                     yield value;
                 }
                 throw new CompileException(((ParseFailed<FunctionLiteral>) result).message());
@@ -121,8 +120,7 @@ class PrattParser {
             case LBRACKET -> {
                 ParseResult<List<Expression>> elementsRes = Parsers.separatedBy(
                         BasicParsers.expression,
-                        Parsers.token(Token.Kind.COMMA)
-                ).parse(stream);
+                        Parsers.token(Token.Kind.COMMA)).parse(stream);
                 if (!(elementsRes instanceof ParseSuccess<List<Expression>>(List<Expression> elements))) {
                     System.out.println(elementsRes);
                     throw new CompileException(((ParseFailed<?>) elementsRes).message());
@@ -131,17 +129,19 @@ class PrattParser {
                 yield new ListLiteral(elements, genLocation(prefix));
             }
             case PLUS ->
-                    new UnaryExpression(UnaryOperator.PLUS, parseExpression(PREFIX_PRECEDENCE), genLocation(prefix));
+                new UnaryExpression(UnaryOperator.PLUS, parseExpression(PREFIX_PRECEDENCE), genLocation(prefix));
             case MINUS ->
-                    new UnaryExpression(UnaryOperator.MINUS, parseExpression(PREFIX_PRECEDENCE), genLocation(prefix));
+                new UnaryExpression(UnaryOperator.MINUS, parseExpression(PREFIX_PRECEDENCE), genLocation(prefix));
             case EXCLAMATION ->
-                    new UnaryExpression(UnaryOperator.NOT, parseExpression(PREFIX_PRECEDENCE), genLocation(prefix));
+                new UnaryExpression(UnaryOperator.NOT, parseExpression(PREFIX_PRECEDENCE), genLocation(prefix));
             case INCREMENT -> {
-                Identifier identifier = new Identifier(stream.consume(Token.Kind.IDENTIFIER).lexeme(), genLocation(prefix));
+                Identifier identifier = new Identifier(stream.consume(Token.Kind.IDENTIFIER).lexeme(),
+                        genLocation(prefix));
                 yield new Increment(identifier, true, genLocation(prefix));
             }
             case DECREMENT -> {
-                Identifier identifier = new Identifier(stream.consume(Token.Kind.IDENTIFIER).lexeme(), genLocation(prefix));
+                Identifier identifier = new Identifier(stream.consume(Token.Kind.IDENTIFIER).lexeme(),
+                        genLocation(prefix));
                 yield new Decrement(identifier, true, genLocation(prefix));
             }
             default -> throw new CompileException(ErrorUtil.makeCompileError(prefix, prefix.lexeme(), "expression"));
@@ -152,23 +152,25 @@ class PrattParser {
         Token infix = stream.advance();
         return switch (infix.kind()) {
             case PLUS ->
-                    new BinaryExpression(prefix, BinaryOperator.PLUS, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.PLUS, parseExpression(precedence), prefix.location());
             case MINUS ->
-                    new BinaryExpression(prefix, BinaryOperator.MINUS, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.MINUS, parseExpression(precedence), prefix.location());
             case ASTERISK ->
-                    new BinaryExpression(prefix, BinaryOperator.MULTIPLICATION, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.MULTIPLICATION, parseExpression(precedence),
+                        prefix.location());
             case SLASH ->
-                    new BinaryExpression(prefix, BinaryOperator.DIVISION, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.DIVISION, parseExpression(precedence), prefix.location());
             case EQUAL ->
-                    new BinaryExpression(prefix, BinaryOperator.EQUAL, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.EQUAL, parseExpression(precedence), prefix.location());
             case LESS ->
-                    new BinaryExpression(prefix, BinaryOperator.LESS, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.LESS, parseExpression(precedence), prefix.location());
             case GREATER ->
-                    new BinaryExpression(prefix, BinaryOperator.GREATER, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.GREATER, parseExpression(precedence), prefix.location());
             case LESS_EQUAL ->
-                    new BinaryExpression(prefix, BinaryOperator.LESS_EQUAL, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.LESS_EQUAL, parseExpression(precedence), prefix.location());
             case GREATER_EQUAL ->
-                    new BinaryExpression(prefix, BinaryOperator.GREATER_EQUAL, parseExpression(precedence), prefix.location());
+                new BinaryExpression(prefix, BinaryOperator.GREATER_EQUAL, parseExpression(precedence),
+                        prefix.location());
             case ASSIGN, PLUS_ASSIGN, MINUS_ASSIGN, ASTERISK_ASSIGN, SLASH_ASSIGN -> assign(prefix, infix, precedence);
             default -> throw new CompileException(ErrorUtil.makeCompileError(infix, infix.lexeme(), "operator"));
         };
@@ -178,13 +180,17 @@ class PrattParser {
         return switch (infix.kind()) {
             case ASSIGN -> new AssignExpression(prefix, parseExpression(precedence - 1), prefix.location());
             case PLUS_ASSIGN ->
-                    new CompoundAssignExpression(prefix, CompoundAssignOperator.PLUS, parseExpression(precedence - 1), prefix.location());
+                new CompoundAssignExpression(prefix, CompoundAssignOperator.PLUS, parseExpression(precedence - 1),
+                        prefix.location());
             case MINUS_ASSIGN ->
-                    new CompoundAssignExpression(prefix, CompoundAssignOperator.MINUS, parseExpression(precedence - 1), prefix.location());
+                new CompoundAssignExpression(prefix, CompoundAssignOperator.MINUS, parseExpression(precedence - 1),
+                        prefix.location());
             case ASTERISK_ASSIGN ->
-                    new CompoundAssignExpression(prefix, CompoundAssignOperator.MULTIPLICATION, parseExpression(precedence - 1), prefix.location());
+                new CompoundAssignExpression(prefix, CompoundAssignOperator.MULTIPLICATION,
+                        parseExpression(precedence - 1), prefix.location());
             case SLASH_ASSIGN ->
-                    new CompoundAssignExpression(prefix, CompoundAssignOperator.DIVISION, parseExpression(precedence - 1), prefix.location());
+                new CompoundAssignExpression(prefix, CompoundAssignOperator.DIVISION, parseExpression(precedence - 1),
+                        prefix.location());
             default -> throw new IllegalStateException("PrattParser#assign has a problem.");
         };
     }
@@ -193,8 +199,7 @@ class PrattParser {
         stream.consume(Token.Kind.LPAREN);
         ParseResult<List<Expression>> argsRes = Parsers.separatedBy(
                 BasicParsers.expression,
-                Parsers.token(Token.Kind.COMMA)
-        ).parse(stream);
+                Parsers.token(Token.Kind.COMMA)).parse(stream);
         if (!(argsRes instanceof ParseSuccess<List<Expression>>(List<Expression> args))) {
             System.out.println(argsRes);
             throw new CompileException(((ParseFailed<?>) argsRes).message());
@@ -219,7 +224,8 @@ class PrattParser {
             stream.consume(Token.Kind.INCREMENT);
             return new Increment(identifier, false, prefix.location());
         } else {
-            throw new CompileException("[line %d, column %d] Unexpected expression: ".formatted(prefix.location().line(), prefix.location().column()) + prefix + ". Expected: IDENTIFIER.");
+            throw new CompileException("[line %d, column %d] Unexpected expression: ".formatted(
+                    prefix.location().line(), prefix.location().column()) + prefix + ". Expected: IDENTIFIER.");
         }
     }
 
@@ -228,7 +234,8 @@ class PrattParser {
             stream.consume(Token.Kind.DECREMENT);
             return new Decrement(identifier, false, prefix.location());
         } else {
-            throw new CompileException("[line %d, column %d] Unexpected expression: ".formatted(prefix.location().line(), prefix.location().column()) + prefix + ". Expected: IDENTIFIER.");
+            throw new CompileException("[line %d, column %d] Unexpected expression: ".formatted(
+                    prefix.location().line(), prefix.location().column()) + prefix + ". Expected: IDENTIFIER.");
         }
     }
 

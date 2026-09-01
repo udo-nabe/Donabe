@@ -15,9 +15,11 @@ final class Parsers {
     private Parsers() {
         throw new AssertionError("Parsers cannot be instantiated.");
     }
+
     /**
      * 入力した種別のトークンを一つ消費し、一致しなければParseFailedを返す。
-     * <p>このメソッドセ生成したパーサーは、成功した場合位置を一つ進め、
+     * <p>
+     * このメソッドセ生成したパーサーは、成功した場合位置を一つ進め、
      * 失敗した場合は一つも進めずにParseFailedを返す。
      *
      * @param kind 要求するトークン種別。
@@ -35,9 +37,11 @@ final class Parsers {
 
     /**
      * 引数の複数のパーサーどれかが成功すれば、その結果を返すパーサー。
-     * <p>このメソッドで生成したパーサーは、引数の指定順に実行するため、
+     * <p>
+     * このメソッドで生成したパーサーは、引数の指定順に実行するため、
      * 一度成功した時点でその結果が返される。そのため、成功したらそれ以降のパーサーは実行されない。
-     * <p>また、全てのパーサーが失敗した場合、全ての失敗した結果の中で最も深く進んだものの結果を返す。
+     * <p>
+     * また、全てのパーサーが失敗した場合、全ての失敗した結果の中で最も深く進んだものの結果を返す。
      *
      * @param parsers 実行するパーサー群。
      * @param <T>     パーサー群共通のスーパークラスまたはインタフェース。
@@ -59,7 +63,7 @@ final class Parsers {
                 var result = parser.parse(fork);
                 switch (result) {
                     case ParseSuccess<? extends T>(T value) -> {
-                        stream.from(fork);
+                        stream.commit(fork);
                         return new ParseSuccess<>(value);
                     }
                     case ParseFailed<? extends T> v -> fails.add((ParseFailed<T>) v);
@@ -72,25 +76,26 @@ final class Parsers {
 
     /**
      * 引数のパーサーを、失敗するまで繰り返すパーサー。
-     * <p>もし{@code parser}がParseSuccessを返したのにも関わらず、位置が進まない場合には、
+     * <p>
+     * もし{@code parser}がParseSuccessを返したのにも関わらず、位置が進まない場合には、
      * IllegalStateExceptionを送出する。
      * そのため、{@link Parser#optional()}を直接の引数にしてはならない。
-     * <p>もし{@code parser}がParseFailedを返し、かつ失敗位置が試行開始時の位置と異なる場合、
+     * <p>
+     * もし{@code parser}がParseFailedを返し、かつ失敗位置が試行開始時の位置と異なる場合、
      * 解析途中で構文エラーが発生したとみなし、ParseFailedを返す。
      *
      * @param parser 繰り返すパーサー。
      * @param <T>    繰り返すパーサーの型。
      * @return 繰り返した結果を、順序を維持してまとめたリスト。
      * @throws IllegalStateException {@code parser}が成功を返したのにも関わらず、位置が変化しない場合。
-     * @throws NullPointerException {@code parser}がnullの場合。
+     * @throws NullPointerException  {@code parser}がnullの場合。
      */
     static <T> Parser<List<T>> many(Parser<T> parser) {
         Objects.requireNonNull(parser);
         return stream -> {
             List<T> result = new ArrayList<>();
 
-            outer:
-            while (!stream.isAtEnd()) {
+            outer: while (!stream.isAtEnd()) {
                 TokenStream fork = stream.fork();
                 ParseResult<? extends T> res = parser.parse(fork);
 
@@ -100,7 +105,7 @@ final class Parsers {
                         if (fork.pos() == stream.pos())
                             throw new IllegalStateException("Parser '" + parser + "' did not advance its position.");
                         result.add(value);
-                        stream.from(fork);
+                        stream.commit(fork);
                     }
                     case ParseFailed<? extends T>(String message, int pos) -> {
                         if (stream.pos() == pos) {
@@ -116,12 +121,15 @@ final class Parsers {
 
     /**
      * 引数のパーサーを順番通りに実行するパーサー。
-     * <p>途中のパーサーが失敗した場合、それ以降は実行されない。
-     * <p>このパーサーは、概念的には{@link Parser#then(Parser)}を複数つなげたものである。
+     * <p>
+     * 途中のパーサーが失敗した場合、それ以降は実行されない。
+     * <p>
+     * このパーサーは、概念的には{@link Parser#then(Parser)}を複数つなげたものである。
+     * 
      * @param parsers 順番に実行されるパーサー群。
      * @return パーサー群の結果を順番にまとめたもの。失敗した場合はその結果。
      * @param <T> リストの型。
-     * @throws NullPointerException 可変長引数自体、またはその要素のうちどれかがnullの場合
+     * @throws NullPointerException     可変長引数自体、またはその要素のうちどれかがnullの場合
      * @throws IllegalArgumentException {@code parsers}が空の場合
      */
     @SafeVarargs
@@ -139,7 +147,7 @@ final class Parsers {
 
                 switch (res) {
                     case ParseSuccess<? extends T>(T value) -> {
-                        stream.from(fork);
+                        stream.commit(fork);
                         result.add(value);
                     }
                     case ParseFailed<? extends T>(String message, int pos) -> {
@@ -153,6 +161,7 @@ final class Parsers {
 
     /**
      * 引数のSupplierを遅延評価するパーサー。
+     * 
      * @param supplier 遅延評価の対象。
      * @return 遅延評価するパーサー。
      * @param <T> パーサーの型。
@@ -165,11 +174,14 @@ final class Parsers {
 
     /**
      * {@code target}を{@code separator}で区切るパーサー。
-     * <p>このパーサーは区切り文字が失敗するまで解析し、失敗したら終了とするため、
+     * <p>
+     * このパーサーは区切り文字が失敗するまで解析し、失敗したら終了とするため、
      * 区切り文字が正しくない場合、その前まで読んで成功となる。
      * そのため、このパーサーを利用するパーサーは、続くトークンで正しいか判定すべきである。
-     * <p>なお、{@code target}の解析に失敗した場合は失敗となる。
-     * @param target 区切る対象。
+     * <p>
+     * なお、{@code target}の解析に失敗した場合は失敗となる。
+     * 
+     * @param target    区切る対象。
      * @param separator 区切るパーサー。
      * @return {@code target}の結果を、順番にまとめたもの。
      * @param <T> {@code target}の型。
@@ -184,7 +196,7 @@ final class Parsers {
             TokenStream fork = stream.fork();
             ParseResult<T> res = target.parse(fork);
             if (res instanceof ParseSuccess<T>(T value)) {
-                stream.from(fork);
+                stream.commit(fork);
                 result.add(value);
             } else {
                 return new ParseSuccess<>(result);
@@ -195,7 +207,7 @@ final class Parsers {
                 res = target.parse(fork);
                 switch (res) {
                     case ParseSuccess<T>(T val) -> {
-                        stream.from(fork);
+                        stream.commit(fork);
                         result.add(val);
                     }
                     case ParseFailed<? extends T>(String message, int pos) -> {
