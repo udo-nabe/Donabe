@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe.runtime.value.member;
 
-import io.github.udonabe.donabe.runtime.value.BooleanValue;
 import io.github.udonabe.donabe.runtime.value.BuiltinFunctionValue;
 import io.github.udonabe.donabe.runtime.value.RuntimeValue;
 

@@ -2,7 +2,6 @@ package io.github.udonabe.donabe.parser;
 
 import io.github.udonabe.donabe.TestUtil;
 import io.github.udonabe.donabe.TokenStream;
-import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;

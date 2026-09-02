@@ -8,7 +8,6 @@ import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.expr.*;
 import io.github.udonabe.donabe.ast.statement.*;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.semantic.Scope;
 import io.github.udonabe.donabe.semantic.type.builtin.*;
 import io.github.udonabe.donabe.semantic.type.function.FunctionType;
 import org.junit.jupiter.api.Test;
@@ -20,35 +19,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TypeCheckerTest {
-    private static final int FIRST_IDENTIFIER_ID = 5;
-
-    private Scope generateSimpleScope(String... identifiers) {
-        Scope result = Scope.generateRoot();
-        for (int i = 0; i < identifiers.length; i++) {
-            String identifier = identifiers[i];
-            result.putId(identifier, FIRST_IDENTIFIER_ID + i);
-        }
-        return result;
-    }
-
-    private void assertType(ASTNode target, Scope rootScope, Type type) {
-        var checker = new TypeChecker(rootScope, "");
+    private void assertType(ASTNode target, Map<Identifier, Integer> resolution, Type type) {
+        var checker = new TypeChecker("", resolution);
         assertEquals(type, target.accept(checker));
     }
 
     private void assertType(ASTNode target, Type type) {
-        assertType(target, Scope.generateRoot(), type);
+        assertType(target, Map.of(), type);
     }
 
-    private void assertTable(ASTNode target, Scope rootScope, Map<Integer, Type> expectedTable) {
-        var checker = new TypeChecker(rootScope, "");
+    private void assertTable(ASTNode target, Map<Identifier, Integer> resolution, Map<Integer, Type> expectedTable) {
+        var checker = new TypeChecker("", resolution);
         target.accept(checker);
         assertEquals(expectedTable, checker.identifierTypeTable());
     }
 
-    private void throwCompileException(ASTNode target, Scope scope) {
+    private void throwCompileException(ASTNode target, Map<Identifier, Integer> resolution) {
         assertThrows(CompileException.class, () -> {
-            var checker = new TypeChecker(scope, "");
+            var checker = new TypeChecker("", resolution);
             target.accept(checker);
         });
     }
@@ -75,11 +63,6 @@ class TypeCheckerTest {
 
     @Test
     void visitFunctionDefineStatement() {
-        Scope root = Scope.generateRoot();
-        root.putId("test", 5);
-        Scope functionScope = root.newChild();
-        functionScope.putId("pan", 6);
-
         assertTable(
                 new Program(List.of(
                         new FunctionDefineStatement(
@@ -96,28 +79,28 @@ class TypeCheckerTest {
                                 ), dummyLocation()),
                                 dummyLocation()
                         )
-                ), dummyLocation()), root,
+                ), dummyLocation()),
+                Map.of(
+                        new Identifier("test", dummyLocation()), 3,
+                        new Identifier("pan", dummyLocation()), 4
+                ),
                 Map.of(
                         0, new FunctionType(List.of(new AnyType()), new VoidType()),
                         1, new FunctionType(List.of(), new StringType()),
-                        2, new FunctionType(List.of(new AnyType()), new StringType()),
-                        3, new FunctionType(List.of(new AnyType()), new IntType()),
-                        4, new FunctionType(List.of(new StringType()), new IntType()),
-                        5, new FunctionType(List.of(new StringType()), new VoidType()),
-                        6, new StringType()
+                        2, new FunctionType(List.of(new IntType(), new IntType()), new ListType(new IntType())),
+                        3, new FunctionType(List.of(new StringType()), new VoidType()),
+                        4, new StringType()
                 ));
     }
 
     @Test
     void visitIfStatement() {
-        Scope root = generateSimpleScope();
-        root.newChild();
         throwCompileException(new IfStatement(
                 new IntegerLiteral(1, dummyLocation()),
                 new BlockStatement(List.of(), dummyLocation()),
                 null,
                 dummyLocation()
-        ), root);
+        ), Map.of());
     }
 
     @Test
@@ -127,14 +110,14 @@ class TypeCheckerTest {
                         new StringLiteral("pot", dummyLocation()),
                         new NamedTypeAnnotation(new Identifier("String", dummyLocation())),
                         dummyLocation()
-                ), generateSimpleScope("pot"),
+                ), Map.of(
+                        new Identifier("pot", dummyLocation()), 3
+                ),
                 Map.of(
                         0, new FunctionType(List.of(new AnyType()), new VoidType()),
                         1, new FunctionType(List.of(), new StringType()),
-                        2, new FunctionType(List.of(new AnyType()), new StringType()),
-                        3, new FunctionType(List.of(new AnyType()), new IntType()),
-                        4, new FunctionType(List.of(new StringType()), new IntType()),
-                        5, new StringType()
+                        2, new FunctionType(List.of(new IntType(), new IntType()), new ListType(new IntType())),
+                        3, new StringType()
                 ));
         throwCompileException(
                 new LetDeclaration(
@@ -142,7 +125,9 @@ class TypeCheckerTest {
                         new IntegerLiteral(3, dummyLocation()),
                         new NamedTypeAnnotation(new Identifier("String", dummyLocation())),
                         dummyLocation()
-                ), generateSimpleScope("pot")
+                ), Map.of(
+                        new Identifier("pot", dummyLocation()), 5
+                )
         );
         throwCompileException(
                 new LetDeclaration(
@@ -150,14 +135,14 @@ class TypeCheckerTest {
                         new IntegerLiteral(3, dummyLocation()),
                         new NamedTypeAnnotation(new Identifier("UnknownType", dummyLocation())),
                         dummyLocation()
-                ), generateSimpleScope("pot")
+                ), Map.of(
+                        new Identifier("pot", dummyLocation()), 5
+                )
         );
     }
 
     @Test
     void visitReturnStatement() {
-        Scope root = generateSimpleScope();
-        root.newChild();
         throwCompileException(
                 new Program(List.of(
                         new FunctionDefineStatement(
@@ -172,24 +157,26 @@ class TypeCheckerTest {
                                 ), dummyLocation()),
                                 dummyLocation()
                         )
-                ), dummyLocation()), root);
+                ), dummyLocation()), Map.of(
+                        new Identifier("test", dummyLocation()), 5
+                ));
     }
 
     @Test
     void visitVarDeclaration() {
         assertTable(new VarDeclaration(
-                new Identifier("pot", dummyLocation()),
-                new StringLiteral("pot", dummyLocation()),
-                new NamedTypeAnnotation(new Identifier("String", dummyLocation())),
-                dummyLocation()
-        ), generateSimpleScope("pot"),
+                        new Identifier("pot", dummyLocation()),
+                        new StringLiteral("pot", dummyLocation()),
+                        new NamedTypeAnnotation(new Identifier("String", dummyLocation())),
+                        dummyLocation()
+                ), Map.of(
+                        new Identifier("pot", dummyLocation()), 3
+                ),
                 Map.of(
                         0, new FunctionType(List.of(new AnyType()), new VoidType()),
                         1, new FunctionType(List.of(), new StringType()),
-                        2, new FunctionType(List.of(new AnyType()), new StringType()),
-                        3, new FunctionType(List.of(new AnyType()), new IntType()),
-                        4, new FunctionType(List.of(new StringType()), new IntType()),
-                        5, new StringType()
+                        2, new FunctionType(List.of(new IntType(), new IntType()), new ListType(new IntType())),
+                        3, new StringType()
                 ));
         throwCompileException(
                 new VarDeclaration(
@@ -197,7 +184,9 @@ class TypeCheckerTest {
                         new IntegerLiteral(3, dummyLocation()),
                         new NamedTypeAnnotation(new Identifier("String", dummyLocation())),
                         dummyLocation()
-                ), generateSimpleScope("pot")
+                ), Map.of(
+                        new Identifier("pot", dummyLocation()), 5
+                )
         );
         throwCompileException(
                 new VarDeclaration(
@@ -205,19 +194,19 @@ class TypeCheckerTest {
                         new IntegerLiteral(3, dummyLocation()),
                         new NamedTypeAnnotation(new Identifier("UnknownType", dummyLocation())),
                         dummyLocation()
-                ), generateSimpleScope("pot")
+                ), Map.of(
+                        new Identifier("pot", dummyLocation()), 5
+                )
         );
     }
 
     @Test
     void visitWhileStatement() {
-        Scope root = generateSimpleScope();
-        root.newChild();
         throwCompileException(new WhileStatement(
                 new IntegerLiteral(1, dummyLocation()),
                 new BlockStatement(List.of(), dummyLocation()),
                 dummyLocation()
-        ), root);
+        ), Map.of());
     }
 
     @Test
@@ -243,7 +232,9 @@ class TypeCheckerTest {
                                 dummyLocation()
                         )
                 ), dummyLocation()),
-                generateSimpleScope("meat")
+                Map.of(
+                        new Identifier("meat", dummyLocation()), 5
+                )
         );
     }
 
@@ -267,7 +258,7 @@ class TypeCheckerTest {
                 BinaryOperator.PLUS,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
 
         // -
         assertType(new BinaryExpression(
@@ -281,7 +272,7 @@ class TypeCheckerTest {
                 BinaryOperator.MINUS,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
 
         // /
         assertType(new BinaryExpression(
@@ -301,7 +292,7 @@ class TypeCheckerTest {
                 BinaryOperator.DIVISION,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
 
         // *
         assertType(new BinaryExpression(
@@ -315,7 +306,7 @@ class TypeCheckerTest {
                 BinaryOperator.MULTIPLICATION,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
 
         // ==
         assertType(new BinaryExpression(
@@ -343,7 +334,7 @@ class TypeCheckerTest {
                 BinaryOperator.LESS,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
 
         // >
         assertType(new BinaryExpression(
@@ -357,7 +348,7 @@ class TypeCheckerTest {
                 BinaryOperator.GREATER,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
 
         // <=
         assertType(new BinaryExpression(
@@ -371,7 +362,7 @@ class TypeCheckerTest {
                 BinaryOperator.LESS_EQUAL,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
 
         // >=
         assertType(new BinaryExpression(
@@ -385,7 +376,7 @@ class TypeCheckerTest {
                 BinaryOperator.GREATER_EQUAL,
                 new IntegerLiteral(2, dummyLocation()),
                 dummyLocation()
-        ), generateSimpleScope());
+        ), Map.of());
     }
 
     @Test
@@ -395,10 +386,6 @@ class TypeCheckerTest {
 
     @Test
     void visitCallExpression() {
-        Scope root = generateSimpleScope("test");
-        Scope child = root.newChild();
-        child.putId("a", 6);
-
         throwCompileException(new Program(List.of(
                 new FunctionDefineStatement(
                         new Identifier("test", dummyLocation()),
@@ -421,7 +408,10 @@ class TypeCheckerTest {
                                 dummyLocation()
                         ), dummyLocation()
                 )
-        ), dummyLocation()), root);
+        ), dummyLocation()), Map.of(
+                new Identifier("test", dummyLocation()), 5,
+                new Identifier("a", dummyLocation()), 6
+        ));
     }
 
     @Test
@@ -444,7 +434,9 @@ class TypeCheckerTest {
                                 dummyLocation()
                         )
                 ), dummyLocation()),
-                generateSimpleScope("meat")
+                Map.of(
+                        new Identifier("meat", dummyLocation()), 5
+                )
         );
     }
 
@@ -467,16 +459,14 @@ class TypeCheckerTest {
                                 dummyLocation()
                         )
                 ), dummyLocation()),
-                generateSimpleScope("meat")
+                Map.of(
+                        new Identifier("meat", dummyLocation()), 5
+                )
         );
     }
 
     @Test
     void visitFunctionLiteral() {
-        Scope rootScope = Scope.generateRoot();
-        Scope functionScope = rootScope.newChild();
-        functionScope.putId("meat", 5);
-
         assertType(new FunctionLiteral(
                 List.of(
                         new Parameter(new Identifier("meat", dummyLocation()),
@@ -492,7 +482,9 @@ class TypeCheckerTest {
                         ), dummyLocation()
                 ),
                 dummyLocation()
-        ), rootScope, new FunctionType(
+        ),                 Map.of(
+                new Identifier("meat", dummyLocation()), 5
+        ), new FunctionType(
                 List.of(new StringType()),
                 new StringType()
         ));
@@ -500,7 +492,7 @@ class TypeCheckerTest {
 
     @Test
     void visitIdentifier() {
-        assertThrows(AssertionError.class, () -> assertType(new Identifier("notFound", dummyLocation()), new AnyType()));
+        assertThrows(NullPointerException.class, () -> assertType(new Identifier("notFound", dummyLocation()), new AnyType()));
     }
 
     @Test
@@ -522,7 +514,9 @@ class TypeCheckerTest {
                                 dummyLocation()
                         )
                 ), dummyLocation()),
-                generateSimpleScope("meat")
+                Map.of(
+                        new Identifier("meat", dummyLocation()), 5
+                )
         );
     }
 
@@ -563,13 +557,13 @@ class TypeCheckerTest {
         );
 
         throwCompileException(
-                new UnaryExpression(UnaryOperator.NOT, new StringLiteral("false", dummyLocation()), dummyLocation()), generateSimpleScope()
+                new UnaryExpression(UnaryOperator.NOT, new StringLiteral("false", dummyLocation()), dummyLocation()), Map.of()
         );
         throwCompileException(
-                new UnaryExpression(UnaryOperator.PLUS, new BooleanLiteral(false, dummyLocation()), dummyLocation()), generateSimpleScope()
+                new UnaryExpression(UnaryOperator.PLUS, new BooleanLiteral(false, dummyLocation()), dummyLocation()), Map.of()
         );
         throwCompileException(
-                new UnaryExpression(UnaryOperator.MINUS, new StringLiteral("false", dummyLocation()), dummyLocation()), generateSimpleScope()
+                new UnaryExpression(UnaryOperator.MINUS, new StringLiteral("false", dummyLocation()), dummyLocation()), Map.of()
         );
     }
 

@@ -8,12 +8,9 @@ import io.github.udonabe.donabe.parser.BasicParsers;
 import io.github.udonabe.donabe.parser.ParseFailed;
 import io.github.udonabe.donabe.parser.ParseResult;
 import io.github.udonabe.donabe.parser.ParseSuccess;
-import io.github.udonabe.donabe.runtime.BuiltinFunctions;
-import io.github.udonabe.donabe.runtime.VariableCell;
-import io.github.udonabe.donabe.runtime.value.UndefinedValue;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -169,7 +166,7 @@ class SemanticAnalyzerTest {
                 """);
     }
 
-    private void nameResolution(String source, Map<Integer, VariableCell> resolution) {
+    private void nameResolution(String source, Set<Integer> resolution) {
         Lexer l = new Lexer(source);
         ParseResult<Program> programResult = BasicParsers.program.parse(l.toTokenStream());
 
@@ -178,7 +175,7 @@ class SemanticAnalyzerTest {
             return; //到達不可能。コンパイルを通すため。
         }
 
-        Map<Integer, VariableCell> nameResolutions = new SemanticAnalyzer(source).check(value).resolution();
+        Set<Integer> nameResolutions = new SemanticAnalyzer(source).check(value).resolution();
         assertEquals(resolution, nameResolutions);
     }
 
@@ -192,19 +189,7 @@ class SemanticAnalyzerTest {
                         let c: Int = add(a, b);
                         print("ADD: " + c.toString());
                         """,
-                Map.ofEntries(
-                        Map.entry(0, new VariableCell(BuiltinFunctions.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(BuiltinFunctions.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(BuiltinFunctions.BUILTIN_RANGE)),    //string
-
-                        Map.entry(3, new VariableCell(new UndefinedValue())),  //func add
-                        Map.entry(4, new VariableCell(new UndefinedValue())),  //add->a
-                        Map.entry(5, new VariableCell(new UndefinedValue())),  //add->b
-
-                        Map.entry(6, new VariableCell(new UndefinedValue())),  //let a
-                        Map.entry(7, new VariableCell(new UndefinedValue())),  //var b
-                        Map.entry(8, new VariableCell(new UndefinedValue()))  //let c
-                ));
+                Set.of(0, 1, 2, 3, 4, 5, 6, 7, 8));
     }
 
     @Test
@@ -237,17 +222,7 @@ class SemanticAnalyzerTest {
                         }
                         let a: Int = add(1, 2);
                         """,
-                Map.ofEntries(
-                        Map.entry(0, new VariableCell(BuiltinFunctions.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(BuiltinFunctions.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(BuiltinFunctions.BUILTIN_RANGE)),    //string
-
-                        Map.entry(3, new VariableCell(new UndefinedValue())),  //func add
-                        Map.entry(4, new VariableCell(new UndefinedValue())),  //add->a
-                        Map.entry(5, new VariableCell(new UndefinedValue())),  //add->b
-
-                        Map.entry(6, new VariableCell(new UndefinedValue()))  //let a
-                ));
+                Set.of(0, 1, 2, 3, 4, 5, 6));
     }
 
     @Test
@@ -262,20 +237,6 @@ class SemanticAnalyzerTest {
                         
                         let b: Int = add(3, 4);
                         """,
-                Map.ofEntries(
-                        Map.entry(0, new VariableCell(BuiltinFunctions.BUILTIN_PRINT)),    //print
-                        Map.entry(1, new VariableCell(BuiltinFunctions.BUILTIN_INPUT)),    //input
-                        Map.entry(2, new VariableCell(BuiltinFunctions.BUILTIN_RANGE)),    //string
-
-                        Map.entry(3, new VariableCell(new UndefinedValue())),  //func add
-                        Map.entry(4, new VariableCell(new UndefinedValue())),  //add->a
-                        Map.entry(5, new VariableCell(new UndefinedValue())),  //add->b
-
-                        Map.entry(6, new VariableCell(new UndefinedValue())),  //add->func impl
-                        Map.entry(7, new VariableCell(new UndefinedValue())),  //add->impl->a
-                        Map.entry(8, new VariableCell(new UndefinedValue())),  //add->impl->b
-
-                        Map.entry(9, new VariableCell(new UndefinedValue()))   //let b
-                ));
+                Set.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
     }
 }

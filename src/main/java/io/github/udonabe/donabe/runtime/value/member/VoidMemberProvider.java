@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe.runtime.value.member;
 
-import io.github.udonabe.donabe.runtime.value.IntegerValue;
 import io.github.udonabe.donabe.runtime.value.RuntimeValue;
 import io.github.udonabe.donabe.runtime.value.VoidValue;
 

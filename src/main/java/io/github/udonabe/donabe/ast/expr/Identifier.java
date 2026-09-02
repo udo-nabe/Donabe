@@ -3,8 +3,6 @@ package io.github.udonabe.donabe.ast.expr;
 import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.SourceFileLocation;
 
-import java.util.Objects;
-
 public record Identifier(String name, SourceFileLocation location) implements Expression {
 
     @Override

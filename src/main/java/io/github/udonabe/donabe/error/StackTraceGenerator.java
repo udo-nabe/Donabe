@@ -3,10 +3,8 @@ package io.github.udonabe.donabe.error;
 import io.github.udonabe.donabe.ir.instruction.Instruction;
 import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
 
 public class StackTraceGenerator {
     public static String generateStackTrace(StackFrame currentStackFrame) {

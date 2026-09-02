@@ -2,7 +2,6 @@ package io.github.udonabe.donabe.runtime.value.member;
 
 import io.github.udonabe.donabe.runtime.value.BooleanValue;
 import io.github.udonabe.donabe.runtime.value.RuntimeValue;
-import io.github.udonabe.donabe.runtime.value.StringValue;
 
 import java.util.Map;
 

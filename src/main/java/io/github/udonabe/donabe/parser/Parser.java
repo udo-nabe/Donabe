@@ -8,7 +8,8 @@ import java.util.function.Function;
 
 /**
  * パーサーコンビネーターの中核となる関数インタフェース。
- * <p>この関数インタフェースを組み合わせ、複雑な解析を実現する。
+ * <p>
+ * この関数インタフェースを組み合わせ、複雑な解析を実現する。
  *
  * @param <T> 成功時、このパーサーが{@link ParseSuccess}にラップして返す型。
  *            通常{@link io.github.udonabe.donabe.lexer.Token}や{@link io.github.udonabe.donabe.ast.ASTNode}のサブタイプを使用するが、
@@ -18,10 +19,12 @@ import java.util.function.Function;
 public interface Parser<T> {
     /**
      * {@link TokenStream}を必要なだけ消費し、{@link ParseResult}を返す。
-     * <p>このメソッド内で送出された例外は重大なエラー、または実装上のバグとして扱われるため、パーサーコンビネーター内で捕捉してはならず、
+     * <p>
+     * このメソッド内で送出された例外は重大なエラー、または実装上のバグとして扱われるため、パーサーコンビネーター内で捕捉してはならず、
      * 外部で捕捉すべきである。また、解析失敗を表したい場合は、通常{@link ParseFailed}を使用し、
      * 何か重大な障害が発生したときのみ、例外を送出すべきである。
-     * <p>そのため、パーサーコンビネーター内で例外が発生する可能性のある処理をする場合は、
+     * <p>
+     * そのため、パーサーコンビネーター内で例外が発生する可能性のある処理をする場合は、
      * 上記に則って適切に処理する必要がある。
      *
      * @param in 入力のトークン列。
@@ -56,7 +59,8 @@ public interface Parser<T> {
 
     /**
      * 自分自身と、引数のパーサー両方で順に解析するパーサーを返す。
-     * <p>このメソッドは、どちらかのパースに失敗した場合、その{@link ParseFailed}を返す。なお、順番にパースするため、
+     * <p>
+     * このメソッドは、どちらかのパースに失敗した場合、その{@link ParseFailed}を返す。なお、順番にパースするため、
      * 自分自身のパースに失敗したら{@code next}はパースされない。
      *
      * @param next 自分自身の次に実行されるパーサー。
@@ -82,7 +86,8 @@ public interface Parser<T> {
 
     /**
      * 自分自身と、引数のパーサー両方で順に解析し、自分自身の結果を捨てるパーサーを返す。
-     * <p>このメソッドは、どちらかのパースに失敗した場合、その{@link ParseFailed}を返す。なお、順番にパースするため、
+     * <p>
+     * このメソッドは、どちらかのパースに失敗した場合、その{@link ParseFailed}を返す。なお、順番にパースするため、
      * 自分自身のパースに失敗したら{@code next}はパースされない。
      *
      * @param next 自分自身の次に実行されるパーサー。
@@ -108,7 +113,8 @@ public interface Parser<T> {
 
     /**
      * 自分自身と、引数のパーサー両方で順に解析し、{@code next}の結果を捨てるパーサーを返す。
-     * <p>このメソッドは、どちらかのパースに失敗した場合、その{@link ParseFailed}を返す。なお、順番にパースするため、
+     * <p>
+     * このメソッドは、どちらかのパースに失敗した場合、その{@link ParseFailed}を返す。なお、順番にパースするため、
      * 自分自身のパースに失敗したら{@code next}はパースされない。
      *
      * @param next 自分自身の次に実行されるパーサー。
@@ -133,7 +139,8 @@ public interface Parser<T> {
 
     /**
      * 自分自身を、{@code left}と{@code right}で挟み込んだパーサーを返す。
-     * <p>このメソッドは、{@code left}→自分自身→{@code right}の順でパースするパーサーを返すため、先に実行されたパーサーが失敗した場合、
+     * <p>
+     * このメソッドは、{@code left}→自分自身→{@code right}の順でパースするパーサーを返すため、先に実行されたパーサーが失敗した場合、
      * 後のパーサーは実行されない。
      *
      * @param left  自分自身の前に実行されるパーサー。
@@ -148,8 +155,10 @@ public interface Parser<T> {
 
     /**
      * 自分自身を、必須ではないパーサーに変換したものを返す。
-     * <p>このメソッドで変換したパーサーはバックトラックを行うため、失敗しても元の位置を維持する。
+     * <p>
+     * このメソッドで変換したパーサーはバックトラックを行うため、失敗しても元の位置を維持する。
      * そのため、{@link Parsers#many(Parser)}の直接の引数としてはならない。
+     * 
      * @return 自分自身のパースに成功した場合は、それを{@link Optional}でラップしたもの。失敗した場合は、{@code Optional.empty}。
      * @see Parsers#many(Parser)
      */
@@ -159,7 +168,7 @@ public interface Parser<T> {
             ParseResult<T> res = this.parse(fork);
 
             if (res instanceof ParseSuccess<T>(T value)) {
-                stream.from(fork);
+                stream.commit(fork);
                 return new ParseSuccess<>(Optional.of(value));
             } else {
                 return new ParseSuccess<>(Optional.empty());

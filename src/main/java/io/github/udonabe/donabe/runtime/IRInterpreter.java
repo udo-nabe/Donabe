@@ -2,7 +2,6 @@ package io.github.udonabe.donabe.runtime;
 
 import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.UnaryOperator;
-import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.IRVisitor;
 import io.github.udonabe.donabe.ir.instruction.*;
@@ -22,13 +21,11 @@ public class IRInterpreter implements IRVisitor<Void> {
     private final InterpretContext context;
     private final Operations registry;
     private final Map<Label, Integer> labelJmpMap;
-    private final Map<Integer, VariableCell> globalIdentifiers;
 
-    public IRInterpreter(IRProgram program, Map<Integer, VariableCell> resolution, Operations registry) {
+    public IRInterpreter(IRProgram program, Set<Integer> resolution, Operations registry) {
         this.context = new InterpretContext(program.instructions(), resolution);
         this.registry = registry;
         this.labelJmpMap = new HashMap<>();
-        this.globalIdentifiers = resolution;
         log.debug("resolution: {}", resolution);
     }
 
@@ -101,7 +98,7 @@ public class IRInterpreter implements IRVisitor<Void> {
             ) -> {
                 List<RuntimeValue<?>> argValues = bindArgs(paramSlots.size());
 
-                StackFrame calleeStackFrame = new StackFrame(context.peekStackFrame(), parent, name, instructions, globalIdentifiers, locals);
+                StackFrame calleeStackFrame = new StackFrame(context.peekStackFrame(), parent, name, instructions, locals);
 
                 context.pushStackFrame(calleeStackFrame);
 

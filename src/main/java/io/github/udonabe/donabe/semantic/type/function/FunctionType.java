@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe.semantic.type.function;
 
-import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 import io.github.udonabe.donabe.semantic.type.MemberInfo;
 import io.github.udonabe.donabe.semantic.type.Type;
 import io.github.udonabe.donabe.semantic.type.builtin.AnyType;

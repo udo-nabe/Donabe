@@ -24,9 +24,6 @@ public class IRGenerateContext {
         }
         locals.pop();
     }
-    public boolean inFunction() {
-        return !locals.isEmpty();
-    }
     public Set<Integer> currentLocals() {
         return locals.peek();
     }

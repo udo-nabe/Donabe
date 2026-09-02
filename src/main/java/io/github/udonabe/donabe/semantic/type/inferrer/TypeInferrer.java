@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe.semantic.type.inferrer;
 
-import io.github.udonabe.donabe.ast.SourceFileLocation;
 import io.github.udonabe.donabe.ast.type.TypeAnnotation;
 import io.github.udonabe.donabe.ast.type.UnknownTypeAnnotation;
 import io.github.udonabe.donabe.semantic.type.Type;

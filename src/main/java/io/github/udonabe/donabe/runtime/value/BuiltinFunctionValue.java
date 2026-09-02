@@ -1,12 +1,9 @@
 package io.github.udonabe.donabe.runtime.value;
 
-import io.github.udonabe.donabe.runtime.InterpreterException;
-import io.github.udonabe.donabe.runtime.value.member.BooleanMemberProvider;
 import io.github.udonabe.donabe.runtime.value.member.FunctionMemberProvider;
 import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 public record BuiltinFunctionValue(List<String> formalArgs, Function<List<? extends RuntimeValue<?>>, RuntimeValue<?>> content) implements RuntimeValue<String> {

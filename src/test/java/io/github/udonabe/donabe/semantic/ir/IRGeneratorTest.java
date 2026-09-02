@@ -26,27 +26,16 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IRGeneratorTest {
-    private static final int FIRST_IDENTIFIER_ID = 6;
-
-    private Scope generateSimpleScope(String... identifiers) {
-        Scope result = Scope.generateRoot();
-        for (int i = 0; i < identifiers.length; i++) {
-            String identifier = identifiers[i];
-            result.putId(identifier, FIRST_IDENTIFIER_ID + i);
-        }
-        return result;
-    }
-
     private void assertIRSimple(ASTNode ast, List<Instruction> instructions) {
-        assertIR(ast, Scope.generateRoot(), Set.of(), instructions);
+        assertIR(ast, Map.of(), instructions);
     }
 
-    private void assertIR(ASTNode ast, Scope root, Set<Integer> resolution, List<Instruction> instructions) {
-        assertIR(ast, root, instructions, resolution, new HashMap<>());
+    private void assertIR(ASTNode ast, Map<Identifier, Integer> resolution, List<Instruction> instructions) {
+        assertIR(ast, instructions, resolution, new HashMap<>());
     }
 
-    private void assertIR(ASTNode ast, Scope root, List<Instruction> instructions, Set<Integer> resolution, Map<ASTNode, Set<Integer>> map) {
-        List<Instruction> actualInstructions = ast.accept(new IRGenerator(root, resolution, map));
+    private void assertIR(ASTNode ast, List<Instruction> instructions, Map<Identifier, Integer> resolution, Map<ASTNode, Set<Integer>> map) {
+        List<Instruction> actualInstructions = ast.accept(new IRGenerator(resolution, Set.copyOf(resolution.values()), map));
         assertIterableEquals(instructions, actualInstructions);
     }
 
@@ -88,8 +77,8 @@ class IRGeneratorTest {
                         ),
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("foo", "bar"),
-                Set.of(6, 7),
+                Map.of(new Identifier("foo", new SourceFileLocation(1, 1)), 6,
+                        new Identifier("bar", new SourceFileLocation(1, 1)),7),
                 List.of(
                         new Push(new IntegerValue(42), dummyLocation()),
                         new StoreLocal(6, dummyLocation()),
@@ -107,11 +96,6 @@ class IRGeneratorTest {
 
     @Test
     void visitBlockStatement() {
-        Scope root = Scope.generateRoot();
-        Scope child = root.newChild();
-        child.putId("foo", 6);
-        child.putId("bar", 7);
-
         assertIR(
                 new BlockStatement(
                         List.of(
@@ -143,8 +127,9 @@ class IRGeneratorTest {
                                 )
                         ),
                         new SourceFileLocation(1, 1)
-                ), root,
-                Set.of(6, 7),
+                ),
+                Map.of(new Identifier("foo", new SourceFileLocation(1, 1)), 6,
+                        new Identifier("bar", new SourceFileLocation(1, 1)),7),
                 List.of(
                         new Push(new IntegerValue(42), dummyLocation()),
                         new StoreLocal(6, dummyLocation()),
@@ -254,14 +239,16 @@ class IRGeneratorTest {
                         ),
                         new SourceFileLocation(1, 1)
                 ),
-                root,
                 List.of(
                         new Push(functionValue, dummyLocation()),
                         new StoreLocal(6, dummyLocation()),
                         new Push(new IntegerValue(42), dummyLocation()),
                         new StoreLocal(7, dummyLocation())
                 ),
-                Set.of(6, 7, 8, 9),
+                Map.of(new Identifier("add", new SourceFileLocation(1, 1)), 6,
+                        new Identifier("answer", new SourceFileLocation(1, 1)),7,
+                        new Identifier("a", new SourceFileLocation(1, 1)), 8,
+                        new Identifier("b", new SourceFileLocation(1, 1)),9),
                 Map.of(
                         define, Set.of(8, 9)
                 )
@@ -297,8 +284,7 @@ class IRGeneratorTest {
                         ),
                         new SourceFileLocation(1, 1)
                 ),
-                root,
-                Set.of(),
+                Map.of(),
                 List.of(
                         new Push(new BooleanValue(true), dummyLocation()),
                         new JmpFalse(new Label(".0"), dummyLocation()),
@@ -316,11 +302,6 @@ class IRGeneratorTest {
                 )
         );
 
-        //ifのみの場合
-        Scope rootOnlyIf = Scope.generateRoot();
-
-        rootOnlyIf.newChild();    //if block
-
         assertIR(
                 new IfStatement(
                         new BooleanLiteral(true, new SourceFileLocation(1, 1)),
@@ -335,8 +316,7 @@ class IRGeneratorTest {
                         null,
                         new SourceFileLocation(1, 1)
                 ),
-                rootOnlyIf,
-                Set.of(),
+                Map.of(),
                 List.of(
                         new Push(new BooleanValue(true), dummyLocation()),
                         new JmpFalse(new Label(".0"), dummyLocation()),
@@ -358,8 +338,7 @@ class IRGeneratorTest {
                         new NamedTypeAnnotation(new Identifier("string", new SourceFileLocation(1, 1))),
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("bar"),
-                Set.of(6),
+                Map.of(new Identifier("bar", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new Push(new StringValue("Hello"), dummyLocation()),
                         new StoreLocal(6, dummyLocation())
@@ -402,8 +381,7 @@ class IRGeneratorTest {
                         new NamedTypeAnnotation(new Identifier("string", new SourceFileLocation(1, 1))),
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("hoge"),
-                Set.of(6),
+                Map.of(new Identifier("hoge", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new Push(new StringValue("Hello"), dummyLocation()),
                         new StoreLocal(6, dummyLocation())
@@ -413,9 +391,6 @@ class IRGeneratorTest {
 
     @Test
     void visitWhileStatement() {
-        Scope root = Scope.generateRoot();
-        root.newChild();
-
         assertIR(
                 new WhileStatement(
                         new BooleanLiteral(true, new SourceFileLocation(1, 1)),
@@ -428,8 +403,7 @@ class IRGeneratorTest {
                                 ), new SourceFileLocation(1, 1)
                         ), new SourceFileLocation(1, 1)
                 ),
-                root,
-                Set.of(),
+                Map.of(),
                 List.of(
                         new LabelNop(new Label(".0"), dummyLocation()),
 
@@ -459,8 +433,7 @@ class IRGeneratorTest {
                         new StringLiteral("Hello", new SourceFileLocation(1, 1)),
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("bar"),
-                Set.of(6),
+                Map.of(new Identifier("bar", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new Push(new StringValue("Hello"), dummyLocation()),
                         new StoreLocal(6, dummyLocation()),
@@ -588,7 +561,6 @@ class IRGeneratorTest {
                         ),
                         new SourceFileLocation(1, 1)
                 ),
-                root,
                 List.of(
                         new Push(functionValue, dummyLocation()),
                         new StoreLocal(6, dummyLocation()),
@@ -598,7 +570,9 @@ class IRGeneratorTest {
                         new Call(dummyLocation()),
                         new Pop(dummyLocation())
                 ),
-                Set.of(6, 7, 8),
+                Map.of(new Identifier("add", new SourceFileLocation(1, 1)), 6,
+                        new Identifier("a", new SourceFileLocation(1, 1)),7,
+                        new Identifier("b", new SourceFileLocation(1, 1)), 8),
                 Map.of(
                         define, Set.of(7, 8)
                 )
@@ -614,8 +588,7 @@ class IRGeneratorTest {
                         new IntegerLiteral(1234, new SourceFileLocation(1, 1)),
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("bar"),
-                Set.of(6),
+                Map.of(new Identifier("bar", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new LoadLocal(6, dummyLocation()),
                         new Push(new IntegerValue(1234), dummyLocation()),
@@ -635,8 +608,7 @@ class IRGeneratorTest {
                         true,
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("hoge"),
-                Set.of(6),
+                Map.of(new Identifier("hoge", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new LoadLocal(6, dummyLocation()),
                         new Push(new IntegerValue(1), dummyLocation()),
@@ -653,8 +625,7 @@ class IRGeneratorTest {
                         false,
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("hoge"),
-                Set.of(6),
+                Map.of(new Identifier("hoge", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new LoadLocal(6, dummyLocation()),
                         new LoadLocal(6, dummyLocation()),
@@ -716,11 +687,11 @@ class IRGeneratorTest {
 
         assertIR(
                 define,
-                root,
                 List.of(
                         new Push(functionValue, dummyLocation())
                 ),
-                Set.of(6, 7),
+                Map.of(new Identifier("a", new SourceFileLocation(1, 1)), 6,
+                        new Identifier("b", new SourceFileLocation(1, 1)), 7),
                 Map.of(
                         define, Set.of(6, 7)
                 )
@@ -731,8 +702,7 @@ class IRGeneratorTest {
     void visitIdentifier() {
         assertIR(
                 new Identifier("foo", new SourceFileLocation(1, 1)),
-                generateSimpleScope("foo"),
-                Set.of(6),
+                Map.of(new Identifier("foo", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new LoadLocal(6, dummyLocation())
                 )
@@ -748,8 +718,7 @@ class IRGeneratorTest {
                         true,
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("hoge"),
-                Set.of(6),
+                Map.of(new Identifier("hoge", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new LoadLocal(6, dummyLocation()),
                         new Push(new IntegerValue(1), dummyLocation()),
@@ -766,8 +735,7 @@ class IRGeneratorTest {
                         false,
                         new SourceFileLocation(1, 1)
                 ),
-                generateSimpleScope("hoge"),
-                Set.of(6),
+                Map.of(new Identifier("hoge", new SourceFileLocation(1, 1)), 6),
                 List.of(
                         new LoadLocal(6, dummyLocation()),
                         new LoadLocal(6, dummyLocation()),

@@ -22,225 +22,224 @@ import static io.github.udonabe.donabe.lexer.Token.Kind.*;
 import static io.github.udonabe.donabe.parser.Parsers.*;
 
 public final class BasicParsers {
-    public static final Parser<Identifier> identifier = token(IDENTIFIER).map(t -> new Identifier(t.lexeme(), genLocation(t)));
+        public static final Parser<Identifier> identifier = token(IDENTIFIER)
+                        .map(t -> new Identifier(t.lexeme(), genLocation(t)));
 
-    public static final Parser<NamedTypeAnnotation> namedType = identifier
-            .map(NamedTypeAnnotation::new);
-    public static final Parser<FunctionTypeAnnotation> functionType =
-            token(LPAREN)
-                    .then(separatedBy(type(), token(COMMA)))
-                    .skip(token(RPAREN))
-                    .skip(token(ARROW))
-                    .then(type())
-                    .map(p -> {
-                        SourceFileLocation location = genLocation(p.getLeft().getLeft());
-                        List<TypeAnnotation> param = p.getLeft().getRight();
-                        TypeAnnotation returnType = p.getRight();
+        public static final Parser<NamedTypeAnnotation> namedType = identifier
+                        .map(NamedTypeAnnotation::new);
+        public static final Parser<FunctionTypeAnnotation> functionType = token(LPAREN)
+                        .then(separatedBy(type(), token(COMMA)))
+                        .skip(token(RPAREN))
+                        .skip(token(ARROW))
+                        .then(type())
+                        .map(p -> {
+                                SourceFileLocation location = genLocation(p.getLeft().getLeft());
+                                List<TypeAnnotation> param = p.getLeft().getRight();
+                                TypeAnnotation returnType = p.getRight();
 
-                        return new FunctionTypeAnnotation(param, returnType, location);
-                    });
-    public static final Parser<GenericTypeAnnotation> genericType =
-            identifier
-                    .then(
-                            separatedBy(type(), token(COMMA))
-                                    .between(token(LESS), token(GREATER))
-                    )
-                    .map(p -> {
-                        TypeAnnotation baseType = new NamedTypeAnnotation(p.getLeft());
-                        List<TypeAnnotation> parameters = p.getRight();
-                        return new GenericTypeAnnotation(baseType, parameters);
-                    });
-    public static final Parser<TypeAnnotation> typeAnnotation = token(COLON).to(type());
+                                return new FunctionTypeAnnotation(param, returnType, location);
+                        });
+        public static final Parser<GenericTypeAnnotation> genericType = identifier
+                        .then(
+                                        separatedBy(type(), token(COMMA))
+                                                        .between(token(LESS), token(GREATER)))
+                        .map(p -> {
+                                TypeAnnotation baseType = new NamedTypeAnnotation(p.getLeft());
+                                List<TypeAnnotation> parameters = p.getRight();
+                                return new GenericTypeAnnotation(baseType, parameters);
+                        });
+        public static final Parser<TypeAnnotation> typeAnnotation = token(COLON).to(type());
 
-    public static final Parser<Expression> expression =
-            stream -> {
+        public static final Parser<Expression> expression = stream -> {
                 TokenStream fork = stream.fork();
                 try {
-                    var res = new PrattParser(fork).parseExpression(0);
-                    stream.from(fork);
-                    return new ParseSuccess<>(res);
+                        var res = new PrattParser(fork).parseExpression(0);
+                        stream.commit(fork);
+                        return new ParseSuccess<>(res);
                 } catch (CompileException e) {
-                    return new ParseFailed<>(e.getMessage(), fork.pos());
+                        return new ParseFailed<>(e.getMessage(), fork.pos());
                 }
-            };
-    public static final Parser<LetDeclaration> letDeclaration =
-            token(LET)
-                    .then(identifier)
-                    .then(typeAnnotation.optional())
-                    .skip(token(ASSIGN))
-                    .then(expression)
-                    .skip(token(SEMICOLON))
-                    .map(p -> {
-                        SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
-                        Identifier identifier = p.getLeft().getLeft().getRight();
-                        TypeAnnotation type = p.getKey().getRight().orElse(new UnknownTypeAnnotation(location));
-                        Expression expr = p.getRight();
+        };
+        public static final Parser<LetDeclaration> letDeclaration = token(LET)
+                        .then(identifier)
+                        .then(typeAnnotation.optional())
+                        .skip(token(ASSIGN))
+                        .then(expression)
+                        .skip(token(SEMICOLON))
+                        .map(p -> {
+                                SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
+                                Identifier identifier = p.getLeft().getLeft().getRight();
+                                TypeAnnotation type = p.getKey().getRight().orElse(new UnknownTypeAnnotation(location));
+                                Expression expr = p.getRight();
 
-                        return new LetDeclaration(identifier, expr, type, location);
-                    });
-    public static final Parser<VarDeclaration> varDeclaration =
-            token(VAR)
-                    .then(identifier)
-                    .then(typeAnnotation.optional())
-                    .skip(token(ASSIGN))
-                    .then(expression)
-                    .skip(token(SEMICOLON))
-                    .map(p -> {
-                        SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
-                        Identifier identifier = p.getLeft().getLeft().getRight();
-                        TypeAnnotation type = p.getKey().getRight().orElse(new UnknownTypeAnnotation(location));
-                        Expression expr = p.getRight();
+                                return new LetDeclaration(identifier, expr, type, location);
+                        });
+        public static final Parser<VarDeclaration> varDeclaration = token(VAR)
+                        .then(identifier)
+                        .then(typeAnnotation.optional())
+                        .skip(token(ASSIGN))
+                        .then(expression)
+                        .skip(token(SEMICOLON))
+                        .map(p -> {
+                                SourceFileLocation location = genLocation(p.getLeft().getLeft().getLeft());
+                                Identifier identifier = p.getLeft().getLeft().getRight();
+                                TypeAnnotation type = p.getKey().getRight().orElse(new UnknownTypeAnnotation(location));
+                                Expression expr = p.getRight();
 
-                        return new VarDeclaration(identifier, expr, type, location);
-                    });
-    public static final Parser<ExpressionStatement> expressionStatement =
-            expression.map(e -> new ExpressionStatement(e, e.location()))
-                    .skip(token(SEMICOLON));
-    public static final Parser<WhileStatement> whileStatement =
-            token(WHILE).then(expression)
-                    .then(blockStatement())
-                    .map(p -> new WhileStatement(p.getLeft().getRight(), p.getRight(), genLocation(p.getLeft().getLeft())));
-    @SuppressWarnings("unchecked")
-    public static final Parser<BlockStatement> forStatement =
-            sequence(
-                    token(FOR).then(varDeclaration),
-                    expression.skip(token(SEMICOLON)),
-                    expression.skip(token(SEMICOLON).optional()),
-                    blockStatement()
-            ).map(l -> {
-                var tokenVarDeclarationPair = (Pair<Token, VarDeclaration>) l.get(0);
-                Expression condition = (Expression) l.get(1);
-                Expression update = (Expression) l.get(2);
-                BlockStatement block = (BlockStatement) l.get(3);
+                                return new VarDeclaration(identifier, expr, type, location);
+                        });
+        public static final Parser<ExpressionStatement> expressionStatement = expression
+                        .map(e -> new ExpressionStatement(e, e.location()))
+                        .skip(token(SEMICOLON));
+        public static final Parser<WhileStatement> whileStatement = token(WHILE).then(expression)
+                        .then(blockStatement())
+                        .map(p -> new WhileStatement(p.getLeft().getRight(), p.getRight(),
+                                        genLocation(p.getLeft().getLeft())));
+        @SuppressWarnings("unchecked")
+        public static final Parser<BlockStatement> forStatement = sequence(
+                        token(FOR).then(varDeclaration),
+                        expression.skip(token(SEMICOLON)),
+                        expression.skip(token(SEMICOLON).optional()),
+                        blockStatement()).map(l -> {
+                                var tokenVarDeclarationPair = (Pair<Token, VarDeclaration>) l.get(0);
+                                Expression condition = (Expression) l.get(1);
+                                Expression update = (Expression) l.get(2);
+                                BlockStatement block = (BlockStatement) l.get(3);
 
-                SourceFileLocation location = genLocation(tokenVarDeclarationPair.getLeft());
+                                SourceFileLocation location = genLocation(tokenVarDeclarationPair.getLeft());
 
-                // for文をwhile文へ変換する(ループブロック内=処理→更新)
-                List<Statement> statementsInLoop = block.statements();
-                statementsInLoop.addLast(new ExpressionStatement(update, location));
+                                // for文をwhile文へ変換する(ループブロック内=処理→更新)
+                                List<Statement> statementsInLoop = block.statements();
+                                statementsInLoop.addLast(new ExpressionStatement(update, location));
 
-                // スコープを正しくするため、全体をブロックで囲む
-                List<Statement> outer = new ArrayList<>();
-                outer.add(tokenVarDeclarationPair.getRight());
-                outer.add(new WhileStatement(condition, new BlockStatement(statementsInLoop, location), location));
-                return new BlockStatement(outer, location);
-            });
-    public static final Parser<ReturnStatement> returnStatement =
-            token(RETURN).then(expression.optional()).skip(token(SEMICOLON))
-                    .map(p -> {
-                        var location = genLocation(p.getLeft());
-                        Optional<Expression> op = p.getRight();
-                        return op.map(value -> new ReturnStatement(value, location)).orElseGet(() -> new ReturnStatement(new VoidExpression(location), location));
-                    });
-    public static final Parser<List<Parameter>> parameters =
-            separatedBy(identifier.then(typeAnnotation), token(COMMA))
-                    .between(token(LPAREN), token(RPAREN))
-                    .map(l -> {
-                        List<Parameter> result = new ArrayList<>();
+                                // スコープを正しくするため、全体をブロックで囲む
+                                List<Statement> outer = new ArrayList<>();
+                                outer.add(tokenVarDeclarationPair.getRight());
+                                outer.add(new WhileStatement(condition, new BlockStatement(statementsInLoop, location),
+                                                location));
+                                return new BlockStatement(outer, location);
+                        });
+        public static final Parser<ReturnStatement> returnStatement = token(RETURN).then(expression.optional())
+                        .skip(token(SEMICOLON))
+                        .map(p -> {
+                                var location = genLocation(p.getLeft());
+                                Optional<Expression> op = p.getRight();
+                                return op.map(value -> new ReturnStatement(value, location)).orElseGet(
+                                                () -> new ReturnStatement(new VoidExpression(location), location));
+                        });
+        public static final Parser<List<Parameter>> parameters = separatedBy(identifier.then(typeAnnotation),
+                        token(COMMA))
+                        .between(token(LPAREN), token(RPAREN))
+                        .map(l -> {
+                                List<Parameter> result = new ArrayList<>();
 
-                        for (Pair<Identifier, TypeAnnotation> p : l) {
-                            Identifier identifier = p.getLeft();
-                            TypeAnnotation type = p.getRight();
-                            result.add(new Parameter(identifier, type));
-                        }
-                        return List.copyOf(result);
-                    });
-    public static final Parser<TypeAnnotation> returnType = token(ARROW).to(type());
-    public static final Parser<FunctionDefineStatement> functionDefineStatement =
-            token(FUNC).then(identifier)
-                    .then(parameters)
-                    .then(returnType)
-                    .then(blockStatement())
-                    .map(p -> {
-                        Identifier identifier = p.getLeft().getLeft().getLeft().getRight();
-                        List<Parameter> params = p.getLeft().getLeft().getRight();
-                        TypeAnnotation type = p.getLeft().getRight();
+                                for (Pair<Identifier, TypeAnnotation> p : l) {
+                                        Identifier identifier = p.getLeft();
+                                        TypeAnnotation type = p.getRight();
+                                        result.add(new Parameter(identifier, type));
+                                }
+                                return List.copyOf(result);
+                        });
+        public static final Parser<TypeAnnotation> returnType = token(ARROW).to(type());
+        public static final Parser<FunctionDefineStatement> functionDefineStatement = token(FUNC).then(identifier)
+                        .then(parameters)
+                        .then(returnType)
+                        .then(blockStatement())
+                        .map(p -> {
+                                Identifier identifier = p.getLeft().getLeft().getLeft().getRight();
+                                List<Parameter> params = p.getLeft().getLeft().getRight();
+                                TypeAnnotation type = p.getLeft().getRight();
 
-                        BlockStatement block = p.getRight();
-                        var location = genLocation(p.getLeft().getLeft().getLeft().getLeft());
+                                BlockStatement block = p.getRight();
+                                var location = genLocation(p.getLeft().getLeft().getLeft().getLeft());
 
-                        return new FunctionDefineStatement(identifier, params, type, block, location);
-                    });
-    public static final Parser<LetDeclaration> lazyFunctionDefineStatement =
-            token(LAZY).skip(token(FUNC)).then(identifier)
-                    .then(parameters)
-                    .then(returnType)
-                    .then(blockStatement())
-                    .map(p -> {
-                        Identifier identifier = p.getLeft().getLeft().getLeft().getRight();
-                        List<Parameter> params = p.getLeft().getLeft().getRight();
-                        TypeAnnotation type = p.getLeft().getRight();
-                        BlockStatement block = p.getRight();
+                                return new FunctionDefineStatement(identifier, params, type, block, location);
+                        });
+        public static final Parser<LetDeclaration> lazyFunctionDefineStatement = token(LAZY).skip(token(FUNC))
+                        .then(identifier)
+                        .then(parameters)
+                        .then(returnType)
+                        .then(blockStatement())
+                        .map(p -> {
+                                Identifier identifier = p.getLeft().getLeft().getLeft().getRight();
+                                List<Parameter> params = p.getLeft().getLeft().getRight();
+                                TypeAnnotation type = p.getLeft().getRight();
+                                BlockStatement block = p.getRight();
 
-                        var location = genLocation(p.getLeft().getLeft().getLeft().getLeft());
-                        var literal = new FunctionLiteral(params, type, block, location);
+                                var location = genLocation(p.getLeft().getLeft().getLeft().getLeft());
+                                var literal = new FunctionLiteral(params, type, block, location);
 
-                        var declarationType = generateFunctionAnnotation(params, type, location);
+                                var declarationType = generateFunctionAnnotation(params, type, location);
 
-                        return new LetDeclaration(identifier, literal, declarationType, location);
-                    });
-    public static final Parser<EmptyStatement> emptyStatement = token(SEMICOLON).map(t -> new EmptyStatement(genLocation(t)));
-    public static final Parser<ForEachStatement> forEachStatement = token(FOR)
-            .skip(token(LET)).then(identifier)
-            .skip(token(IN)).then(expression)
-            .then(blockStatement())
-            .map(p -> new ForEachStatement(p.getLeft().getLeft().getRight(), p.getLeft().getRight(), p.getRight(), genLocation(p.getLeft().getLeft().getLeft())));
-    public static final Parser<Statement> statement = or(
-            emptyStatement,
-            letDeclaration,
-            varDeclaration,
-            expressionStatement,
-            blockStatement(),
-            ifStatement(),
-            whileStatement,
-            forStatement,
-            returnStatement,
-            functionDefineStatement,
-            forEachStatement,
-            lazyFunctionDefineStatement);
-    public static final Parser<Program> program = removeIf(many(statement), t -> t instanceof EmptyStatement)
-            .skip(token(EOF)).map(l -> new Program(l, new SourceFileLocation(0, 0)));
+                                return new LetDeclaration(identifier, literal, declarationType, location);
+                        });
+        public static final Parser<EmptyStatement> emptyStatement = token(SEMICOLON)
+                        .map(t -> new EmptyStatement(genLocation(t)));
+        public static final Parser<ForEachStatement> forEachStatement = token(FOR)
+                        .skip(token(LET)).then(identifier)
+                        .skip(token(IN)).then(expression)
+                        .then(blockStatement())
+                        .map(p -> new ForEachStatement(p.getLeft().getLeft().getRight(), p.getLeft().getRight(),
+                                        p.getRight(), genLocation(p.getLeft().getLeft().getLeft())));
+        public static final Parser<Statement> statement = or(
+                        emptyStatement,
+                        letDeclaration,
+                        varDeclaration,
+                        expressionStatement,
+                        blockStatement(),
+                        ifStatement(),
+                        whileStatement,
+                        forStatement,
+                        returnStatement,
+                        functionDefineStatement,
+                        forEachStatement,
+                        lazyFunctionDefineStatement);
+        public static final Parser<Program> program = removeIf(many(statement), t -> t instanceof EmptyStatement)
+                        .skip(token(EOF)).map(l -> new Program(l, new SourceFileLocation(0, 0)));
 
-    private static FunctionTypeAnnotation generateFunctionAnnotation(List<Parameter> params, TypeAnnotation returnType, SourceFileLocation location) {
-        List<TypeAnnotation> paramTypes = params.stream()
-                .map(Parameter::type)
-                .toList();
-        return new FunctionTypeAnnotation(paramTypes, returnType, location);
-    }
+        private static FunctionTypeAnnotation generateFunctionAnnotation(List<Parameter> params,
+                        TypeAnnotation returnType, SourceFileLocation location) {
+                List<TypeAnnotation> paramTypes = params.stream()
+                                .map(Parameter::type)
+                                .toList();
+                return new FunctionTypeAnnotation(paramTypes, returnType, location);
+        }
 
-    public static Parser<TypeAnnotation> type() {
-        return or(
-                lazy(() -> genericType),
-                namedType,
-                lazy(() -> functionType)
-        );
-    }
+        public static Parser<TypeAnnotation> type() {
+                return or(
+                                lazy(() -> genericType),
+                                namedType,
+                                lazy(() -> functionType));
+        }
 
-    @SuppressWarnings("unchecked")
-    public static Parser<IfStatement> ifStatement() {
-        return sequence(
-                token(IF).then(expression),
-                blockStatement(),
-                token(ELSE).to(or(blockStatement(), lazy(BasicParsers::ifStatement))).optional()
-        ).map(l -> {
-            Expression condition = ((Pair<Token, Expression>) l.get(0)).getRight();
-            BlockStatement ifBlock = (BlockStatement) l.get(1);
-            Optional<Statement> elseBlockOptional = (Optional<Statement>) l.get(2);
-            var location = genLocation(((Pair<Token, Expression>) l.get(0)).getLeft());
+        @SuppressWarnings("unchecked")
+        public static Parser<IfStatement> ifStatement() {
+                return sequence(
+                                token(IF).then(expression),
+                                blockStatement(),
+                                token(ELSE).to(or(blockStatement(), lazy(BasicParsers::ifStatement))).optional())
+                                .map(l -> {
+                                        Expression condition = ((Pair<Token, Expression>) l.get(0)).getRight();
+                                        BlockStatement ifBlock = (BlockStatement) l.get(1);
+                                        Optional<Statement> elseBlockOptional = (Optional<Statement>) l.get(2);
+                                        var location = genLocation(((Pair<Token, Expression>) l.get(0)).getLeft());
 
-            return elseBlockOptional.map(blockStatement -> new IfStatement(condition, ifBlock, blockStatement, location))
-                    .orElseGet(() -> new IfStatement(condition, ifBlock, null, location));
-        });
-    }
+                                        return elseBlockOptional
+                                                        .map(blockStatement -> new IfStatement(condition, ifBlock,
+                                                                        blockStatement, location))
+                                                        .orElseGet(() -> new IfStatement(condition, ifBlock, null,
+                                                                        location));
+                                });
+        }
 
-    public static Parser<BlockStatement> blockStatement() {
-        return token(LBRACE)
-                .then(removeIf(many(lazy(() -> statement)), t -> t instanceof EmptyStatement))
-                .skip(token(RBRACE))
-                .map(p -> new BlockStatement(p.getRight(), genLocation(p.getLeft())));
-    }
+        public static Parser<BlockStatement> blockStatement() {
+                return token(LBRACE)
+                                .then(removeIf(many(lazy(() -> statement)), t -> t instanceof EmptyStatement))
+                                .skip(token(RBRACE))
+                                .map(p -> new BlockStatement(p.getRight(), genLocation(p.getLeft())));
+        }
 
-    private static SourceFileLocation genLocation(Token token) {
-        return new SourceFileLocation(token.line(), token.column());
-    }
+        private static SourceFileLocation genLocation(Token token) {
+                return new SourceFileLocation(token.line(), token.column());
+        }
 }

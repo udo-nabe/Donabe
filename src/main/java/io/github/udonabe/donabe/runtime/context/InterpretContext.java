@@ -1,6 +1,5 @@
 package io.github.udonabe.donabe.runtime.context;
 
-import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ir.instruction.Instruction;
 import io.github.udonabe.donabe.runtime.InterpreterException;
 import io.github.udonabe.donabe.runtime.VariableCell;
@@ -15,14 +14,14 @@ public class InterpretContext {
     private StackFrame currentFrame;
     private final Deque<RuntimeValue<?>> stack;
 
-    public InterpretContext(List<Instruction> instructions, Map<Integer, VariableCell> rootStackFrame) {
-        currentFrame = new StackFrame(null, null, "<root>", instructions, rootStackFrame, rootStackFrame.keySet());
+    public InterpretContext(List<Instruction> instructions, Set<Integer> resolution) {
+        currentFrame = new StackFrame(null, null, "<root>", instructions, resolution);
         stack = new ArrayDeque<>();
-        callDepth = 0;
+        callDepth = 1;
     }
 
     public void pushStackFrame(StackFrame newStackFrame) {
-        if (++callDepth >= MAX_CALL_STACK_DEPTH) {
+        if (callDepth++ >= MAX_CALL_STACK_DEPTH) {
             throw new InterpreterException("Stack overflow.", currentFrame);
         }
         currentFrame = newStackFrame;
