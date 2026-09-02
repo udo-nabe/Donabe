@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.io.PrintStream;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,16 +56,12 @@ public class Main implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        try (Reader reader = Files.newBufferedReader(sourceFile)) {
+        try {
             LoggingUtil.configure(verbose);
             log.info("Donabe launched.");
 
-            StringBuilder source = new StringBuilder();
-            for (int ch = reader.read();
-                 ch != -1;
-                 ch = reader.read()) {
-                source.append((char) ch);
-            }
+            String source = Files.readString(sourceFile, StandardCharsets.UTF_8);
+
             log.debug("Source file read.");
             log.trace("Source: {}{}", System.lineSeparator(), source);
 
