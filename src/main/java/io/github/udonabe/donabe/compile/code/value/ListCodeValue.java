@@ -25,7 +25,8 @@ public record ListCodeValue(List<CodeValue> values) implements CodeValue {
                 out.write(EndianUtil.to4BytesLittleEndian(valueContent.length));
                 out.write(valueContent);
             }
-            throw new UnsupportedOperationException("Writing ListCodeValue is unsupported currently.");
+            
+            return out.toByteArray();
         } catch (IOException e) {
             throw new IllegalStateException("Failed to serialize ListCodeValue.", e);
         }

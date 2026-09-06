@@ -4,13 +4,13 @@ public record BoolCodeValue(boolean value) implements CodeValue {
     
     @Override
     public byte type() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return CodeValue.BOOL_TYPE;
     }
 
     @Override
     public byte[] content() {
         return value
-                ? new byte[]{1}
-                : new byte[]{0};
+                ? new byte[]{0x01}
+                : new byte[]{0x00};
     }
 }
