@@ -1,6 +1,6 @@
 package io.github.udonabe.donabe.ir.instruction;
 
-import io.github.udonabe.donabe.compile.code.OpCode;
+import io.github.udonabe.donabe.compile.code.instruction.OpCode;
 import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRVisitor;
 
@@ -13,4 +13,5 @@ public sealed interface Instruction
     <R> R accept(IRVisitor<R> visitor);
     IRLocation location();
     OpCode opcode();
+    int size();
 }
