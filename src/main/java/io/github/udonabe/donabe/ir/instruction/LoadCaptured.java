@@ -18,6 +18,6 @@ public record LoadCaptured(int identifierSlot, IRLocation location) implements I
 
     @Override
     public int size() {
-        return 0x05;
+        return 0x03;
     }
 }

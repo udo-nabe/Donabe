@@ -18,6 +18,6 @@ public record StoreLocal(int identifierSlot, IRLocation location) implements Ins
 
     @Override
     public int size() {
-        return 0x05;
+        return 0x03;
     }
 }

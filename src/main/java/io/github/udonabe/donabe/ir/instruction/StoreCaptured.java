@@ -18,6 +18,6 @@ public record StoreCaptured(int identifierSlot, IRLocation location) implements 
 
     @Override
     public int size() {
-        return 0x05;
+        return 0x03;
     }
 }

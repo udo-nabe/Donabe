@@ -48,8 +48,8 @@ public class FunctionCodeValueTest {
                     0x00, 0x00, 0x00, 0x00, //ローカル変数1
                     0x01, 0x00, 0x00, 0x00, //ローカル変数2
 
-                    0x06, 0x00, 0x00, 0x00, //コードの長さ
-                    OpCode.PUSH.opcode(), 0x42, 0x00, 0x00, 0x00,
+                    0x04, 0x00, 0x00, 0x00, //コードの長さ
+                    OpCode.PUSH.opcode(), 0x42, 0x00,
                     OpCode.VRETURN.opcode(),},
                 new FunctionCodeValue("test", List.of(0, 1), locals, new CodeSection(
                         List.of(

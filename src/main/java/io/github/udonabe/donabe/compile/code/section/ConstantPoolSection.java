@@ -8,6 +8,13 @@ import io.github.udonabe.donabe.compile.code.constant.ConstantPoolEntry;
 
 public record ConstantPoolSection(List<ConstantPoolEntry<?>> pool) implements Section {
 
+    public ConstantPoolSection {
+        if (pool.size() > 0xFFFF) {
+            throw new IllegalArgumentException("Constant Pool is too many.");
+        }
+        pool = List.copyOf(pool);
+    }
+
     @Override
     public byte type() {
         return CONSTANT_POOL_SECTION_TYPE;
@@ -16,11 +23,13 @@ public record ConstantPoolSection(List<ConstantPoolEntry<?>> pool) implements Se
     @Override
     public byte[] content() {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            out.write(EndianUtil.to2BytesLittleEndian(pool.size()));
+            
             for (var value : pool) {
                 out.write(value.type());
 
                 byte[] content = value.content();
-
+                
                 out.write(EndianUtil.to4BytesLittleEndian(content.length));
                 out.write(content);
             }

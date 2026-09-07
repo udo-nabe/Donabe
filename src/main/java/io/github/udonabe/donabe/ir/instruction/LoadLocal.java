@@ -18,6 +18,6 @@ public record LoadLocal(int identifierSlot, IRLocation location) implements Inst
 
     @Override
     public int size() {
-        return 0x05;
+        return 0x03;
     }
 }

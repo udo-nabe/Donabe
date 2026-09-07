@@ -6,6 +6,13 @@ import java.io.IOException;
 import java.util.Set;
 
 public record IdentifiersSection(Set<Integer> slots) implements Section {
+    
+    public IdentifiersSection {
+        if (slots.size() > 0xFFFF) {
+            throw new IllegalArgumentException("Identifiers are too many.");
+        }
+        slots = Set.copyOf(slots);
+    }
 
     @Override
     public byte type() {

@@ -143,7 +143,8 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
     @Override
     public List<Operand> visitLoadMember(LoadMember instruction) {
         return List.of(new ConstantPoolOperand(
-                        getConstantPoolIndex(new MethodRefEntry(instruction.memberName())
+                        getConstantPoolIndex(
+                                new MethodRefEntry(instruction.memberName())
                         )
                 )
         );
@@ -243,11 +244,18 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
         return List.of(new JumpOperand(index));
     }
 
-    private Integer getConstantPoolIndex(ConstantPoolEntry<?> value) {
+    private Short getConstantPoolIndex(ConstantPoolEntry<?> value) {
         if (!constantPool.contains(value)) {
             constantPool.add(value);
         }
-        return constantPool.indexOf(value);
+        
+        if (constantPool.size() > Short.MAX_VALUE) {
+            throw new IllegalStateException("Constant pool size is too many.");
+        }
+        
+        int index = constantPool.indexOf(value);
+        
+        return (short) index;
     }
 
     private CodeValue convertRuntimeValue(RuntimeValue<?> target) {

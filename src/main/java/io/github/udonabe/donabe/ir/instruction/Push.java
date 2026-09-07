@@ -19,6 +19,6 @@ public record Push(RuntimeValue<?> value, IRLocation location) implements Instru
 
     @Override
     public int size() {
-        return 0x05;
+        return 0x03;
     }
 }
