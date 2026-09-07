@@ -1,15 +1,14 @@
 package io.github.udonabe.donabe.compile.code;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 public final class EndianUtil {
 
     public static byte[] to4BytesLittleEndian(int value) {
-        return ByteBuffer.allocate(Integer.BYTES)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .putInt(value)
-                .array();
+        return new byte[] {
+            (byte) (value & 0xFF),
+            (byte) (value >>> 8 & 0xFF),
+            (byte) (value >>> 16 & 0xFF),
+            (byte) (value >>> 24 & 0xFF),
+        };      
     }
 
     public static byte[] to2BytesLittleEndian(int value) {
@@ -17,9 +16,9 @@ public final class EndianUtil {
             throw new IllegalArgumentException("The argument 'value' must be a range of u16.");
         }
 
-        return ByteBuffer.allocate(Short.BYTES)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .putShort((short) value)
-                .array();
+        return new byte[] {
+            (byte) (value & 0xFF),
+            (byte) (value >>> 8 & 0xFF),
+        };      
     }
 }
