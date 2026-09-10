@@ -22,10 +22,10 @@ public record IdentifiersSection(Set<Integer> slots) implements Section {
     @Override
     public byte[] content() {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            out.write(EndianUtil.to4BytesLittleEndian(slots.size()));
+            out.write(EndianUtil.to2BytesLittleEndian(slots.size()));
             
             for (var slot : slots) {
-                out.write(EndianUtil.to4BytesLittleEndian(slot));
+                out.write(EndianUtil.to2BytesLittleEndian(slot));
             }
 
             return out.toByteArray();
