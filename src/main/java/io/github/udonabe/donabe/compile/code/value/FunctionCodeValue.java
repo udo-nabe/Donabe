@@ -16,6 +16,15 @@ public record FunctionCodeValue(
         CodeSection code
         ) implements CodeValue {
 
+    public FunctionCodeValue {
+        if (paramSlots.size() >= 0xffff) {
+            throw new IllegalArgumentException("Too many params.");
+        }
+        if (locals.size() >= 0xffff) {
+            throw new IllegalArgumentException("Too many locals.");
+        }
+    }
+
     private static Logger log = LoggerFactory.getLogger(FunctionCodeValue.class);
 
     @Override
@@ -32,22 +41,22 @@ public record FunctionCodeValue(
             out.write(nameBytes);
 
             //個数を明示し、引数スロット一覧を順序を保って書く
-            out.write(EndianUtil.to4BytesLittleEndian(paramSlots.size()));
+            out.write(EndianUtil.to2BytesLittleEndian(paramSlots.size()));
             for (int slot : paramSlots) {
-                out.write(EndianUtil.to4BytesLittleEndian(slot));
+                out.write(EndianUtil.to2BytesLittleEndian(slot));
             }
 
             //個数を明示し、ローカル変数一覧を書く
-            out.write(EndianUtil.to4BytesLittleEndian(locals.size()));
+            out.write(EndianUtil.to2BytesLittleEndian(locals.size()));
             for (int slot : locals) {
-                out.write(EndianUtil.to4BytesLittleEndian(slot));
+                out.write(EndianUtil.to2BytesLittleEndian(slot));
             }
-            
+
             byte[] codeContent = code.content();
-            
+
             out.write(EndianUtil.to4BytesLittleEndian(codeContent.length));
             out.write(codeContent);
-            
+
             return out.toByteArray();
         } catch (IOException e) {
             throw new IllegalStateException("Failed to serialize FunctionCodeValue.", e);
