@@ -207,7 +207,8 @@ fn load_string_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<Val
 }
 
 fn load_function_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<Value, LoadError> {
-    let name = read_utf8(reader, entry_size)?;
+    let name_size = read_4bytes(reader)?;
+    let name = read_utf8(reader, name_size)?;
 
     let param_count = read_2bytes(reader)?;
     let mut params = Vec::new();
@@ -229,6 +230,13 @@ fn load_function_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<V
 
     let code_size = read_4bytes(reader)?;
     let code = read_any_bytes(reader, code_size as usize)?;
+
+    if entry_size != 0x04 + name_size
+        + 0x02 + param_count as u32 * 0x02
+         + 0x02 + locals_count as u32 * 0x02
+        + code_size {
+        return Err(LoadError::SizeMismatch("Load function".to_string()));
+    }
 
     Ok(Value::Function {
         name,
