@@ -64,4 +64,37 @@ impl OpCode {
             _ => None,
         }
     }
+    
+    pub fn get_operand_size(&self) -> u32 {
+        match self {
+            OpCode::Push => 0x02,
+            OpCode::Pop => 0x00,
+            OpCode::Add => 0x00,
+            OpCode::Sub => 0x00,
+            OpCode::Mul => 0x00,
+            OpCode::Div => 0x00,
+            OpCode::Equal => 0x00,
+            OpCode::Greater => 0x00,
+            OpCode::GreaterEqual => 0x00,
+            OpCode::Less => 0x00,
+            OpCode::LessEqual => 0x00,
+            OpCode::Call => 0x00,
+            OpCode::Index => 0x00,
+            OpCode::Jmp => 0x04,
+            OpCode::JmpFalse => 0x04,
+            OpCode::JmpTrue => 0x04,
+            OpCode::Nop => 0x00,
+            OpCode::LoadCaptured => 0x02,
+            OpCode::LoadLocal => 0x02,
+            OpCode::LoadMember => 0x02,
+            OpCode::StoreCaptured => 0x02,
+            OpCode::StoreLocal => 0x02,
+            OpCode::MakeList => 0x04,
+            OpCode::Not => 0x00,
+            OpCode::Plus => 0x00,
+            OpCode::Minus => 0x00,
+            OpCode::Return => 0x00,
+            OpCode::VReturn => 0x00,
+        }
+    }
 }

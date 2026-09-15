@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::{File, read};
 use std::io;
 use std::io::{BufReader, Read, Seek};
+use std::rc::Rc;
 use std::string::FromUtf8Error;
 
 #[derive(Debug)]
@@ -242,7 +243,7 @@ fn load_function_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<V
         name,
         params,
         locals,
-        code,
+        code: Rc::new(code),
     })
 }
 
@@ -257,7 +258,7 @@ fn load_list_entry(reader: &mut dyn Read, entry_size: u32) -> Result<Value, Load
         let item = load_value(reader, item_type, item_size)?;
 
         value.push(item);
-        sum_size += item_size;
+        sum_size += 0x01 + 0x04 + item_size;
     }
 
     if sum_size != entry_size {

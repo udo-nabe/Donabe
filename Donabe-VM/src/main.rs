@@ -1,17 +1,21 @@
+mod bytecode;
 mod header;
 mod instruction;
-mod value;
 mod loader;
-mod bytecode;
+mod stack_frame;
+mod value;
+mod vm;
+mod builtin_functions;
 
+use crate::bytecode::ByteCode;
 use crate::header::{HeaderError, check_header};
+use crate::loader::{LoadError, load_file};
+use crate::vm::VM;
 use clap::Parser;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
-use crate::bytecode::ByteCode;
-use crate::loader::{load_file, LoadError};
 
 #[derive(Parser, Debug)]
 #[command(name = "Donabe VM")]
@@ -48,5 +52,10 @@ fn main() {
         }
     };
 
-    println!("{:?}", bytecode);
+    //println!("ByteCode: \n{:#?}", bytecode);
+
+    let mut vm = VM::new(bytecode);
+    if let Err(err) = vm.run() {
+        eprintln!("Error: {}", err);
+    }
 }
