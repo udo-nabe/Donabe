@@ -1,14 +1,15 @@
 use crate::builtin_functions;
+use crate::builtin_functions::dispatch_builtin_function;
 use crate::bytecode::ByteCode;
 use crate::bytecode::section::ConstantPoolEntry;
 use crate::instruction::OpCode;
-use crate::stack_frame::StackFrame;
+use crate::stack_frame::{FrameRef, StackFrame};
 use crate::value::{BuiltinFunctionKind, Value, ValueRef};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::builtin_functions::dispatch_builtin_function;
 
 #[macro_export]
 macro_rules! error_with_pc {
@@ -27,7 +28,7 @@ macro_rules! error_without_pc {
 #[macro_export]
 macro_rules! error {
     ($self:expr, $($arg:tt)*) => {
-        RuntimeError::new($self.get_current_frame()?.pc(), format!($($arg)*))
+        RuntimeError::new($self.get_current_frame()?.borrow().pc(), format!($($arg)*))
     };
 }
 
@@ -40,7 +41,7 @@ macro_rules! bail {
 
 struct VMContext {
     operand_stack: Vec<ValueRef>,
-    call_stack: Vec<StackFrame>,
+    call_stack: Vec<FrameRef>,
 }
 
 pub struct VM {
@@ -73,42 +74,48 @@ impl Display for RuntimeError {
 }
 
 impl VM {
-    pub fn new(byte_code: ByteCode) -> Self {
+    pub fn new(byte_code: &ByteCode) -> Self {
         let identifier_slots_set = byte_code.identifiers.slots();
         let mut identifier_slots = identifier_slots_set
             .iter()
             .enumerate()
-            .map(|(_, slot)| (*slot, Value::Undefined))
+            .map(|(_, slot)| (*slot, ValueRef::new(Value::Undefined)))
             .collect();
         setup_builtin_functions(&mut identifier_slots);
+
+        let root_frame = Rc::new(RefCell::new(StackFrame::new(
+            "<root>".to_string(),
+            None,
+            Rc::new(byte_code.code_section.code()),
+            0,
+            identifier_slots,
+        )));
 
         VM {
             constant_pool: byte_code.constant_pool.values(),
             receiver_table: Vec::new(),
             context: VMContext {
                 operand_stack: Vec::with_capacity(1024),
-                call_stack: vec![StackFrame::new(
-                    "<root>".to_string(),
-                    None,
-                    Rc::new(byte_code.code_section.code()),
-                    0,
-                    identifier_slots,
-                )],
+                call_stack: vec![root_frame],
             },
         }
     }
 
     /// VMの実行を開始する。
     pub fn run(&mut self) -> Result<(), RuntimeError> {
-        while self.get_current_frame()?.pc() < self.get_current_frame()?.code().len() as u32 {
-            //println!("Current stack: {:?}, SP={}", self.context.operand_stack, self.get_current_frame()?.sp());
+        while self.get_current_frame()?.borrow().pc()
+            < self.get_current_frame()?.borrow().code().len() as u32
+        {
+            // println!("[Log] Current stack: {:?}, SP={}", self.context.operand_stack, self.get_current_frame()?.borrow().sp());
+            // println!("[Log] Current stack base: {:?}", self.get_current_frame()?.borrow().stack_base());
 
             let opcode = self.fetch_opcode()?;
             let operand_size = opcode.get_operand_size();
 
-            let operand_candidate = self.get_current_frame()?.pc() + 0x01;
+            let operand_candidate = self.get_current_frame()?.borrow().pc() + 0x01;
 
             self.get_current_frame_mut()?
+                .borrow_mut()
                 .increase_pc(0x01 + operand_size);
 
             self.execute(operand_candidate, opcode)?;
@@ -127,8 +134,30 @@ impl VM {
                     ConstantPoolEntry::MemberRef { .. } => {
                         bail!(self, "MemberRef cannot be pushed.")
                     }
-                    ConstantPoolEntry::Value { value } => self.push_stack(ValueRef::new(value)),
-                }?;
+                    ConstantPoolEntry::Value { value } => {
+                        match value {
+                            Value::Function {
+                                name,
+                                params,
+                                locals,
+                                code,
+                            } => {
+                                let closure = Value::Closure {
+                                    name,
+                                    params,
+                                    locals,
+                                    code,
+                                    parent: self.get_current_frame()?,
+                                };
+                                self.push_stack(ValueRef::new(closure))?;
+                            }
+                            _ => {
+                                self.push_stack(ValueRef::new(value))?;
+                            }
+                        };
+                        Ok(())
+                    }
+                }?
             }
             OpCode::Pop => {
                 self.pop_stack()?;
@@ -194,20 +223,35 @@ impl VM {
                         code,
                         parent,
                     } => {
+                        let mut local_vars: HashMap<u16, ValueRef> = locals
+                            .iter()
+                            .enumerate()
+                            .map(|(_, v)| (*v, ValueRef::new(Value::Undefined)))
+                            .collect();
+
+                        for param in params {
+                            let param_value = self.pop_stack()?;
+                            if !local_vars.contains_key(param) {
+                                bail!(self, "Unbindable argument: {}. Non-existent in locals.", param);
+                            }
+                            local_vars.insert(*param, param_value);
+                        }
+
                         let callee_frame = StackFrame::new(
                             name.clone(),
                             Some(parent.clone()),
                             code.clone(),
-                            self.get_current_frame()?.sp(),
-                            locals
-                                .iter()
-                                .enumerate()
-                                .map(|(i, v)| (*v, Value::Undefined))
-                                .collect(),
+                            self.get_current_frame()?.borrow().sp(),
+                            local_vars,
                         );
+
+                        self.context.call_stack.push(Rc::new(RefCell::new(callee_frame)));
                     }
                     Value::BuiltinFunction {
-                        param_count, body, receiver_id, ..
+                        param_count,
+                        body,
+                        receiver_id,
+                        ..
                     } => {
                         let mut param_bindings = Vec::new();
 
@@ -225,7 +269,8 @@ impl VM {
                             Some(v) => Some(self.receiver_table[*v].clone()),
                         };
 
-                        let ret_value = dispatch_builtin_function(body.clone(), param_bindings, receiver)?;
+                        let ret_value =
+                            dispatch_builtin_function(body.clone(), param_bindings, receiver)?;
                         self.push_stack(ValueRef::new(ret_value))?;
                     }
                     _ => bail!(self, "Invalid callee: {}", target.value().deref()),
@@ -255,30 +300,30 @@ impl VM {
             }
             OpCode::Jmp => {
                 let jmp_to = operand_4bytes(self.get_code()?, operand_candidate)?;
-                self.get_current_frame_mut()?.set_pc(jmp_to);
+                self.get_current_frame_mut()?.borrow_mut().set_pc(jmp_to);
             }
             OpCode::JmpFalse => {
                 let jmp_to = operand_4bytes(self.get_code()?, operand_candidate)?;
-                let pc = self.get_current_frame()?.pc();
+                let pc = self.get_current_frame()?.borrow().pc();
                 let condition = self
                     .pop_stack()?
                     .value()
                     .expect_bool()
                     .map_err(|_| error_with_pc!(pc, "Condition must be type of Bool."))?;
                 if !condition {
-                    self.get_current_frame_mut()?.set_pc(jmp_to);
+                    self.get_current_frame_mut()?.borrow_mut().set_pc(jmp_to);
                 }
             }
             OpCode::JmpTrue => {
                 let jmp_to = operand_4bytes(self.get_code()?, operand_candidate)?;
-                let pc = self.get_current_frame()?.pc();
+                let pc = self.get_current_frame()?.borrow().pc();
                 let condition = self
                     .pop_stack()?
                     .value()
                     .expect_bool()
                     .map_err(|_| error_with_pc!(pc, "Condition must be type of Bool."))?;
                 if condition {
-                    self.get_current_frame_mut()?.set_pc(jmp_to);
+                    self.get_current_frame_mut()?.borrow_mut().set_pc(jmp_to);
                 }
             }
             OpCode::Nop => {
@@ -286,7 +331,7 @@ impl VM {
             }
             OpCode::LoadCaptured => {
                 let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
-                let value_ref = match self.get_current_frame()?.get_captured_var(slot) {
+                let value_ref = match self.get_current_frame()?.borrow().get_captured_var(slot) {
                     None => bail!(self, "Non-existent slot: {}", slot),
                     Some(v) => v,
                 };
@@ -294,7 +339,7 @@ impl VM {
             }
             OpCode::LoadLocal => {
                 let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
-                let value_ref = match self.get_current_frame()?.get_local_var(slot) {
+                let value_ref = match self.get_current_frame()?.borrow().get_local_var(slot) {
                     None => bail!(self, "Non-existent slot: {}", slot),
                     Some(v) => v,
                 };
@@ -316,8 +361,10 @@ impl VM {
                                 self.push_stack(v)?;
                             }
                         }
-                    },
-                    ConstantPoolEntry::Value { .. } => bail!(self, "Value cannot be used as MemberRef."),
+                    }
+                    ConstantPoolEntry::Value { .. } => {
+                        bail!(self, "Value cannot be used as MemberRef.")
+                    }
                 };
             }
             OpCode::StoreCaptured => {
@@ -325,6 +372,7 @@ impl VM {
                 let value_ref = self.pop_stack()?;
 
                 self.get_current_frame_mut()?
+                    .borrow_mut()
                     .set_captured_var(slot, value_ref.clone())?;
             }
             OpCode::StoreLocal => {
@@ -332,6 +380,7 @@ impl VM {
                 let value_ref = self.pop_stack()?;
 
                 self.get_current_frame_mut()?
+                    .borrow_mut()
                     .set_local_var(slot, value_ref.clone())?;
             }
             OpCode::MakeList => {
@@ -357,19 +406,26 @@ impl VM {
                 let target = self.pop_stack();
                 self.push_stack(ValueRef::new(Value::minus(&target?.value())?))?;
             }
-            OpCode::Return => {}
-            OpCode::VReturn => {}
+            OpCode::Return => {
+                let return_value = self.pop_stack()?;
+                self.context.call_stack.pop();
+                self.push_stack(return_value)?;
+            }
+            OpCode::VReturn => {
+                self.context.call_stack.pop();
+                self.push_stack(ValueRef::new(Value::Void))?;
+            }
         };
         Ok(())
     }
 
-    fn get_code(&self) -> Result<&Vec<u8>, RuntimeError> {
-        Ok(self.get_current_frame()?.code())
+    fn get_code(&self) -> Result<Rc<Vec<u8>>, RuntimeError> {
+        Ok(self.get_current_frame()?.borrow().code())
     }
 
     fn fetch_opcode(&self) -> Result<OpCode, RuntimeError> {
         let current_frame = self.get_current_frame()?;
-        let opcode_byte = current_frame.code()[current_frame.pc() as usize];
+        let opcode_byte = current_frame.borrow().code()[current_frame.borrow().pc() as usize];
         match OpCode::from(opcode_byte) {
             Some(v) => Ok(v),
             None => Err(error!(self, "Invalid opcode: {}", opcode_byte)),
@@ -378,49 +434,46 @@ impl VM {
 
     fn push_stack(&mut self, value: ValueRef) -> Result<(), RuntimeError> {
         self.context.operand_stack.push(value);
-        self.get_current_frame_mut()?.increment_sp();
+        self.get_current_frame_mut()?.borrow_mut().increment_sp();
         Ok(())
     }
 
     fn pop_stack(&mut self) -> Result<ValueRef, RuntimeError> {
-        let sp = self.get_current_frame()?.sp();
-        let stack_base = self.get_current_frame()?.stack_base();
+        let sp = self.get_current_frame()?.borrow().sp();
+        let stack_base = self.get_current_frame()?.borrow().stack_base();
 
         if sp <= stack_base {
             return Err(error!(
                 self,
                 "Stack Underflow: frame {}",
-                self.get_current_frame()?.name()
+                self.get_current_frame()?.borrow().name()
             ));
         }
 
         let current_frame = self.get_current_frame_mut()?;
 
-        current_frame.decrement_sp();
+        current_frame.borrow_mut().decrement_sp();
 
         match self.context.operand_stack.pop() {
             None => Err(error!(self, "Could not pop stack.")),
-            Some(v) => Ok(v)
+            Some(v) => Ok(v),
         }
     }
 
-    fn get_current_frame_mut(&mut self) -> Result<&mut StackFrame, RuntimeError> {
-        let pc = self.get_current_frame()?.pc();
+    fn get_current_frame_mut(&mut self) -> Result<FrameRef, RuntimeError> {
+        let pc = self.get_current_frame()?.borrow().pc();
         match self.context.call_stack.last_mut() {
-            Some(v) => Ok(v),
+            Some(v) => Ok(v.clone()),
             None => Err(error_with_pc!(pc, "Call stack is empty")),
         }
     }
 
-    fn get_current_frame(&self) -> Result<&StackFrame, RuntimeError> {
-        match self.context.call_stack.last() {
-            Some(v) => Ok(v),
-            None => Err(error!(self, "Call stack is empty")),
-        }
+    fn get_current_frame(&self) -> Result<FrameRef, RuntimeError> {
+        self.context.call_stack.last().ok_or(error_without_pc!("Call stack is empty")).cloned()
     }
 }
 
-fn operand_2bytes(code: &Vec<u8>, pos: u32) -> Result<u16, RuntimeError> {
+fn operand_2bytes(code: Rc<Vec<u8>>, pos: u32) -> Result<u16, RuntimeError> {
     Ok(u16::from_le_bytes(
         code[pos as usize..pos as usize + 2]
             .try_into()
@@ -428,7 +481,7 @@ fn operand_2bytes(code: &Vec<u8>, pos: u32) -> Result<u16, RuntimeError> {
     ))
 }
 
-fn operand_4bytes(code: &Vec<u8>, pos: u32) -> Result<u32, RuntimeError> {
+fn operand_4bytes(code: Rc<Vec<u8>>, pos: u32) -> Result<u32, RuntimeError> {
     Ok(u32::from_le_bytes(
         code[pos as usize..pos as usize + 4]
             .try_into()
@@ -437,32 +490,49 @@ fn operand_4bytes(code: &Vec<u8>, pos: u32) -> Result<u32, RuntimeError> {
 }
 
 ///引数のHashMapに組み込み関数を定義する。
-fn setup_builtin_functions(identifier_slot: &mut HashMap<u16, Value>) {
+fn setup_builtin_functions(identifier_slot: &mut HashMap<u16, ValueRef>) {
     identifier_slot.insert(
         0,
-        Value::BuiltinFunction {
-            name: "print".to_string(),
-            param_count: 1,
-            receiver_id: None,
-            body: BuiltinFunctionKind::Print,
-        },
+        ValueRef::new(
+            Value::BuiltinFunction {
+                name: "print".to_string(),
+                param_count: 1,
+                receiver_id: None,
+                body: BuiltinFunctionKind::Print,
+            }
+        ),
     );
     identifier_slot.insert(
         1,
-        Value::BuiltinFunction {
-            name: "input".to_string(),
-            param_count: 0,
-            receiver_id: None,
-            body: BuiltinFunctionKind::Input,
-        },
+        ValueRef::new(
+            Value::BuiltinFunction {
+                name: "input".to_string(),
+                param_count: 0,
+                receiver_id: None,
+                body: BuiltinFunctionKind::Input,
+            }
+        ),
     );
     identifier_slot.insert(
         2,
-        Value::BuiltinFunction {
-            name: "range".to_string(),
-            param_count: 2,
-            receiver_id: None,
-            body: BuiltinFunctionKind::Range,
-        },
+        ValueRef::new(
+            Value::BuiltinFunction {
+                name: "range".to_string(),
+                param_count: 2,
+                receiver_id: None,
+                body: BuiltinFunctionKind::Range,
+            }
+        ),
+    );
+    identifier_slot.insert(
+        3,
+        ValueRef::new(
+            Value::BuiltinFunction {
+                name: "now".to_string(),
+                param_count: 0,
+                receiver_id: None,
+                body: BuiltinFunctionKind::Now,
+            }
+        ),
     );
 }

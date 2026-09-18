@@ -6,6 +6,7 @@ import io.github.udonabe.donabe.runtime.context.stack.StackFrame;
 import io.github.udonabe.donabe.runtime.value.*;
 
 public final class Operations {
+
     public Operations() {
     }
 
@@ -14,9 +15,9 @@ public final class Operations {
     }
 
     public RuntimeValue<?> applyBinary(BinaryOperator operator,
-                                       RuntimeValue<?> left,
-                                       RuntimeValue<?> right,
-                                       StackFrame currentFrame) {
+            RuntimeValue<?> left,
+            RuntimeValue<?> right,
+            StackFrame currentFrame) {
         return switch (operator) {
             case PLUS -> {
                 //どちらかがStringの場合、Stringを返す。
@@ -26,66 +27,76 @@ public final class Operations {
                     yield new StringValue(left.display() + str.display());
                 }
 
-                //そうでない場合、どちらかがintでないならエラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                //どちらかがIntなら、Intを返す
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l + r);
+                }
+
+                if (left instanceof Int64Value(Long l)
+                        && right instanceof Int64Value(Long r)) {
+                    yield new Int64Value(l + r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case MINUS -> {
                 //どちらかがintでない場合、エラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l - r);
+                }
+                if (left instanceof Int64Value(Long l)
+                        && right instanceof Int64Value(Long r)) {
+                    yield new Int64Value(l - r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case MULTIPLICATION -> {
                 //どちらかがintでない場合、エラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l * r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case DIVISION -> {
                 //どちらかがintでない場合、エラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new IntegerValue(l / r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
-            case EQUAL -> new BooleanValue(left.equals(right));
+            case EQUAL ->
+                new BooleanValue(left.equals(right));
             case LESS -> {
                 //どちらかがintでない場合、エラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l < r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case GREATER -> {
                 //どちらかがintでない場合、エラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l > r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case LESS_EQUAL -> {
                 //どちらかがintでない場合、エラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l <= r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);
             }
             case GREATER_EQUAL -> {
                 //どちらかがintでない場合、エラー
-                if (left instanceof IntegerValue(Integer l) &&
-                    right instanceof IntegerValue(Integer r)) {
+                if (left instanceof IntegerValue(Integer l)
+                        && right instanceof IntegerValue(Integer r)) {
                     yield new BooleanValue(l >= r);
                 }
                 throw new InterpreterException(errorBinary(operator, left, right), currentFrame);

@@ -1,33 +1,12 @@
-mod bytecode;
-mod header;
-mod instruction;
-mod loader;
-mod stack_frame;
-mod value;
-mod vm;
-mod builtin_functions;
-
-use crate::bytecode::ByteCode;
-use crate::header::{HeaderError, check_header};
-use crate::loader::{LoadError, load_file};
-use crate::vm::VM;
-use clap::Parser;
-use std::fmt::Debug;
 use std::fs::File;
-use std::io::{BufReader, Read};
-use std::path::PathBuf;
+use std::io::BufReader;
+use criterion::{criterion_group, Criterion, criterion_main};
+use DonabeVM::header::{check_header, HeaderError};
+use DonabeVM::loader::load_file;
+use DonabeVM::vm::VM;
 
-#[derive(Parser, Debug)]
-#[command(name = "Donabe VM")]
-#[command(about = "Donabe default VM")]
-struct CliArgs {
-    file: PathBuf,
-}
-
-fn main() {
-    let args = CliArgs::parse();
-
-    let mut reader = BufReader::new(File::open(&args.file).expect("Unable to open .dnbc file."));
+fn benchmark_vm(c: &mut Criterion) {
+    let mut reader = BufReader::new(File::open("../test.dnbc").expect("Unable to open .dnbc file."));
 
     if let Err(err) = check_header(&mut reader) {
         eprintln!(
@@ -52,10 +31,15 @@ fn main() {
         }
     };
 
-    //println!("ByteCode: \n{:#?}", bytecode);
-
-    let mut vm = VM::new(&bytecode);
-    if let Err(err) = vm.run() {
-        eprintln!("Error: {}", err);
-    }
+    c.bench_function("vm", |b| {
+        b.iter(|| {
+            let mut vm = VM::new(&bytecode);
+            if let Err(err) = vm.run() {
+                eprintln!("Error: {}", err);
+            }
+        });
+    });
 }
+
+criterion_group!(benches, benchmark_vm);
+criterion_main!(benches);

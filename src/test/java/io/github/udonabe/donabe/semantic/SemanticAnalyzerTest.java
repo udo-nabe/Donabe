@@ -189,7 +189,7 @@ class SemanticAnalyzerTest {
                         let c: Int = add(a, b);
                         print("ADD: " + c.toString());
                         """,
-                Set.of(0, 1, 2, 3, 4, 5, 6, 7, 8));
+                Set.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
     }
 
     @Test
@@ -222,7 +222,7 @@ class SemanticAnalyzerTest {
                         }
                         let a: Int = add(1, 2);
                         """,
-                Set.of(0, 1, 2, 3, 4, 5, 6));
+                Set.of(0, 1, 2, 3, 4, 5, 6, 7));
     }
 
     @Test
@@ -237,6 +237,6 @@ class SemanticAnalyzerTest {
                         
                         let b: Int = add(3, 4);
                         """,
-                Set.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+                Set.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
     }
 }

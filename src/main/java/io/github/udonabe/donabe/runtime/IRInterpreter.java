@@ -33,6 +33,7 @@ public class IRInterpreter implements IRVisitor<Void> {
         context.setLocalVarValue(0, BuiltinFunctions.BUILTIN_PRINT);
         context.setLocalVarValue(1, BuiltinFunctions.BUILTIN_INPUT);
         context.setLocalVarValue(2, BuiltinFunctions.BUILTIN_RANGE);
+        context.setLocalVarValue(3, BuiltinFunctions.BUILTIN_NOW);
     }
 
     private void setupLabel(List<Instruction> instructions) {

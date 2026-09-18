@@ -3,6 +3,21 @@ name = "Donabe-VM"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "DonabeVM"
+path = "src/lib.rs"
+
+[dev-dependencies]
+criterion = "0.8.2"
+
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
 byteorder = "1.5.0"
+
+[[bench]]
+name = "vm"
+harness = false
+
+[profile.profiling]
+inherits = "release"
+debug = true

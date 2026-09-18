@@ -5,14 +5,16 @@ use std::rc::Rc;
 use crate::error_with_pc;
 use crate::vm::RuntimeError;
 
-#[derive(PartialEq)]
+pub type FrameRef = Rc<RefCell<StackFrame>>;
+
+#[derive(PartialEq, Debug)]
 struct Registers {
     pub pc: u32,
     pub sp: u32,
     pub stack_base: u32,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct StackFrame {
     name: String,
     parent: Option<Rc<RefCell<StackFrame>>>,
@@ -25,7 +27,7 @@ impl Registers {
     pub fn new(stack_base: u32) -> Registers {
         Registers {
             pc: 0,
-            sp: 0,
+            sp: stack_base,
             stack_base,
         }
     }
@@ -37,17 +39,14 @@ impl StackFrame {
         parent: Option<Rc<RefCell<StackFrame>>>,
         code: Rc<Vec<u8>>,
         stack_base: u32,
-        locals: HashMap<u16, Value>,
+        locals: HashMap<u16, ValueRef>,
     ) -> StackFrame {
         StackFrame {
             name,
             parent,
             registers: Registers::new(stack_base),
             code,
-            locals: locals
-                .into_iter()
-                .map(|(k, v)| (k, ValueRef::new(v)))
-                .collect(),
+            locals
         }
     }
 
@@ -113,12 +112,8 @@ impl StackFrame {
         &self.parent
     }
 
-    pub fn code(&self) -> &Vec<u8> {
-        &self.code
-    }
-
-    pub fn locals(&self) -> &HashMap<u16, ValueRef> {
-        &self.locals
+    pub fn code(&self) -> Rc<Vec<u8>> {
+        self.code.clone()
     }
 
     fn find_var_recursive(&self, slot: u16) -> Option<ValueRef> {

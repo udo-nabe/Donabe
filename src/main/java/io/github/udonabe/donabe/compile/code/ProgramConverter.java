@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import io.github.udonabe.donabe.compile.code.constant.ConstantPoolEntry;
+import io.github.udonabe.donabe.compile.code.value.Int64CodeValue;
+import io.github.udonabe.donabe.runtime.value.Int64Value;
 import java.util.Set;
 
 public final class ProgramConverter implements IRVisitor<List<Operand>> {
@@ -264,6 +266,8 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
                 new BoolCodeValue(value.value());
             case IntegerValue value ->
                 new IntCodeValue(value.value());
+            case Int64Value value ->
+                new Int64CodeValue(value.value());
             case StringValue value ->
                 new StringCodeValue(value.value());
             case FunctionValue value ->

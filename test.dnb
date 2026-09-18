@@ -1,6 +1,14 @@
-print("Starting loop...");
-var sum = 0;
-for var i = 0; i < 1000000; i++ {
-    sum += i;
+func add(a: Int, b: Int) -> Int {
+    return a + b;
 }
-print("sum: " + sum.toString());
+
+var sum = 0;
+
+let start = now();
+for var i = 0; i < 1000000; i++ {
+    sum = add(sum, i);
+}
+
+print(sum.toString());
+let end = now();
+print("elapsed: " + (end - start).toString() + "ms");

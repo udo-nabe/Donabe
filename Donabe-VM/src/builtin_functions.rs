@@ -1,6 +1,7 @@
 use crate::value::{BuiltinFunctionKind, Value, ValueRef};
 use crate::vm::RuntimeError;
 use std::io;
+use std::time::{SystemTime, UNIX_EPOCH};
 use crate::error_without_pc;
 
 fn builtin_print(params: Vec<ValueRef>) -> Result<Value, RuntimeError> {
@@ -29,6 +30,14 @@ fn builtin_range(params: Vec<ValueRef>) -> Result<Value, RuntimeError> {
     })
 }
 
+fn builtin_now() -> Value {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    Value::Int64 { value: millis }
+}
+
 fn builtin_to_string(params: Vec<ValueRef>, receiver: ValueRef) -> Result<Value, RuntimeError> {
     Ok(Value::String {
         value: receiver.value().to_string()
@@ -55,6 +64,7 @@ pub fn dispatch_builtin_function(kind: BuiltinFunctionKind, params: Vec<ValueRef
         BuiltinFunctionKind::Print => builtin_print(params),
         BuiltinFunctionKind::Input => builtin_input(params),
         BuiltinFunctionKind::Range => builtin_range(params),
+        BuiltinFunctionKind::Now => Ok(builtin_now()),
         BuiltinFunctionKind::ToString => builtin_to_string(params, receiver.expect("Any#toString() requires receiver.")),
         BuiltinFunctionKind::ListLength => builtin_list_length(params, receiver.expect("List#length() requires receiver.")),
         BuiltinFunctionKind::StringLength => builtin_string_length(params, receiver.expect("String#length() requires receiver.")),

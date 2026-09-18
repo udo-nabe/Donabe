@@ -1,5 +1,5 @@
 use crate::error_without_pc;
-use crate::stack_frame::StackFrame;
+use crate::stack_frame::{FrameRef, StackFrame};
 use crate::vm::RuntimeError;
 use std::cell::{Ref, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -17,6 +17,7 @@ pub enum BuiltinFunctionKind {
     Print,
     Input,
     Range,
+    Now,
 
     // メソッド
     ToString,
@@ -32,6 +33,9 @@ pub enum Value {
     Int {
         value: i32,
     },
+    Int64 {
+        value: i64,
+    },
     String {
         value: String,
     },
@@ -46,7 +50,7 @@ pub enum Value {
         params: Vec<u16>,
         locals: HashSet<u16>,
         code: Rc<Vec<u8>>,
-        parent: Rc<RefCell<StackFrame>>,
+        parent: FrameRef,
     },
     BuiltinFunction {
         name: String,
@@ -59,19 +63,6 @@ pub enum Value {
     },
     Undefined,
     Void,
-}
-
-impl BuiltinFunctionKind {
-    pub fn get_param_count(&self) -> u32 {
-        match self {
-            BuiltinFunctionKind::Print => 1,
-            BuiltinFunctionKind::Input => 0,
-            BuiltinFunctionKind::Range => 2,
-            BuiltinFunctionKind::ToString => 0,
-            BuiltinFunctionKind::ListLength => 0,
-            BuiltinFunctionKind::StringLength => 0,
-        }
-    }
 }
 
 impl ValueRef {
@@ -106,7 +97,7 @@ impl Debug for ValueRef {
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::String {value} => write!(f, "\"{}\"", value),
+            Value::String { value } => write!(f, "\"{}\"", value),
             other => self::Debug::fmt(other, f),
         }
     }
@@ -117,6 +108,7 @@ impl Display for Value {
         let str = match self {
             Value::Bool { value } => format!("{}", value),
             Value::Int { value } => format!("{}", value),
+            Value::Int64 { value } => format!("{}", value),
             Value::String { value } => format!("{}", value),
             Value::Function { params, .. } => format!("({} args) -> ?", params.len()),
             Value::Closure { params, .. } => format!("({} args) -> ?", params.len()),
@@ -155,15 +147,15 @@ impl Value {
 
     pub fn expect_list(&self) -> Result<&Vec<Value>, RuntimeError> {
         match self {
-            Value::List {value} => Ok(value),
-            _ => Err(error_without_pc!("Failed to convert {} to bool", self))
+            Value::List { value } => Ok(value),
+            _ => Err(error_without_pc!("Failed to convert {} to bool", self)),
         }
     }
 
     pub fn expect_string(&self) -> Result<&str, RuntimeError> {
         match self {
-            Value::String {value} => Ok(value),
-            _ => Err(error_without_pc!("Failed to convert {} to bool", self))
+            Value::String { value } => Ok(value),
+            _ => Err(error_without_pc!("Failed to convert {} to bool", self)),
         }
     }
 
@@ -187,7 +179,9 @@ impl Value {
 
     pub fn add(lhs: &Value, rhs: &Value) -> Result<Value, RuntimeError> {
         match (lhs, rhs) {
-            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int { value: l.wrapping_add(*r) }),
+            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int {
+                value: l.wrapping_add(*r),
+            }),
             (Value::String { value: l }, Value::String { value: r }) => Ok(Value::String {
                 value: format!("{l}{r}"),
             }),
@@ -201,7 +195,12 @@ impl Value {
 
     pub fn sub(lhs: &Value, rhs: &Value) -> Result<Value, RuntimeError> {
         match (lhs, rhs) {
-            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int { value: l.wrapping_sub(*r) }),
+            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int {
+                value: l.wrapping_sub(*r),
+            }),
+            (Value::Int64 { value: l }, Value::Int64 { value: r }) => Ok(Value::Int64 {
+                value: l.wrapping_sub(*r),
+            }),
             (_, _) => Err(error_without_pc!(
                 "Operator '-' cannot be applied to types {} and {}",
                 lhs,
@@ -212,7 +211,9 @@ impl Value {
 
     pub fn mul(lhs: &Value, rhs: &Value) -> Result<Value, RuntimeError> {
         match (lhs, rhs) {
-            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int { value: l.wrapping_mul(*r) }),
+            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int {
+                value: l.wrapping_mul(*r),
+            }),
             (_, _) => Err(error_without_pc!(
                 "Operator '*' cannot be applied to types {} and {}",
                 lhs,
@@ -223,7 +224,9 @@ impl Value {
 
     pub fn div(lhs: &Value, rhs: &Value) -> Result<Value, RuntimeError> {
         match (lhs, rhs) {
-            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int { value: l.wrapping_div(*r) }),
+            (Value::Int { value: l }, Value::Int { value: r }) => Ok(Value::Int {
+                value: l.wrapping_div(*r),
+            }),
             (_, _) => Err(error_without_pc!(
                 "Operator '/' cannot be applied to types {} and {}",
                 lhs,
@@ -314,7 +317,8 @@ impl Value {
 impl Value {
     pub const BOOL_TYPE: u8 = 0x01;
     pub const INT_TYPE: u8 = 0x02;
-    pub const STRING_TYPE: u8 = 0x03;
-    pub const FUNCTION_TYPE: u8 = 0x04;
-    pub const LIST_TYPE: u8 = 0x05;
+    pub const INT64_TYPE: u8 = 0x03;
+    pub const STRING_TYPE: u8 = 0x04;
+    pub const FUNCTION_TYPE: u8 = 0x05;
+    pub const LIST_TYPE: u8 = 0x06;
 }

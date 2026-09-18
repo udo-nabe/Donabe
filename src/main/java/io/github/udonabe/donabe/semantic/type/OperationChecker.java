@@ -7,11 +7,13 @@ import io.github.udonabe.donabe.ast.expr.BinaryOperator;
 import io.github.udonabe.donabe.ast.expr.CompoundAssignOperator;
 import io.github.udonabe.donabe.ast.expr.UnaryOperator;
 import io.github.udonabe.donabe.semantic.type.builtin.BooleanType;
+import io.github.udonabe.donabe.semantic.type.builtin.Int64Type;
 import io.github.udonabe.donabe.semantic.type.builtin.IntType;
 import io.github.udonabe.donabe.semantic.type.builtin.StringType;
 import io.github.udonabe.donabe.semantic.type.builtin.VoidType;
 
 public final class OperationChecker {
+
     private final String source;
 
     public OperationChecker(String source) {
@@ -19,27 +21,35 @@ public final class OperationChecker {
     }
 
     public Type checkBinary(Type lhsType, BinaryOperator operator, Type rhsType, SourceFileLocation location) {
-        if (lhsType instanceof VoidType ||
-            rhsType instanceof VoidType) {
+        if (lhsType instanceof VoidType
+                || rhsType instanceof VoidType) {
             throw generateError(lhsType, operator, rhsType, location);
         }
 
         return switch (operator) {
             case PLUS -> {
-                if (lhsType instanceof IntType &&
-                    rhsType instanceof IntType) {
+                if (lhsType instanceof IntType
+                        && rhsType instanceof IntType) {
                     yield new IntType();
                 }
-                if (lhsType instanceof StringType &&
-                    rhsType instanceof StringType) {
+                if (lhsType instanceof Int64Type
+                        && rhsType instanceof Int64Type) {
+                    yield new Int64Type();
+                }
+                if (lhsType instanceof StringType
+                        && rhsType instanceof StringType) {
                     yield new StringType();
                 }
                 throw generateError(lhsType, operator, rhsType, location);
             }
             case MINUS, MULTIPLICATION, DIVISION -> {
-                if (lhsType instanceof IntType &&
-                    rhsType instanceof IntType) {
+                if (lhsType instanceof IntType
+                        && rhsType instanceof IntType) {
                     yield new IntType();
+                }
+                                if (lhsType instanceof Int64Type
+                        && rhsType instanceof Int64Type) {
+                    yield new Int64Type();
                 }
                 throw generateError(lhsType, operator, rhsType, location);
             }
@@ -48,8 +58,8 @@ public final class OperationChecker {
             }
 
             case LESS, GREATER, LESS_EQUAL, GREATER_EQUAL -> {
-                if (lhsType instanceof IntType &&
-                    rhsType instanceof IntType) {
+                if (lhsType instanceof IntType
+                        && rhsType instanceof IntType) {
                     yield new BooleanType();
                 }
                 throw generateError(lhsType, operator, rhsType, location);
@@ -58,26 +68,26 @@ public final class OperationChecker {
     }
 
     public Type checkCompoundAssign(Type lhsType, CompoundAssignOperator operator, Type rhsType, SourceFileLocation location) {
-        if (lhsType instanceof VoidType ||
-            rhsType instanceof VoidType) {
+        if (lhsType instanceof VoidType
+                || rhsType instanceof VoidType) {
             throw generateError(lhsType, operator, rhsType, location);
         }
 
         return switch (operator) {
             case PLUS -> {
-                if (lhsType instanceof IntType &&
-                    rhsType instanceof IntType) {
+                if (lhsType instanceof IntType
+                        && rhsType instanceof IntType) {
                     yield new IntType();
                 }
-                if (lhsType instanceof StringType &&
-                    rhsType instanceof StringType) {
+                if (lhsType instanceof StringType
+                        && rhsType instanceof StringType) {
                     yield new StringType();
                 }
                 throw generateError(lhsType, operator, rhsType, location);
             }
             case MINUS, MULTIPLICATION, DIVISION -> {
-                if (lhsType instanceof IntType &&
-                    rhsType instanceof IntType) {
+                if (lhsType instanceof IntType
+                        && rhsType instanceof IntType) {
                     yield new IntType();
                 }
                 throw generateError(lhsType, operator, rhsType, location);
@@ -121,11 +131,13 @@ public final class OperationChecker {
                 "The operator '%s' cannot be applied to types '%s' and '%s'.",
                 operator.display(), lhsType.asString(), rhsType.asString()));
     }
+
     private CompileException generateError(Type lhsType, UnaryOperator operator, SourceFileLocation location) {
         return new CompileException(ErrorUtil.makeError(location, source,
                 "The operator '%s' cannot be applied to types '%s'.",
                 operator.display(), lhsType.asString()));
     }
+
     private CompileException generateError(Type lhsType, CompoundAssignOperator operator, Type rhsType, SourceFileLocation location) {
         return new CompileException(ErrorUtil.makeError(location, source,
                 "The operator '%s' cannot be applied to types '%s' and '%s'.",

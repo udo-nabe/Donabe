@@ -168,6 +168,7 @@ fn load_value(reader: &mut dyn Read, value_type: u8, value_size: u32) -> Result<
     match value_type {
         Value::BOOL_TYPE => load_bool_value_entry(reader, value_size),
         Value::INT_TYPE => load_int_value_entry(reader, value_size),
+        Value::INT64_TYPE => load_int64_value_entry(reader, value_size),
         Value::STRING_TYPE => load_string_value_entry(reader, value_size),
         Value::FUNCTION_TYPE => load_function_value_entry(reader, value_size),
         Value::LIST_TYPE => load_list_entry(reader, value_size),
@@ -201,6 +202,16 @@ fn load_int_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<Value,
     })
 }
 
+fn load_int64_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<Value, LoadError> {
+    if entry_size != 0x08 {
+        return Err(LoadError::InvalidSize);
+    }
+
+    Ok(Value::Int64 {
+        value: read_8bytes(reader)? as i64,
+    })
+}
+
 fn load_string_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<Value, LoadError> {
     Ok(Value::String {
         value: read_utf8(reader, entry_size)?,
@@ -231,11 +242,13 @@ fn load_function_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<V
 
     let code_size = read_4bytes(reader)?;
     let code = read_any_bytes(reader, code_size as usize)?;
-
-    if entry_size != 0x04 + name_size
+    let actual_size = 0x04 + name_size
         + 0x02 + param_count as u32 * 0x02
-         + 0x02 + locals_count as u32 * 0x02
-        + code_size {
+        + 0x02 + locals_count as u32 * 0x02
+        + 0x04
+        + code_size;
+
+    if entry_size != actual_size {
         return Err(LoadError::SizeMismatch("Load function".to_string()));
     }
 
@@ -278,6 +291,12 @@ fn read_any_bytes(reader: &mut dyn Read, size: usize) -> Result<Vec<u8>, LoadErr
     let mut buf = vec![0; size];
     reader.read_exact(&mut buf).map_err(LoadError::Io)?;
     Ok(buf)
+}
+
+fn read_8bytes(reader: &mut dyn Read) -> Result<u64, LoadError> {
+    let mut buf = [0; 8];
+    reader.read_exact(&mut buf).map_err(LoadError::Io)?;
+    Ok(u64::from_le_bytes(buf))
 }
 
 fn read_4bytes(reader: &mut dyn Read) -> Result<u32, LoadError> {

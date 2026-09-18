@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class TypeChecker implements ASTVisitor<Type> {
+
     private static final Logger log = LoggerFactory.getLogger(TypeChecker.class);
     private final TypeResolver typeResolver;
     private final TypeInferrer typeInferrer;
@@ -428,6 +429,11 @@ public class TypeChecker implements ASTVisitor<Type> {
                 new FunctionType(
                         List.of(new IntType(), new IntType()),
                         new ListType(new IntType())
+                ));
+        identifierTypeTable.put(3,
+                new FunctionType(
+                        List.of(),
+                        new Int64Type()
                 ));
     }
 

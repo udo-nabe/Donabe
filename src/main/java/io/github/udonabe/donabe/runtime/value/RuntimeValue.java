@@ -6,7 +6,7 @@ import io.github.udonabe.donabe.runtime.value.member.MemberProvider;
 
 public sealed interface RuntimeValue<T>
         permits BooleanValue, BuiltinFunctionValue, ClosureValue, FunctionValue,
-        IntegerValue, ListValue, StringValue, UndefinedValue, VoidValue {
+        IntegerValue, Int64Value, ListValue, StringValue, UndefinedValue, VoidValue {
 
     T value();
     String typeName();

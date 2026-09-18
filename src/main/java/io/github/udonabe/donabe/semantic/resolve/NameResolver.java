@@ -30,6 +30,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         putBuiltinFunction("print", 0);
         putBuiltinFunction("input", 1);
         putBuiltinFunction("range", 2);
+        putBuiltinFunction("now", 3);
         localsASTNodeMap = new HashMap<>();
         resolutionMap = new HashMap<>();
     }
