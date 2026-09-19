@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::ops::Deref;
 use std::rc::Rc;
+use crate::stack_frame_cache::StackFrameCache;
 
 #[macro_export]
 macro_rules! error_with_pc {
@@ -28,7 +29,7 @@ macro_rules! error_without_pc {
 #[macro_export]
 macro_rules! error {
     ($self:expr, $($arg:tt)*) => {
-        RuntimeError::new($self.get_current_frame()?.borrow().pc(), format!($($arg)*))
+        RuntimeError::new($self.borrow_current_frame().pc(), format!($($arg)*))
     };
 }
 
@@ -40,8 +41,8 @@ macro_rules! bail {
 }
 
 struct VMContext {
-    operand_stack: Vec<ValueRef>,
     call_stack: Vec<FrameRef>,
+    stack_frame_cache: StackFrameCache,
 }
 
 pub struct VM {
@@ -95,16 +96,16 @@ impl VM {
             constant_pool: byte_code.constant_pool.values(),
             receiver_table: Vec::new(),
             context: VMContext {
-                operand_stack: Vec::with_capacity(1024),
-                call_stack: vec![root_frame],
+                call_stack: vec![root_frame.clone()],
+                stack_frame_cache: StackFrameCache::new(root_frame),
             },
         }
     }
 
     /// VMの実行を開始する。
     pub fn run(&mut self) -> Result<(), RuntimeError> {
-        while self.get_current_frame()?.borrow().pc()
-            < self.get_current_frame()?.borrow().code().len() as u32
+        while self.borrow_current_frame().pc()
+            < self.borrow_current_frame().code().len() as u32
         {
             // println!("[Log] Current stack: {:?}, SP={}", self.context.operand_stack, self.get_current_frame()?.borrow().sp());
             // println!("[Log] Current stack base: {:?}", self.get_current_frame()?.borrow().stack_base());
@@ -112,10 +113,9 @@ impl VM {
             let opcode = self.fetch_opcode()?;
             let operand_size = opcode.get_operand_size();
 
-            let operand_candidate = self.get_current_frame()?.borrow().pc() + 0x01;
+            let operand_candidate = self.borrow_current_frame().pc() + 0x01;
 
-            self.get_current_frame_mut()?
-                .borrow_mut()
+            self.borrow_current_frame_mut()
                 .increase_pc(0x01 + operand_size);
 
             self.execute(operand_candidate, opcode)?;
@@ -147,7 +147,7 @@ impl VM {
                                     params,
                                     locals,
                                     code,
-                                    parent: self.get_current_frame()?,
+                                    parent: self.get_current_frame(),
                                 };
                                 self.push_stack(ValueRef::new(closure))?;
                             }
@@ -241,11 +241,13 @@ impl VM {
                             name.clone(),
                             Some(parent.clone()),
                             code.clone(),
-                            self.get_current_frame()?.borrow().sp(),
+                            self.borrow_current_frame().sp(),
                             local_vars,
                         );
 
                         self.context.call_stack.push(Rc::new(RefCell::new(callee_frame)));
+
+                        self.update_frame_cache()?;
                     }
                     Value::BuiltinFunction {
                         param_count,
@@ -300,30 +302,30 @@ impl VM {
             }
             OpCode::Jmp => {
                 let jmp_to = operand_4bytes(self.get_code()?, operand_candidate)?;
-                self.get_current_frame_mut()?.borrow_mut().set_pc(jmp_to);
+                self.borrow_current_frame_mut().set_pc(jmp_to);
             }
             OpCode::JmpFalse => {
                 let jmp_to = operand_4bytes(self.get_code()?, operand_candidate)?;
-                let pc = self.get_current_frame()?.borrow().pc();
+                let pc = self.borrow_current_frame().pc();
                 let condition = self
                     .pop_stack()?
                     .value()
                     .expect_bool()
                     .map_err(|_| error_with_pc!(pc, "Condition must be type of Bool."))?;
                 if !condition {
-                    self.get_current_frame_mut()?.borrow_mut().set_pc(jmp_to);
+                    self.borrow_current_frame_mut().set_pc(jmp_to);
                 }
             }
             OpCode::JmpTrue => {
                 let jmp_to = operand_4bytes(self.get_code()?, operand_candidate)?;
-                let pc = self.get_current_frame()?.borrow().pc();
+                let pc = self.borrow_current_frame().pc();
                 let condition = self
                     .pop_stack()?
                     .value()
                     .expect_bool()
                     .map_err(|_| error_with_pc!(pc, "Condition must be type of Bool."))?;
                 if condition {
-                    self.get_current_frame_mut()?.borrow_mut().set_pc(jmp_to);
+                    self.borrow_current_frame_mut().set_pc(jmp_to);
                 }
             }
             OpCode::Nop => {
@@ -331,7 +333,7 @@ impl VM {
             }
             OpCode::LoadCaptured => {
                 let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
-                let value_ref = match self.get_current_frame()?.borrow().get_captured_var(slot) {
+                let value_ref = match self.borrow_current_frame().get_captured_var(slot) {
                     None => bail!(self, "Non-existent slot: {}", slot),
                     Some(v) => v,
                 };
@@ -339,7 +341,7 @@ impl VM {
             }
             OpCode::LoadLocal => {
                 let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
-                let value_ref = match self.get_current_frame()?.borrow().get_local_var(slot) {
+                let value_ref = match self.borrow_current_frame().get_local_var(slot) {
                     None => bail!(self, "Non-existent slot: {}", slot),
                     Some(v) => v,
                 };
@@ -371,16 +373,14 @@ impl VM {
                 let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
                 let value_ref = self.pop_stack()?;
 
-                self.get_current_frame_mut()?
-                    .borrow_mut()
+                self.borrow_current_frame_mut()
                     .set_captured_var(slot, value_ref.clone())?;
             }
             OpCode::StoreLocal => {
                 let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
                 let value_ref = self.pop_stack()?;
 
-                self.get_current_frame_mut()?
-                    .borrow_mut()
+                self.borrow_current_frame_mut()
                     .set_local_var(slot, value_ref.clone())?;
             }
             OpCode::MakeList => {
@@ -409,10 +409,16 @@ impl VM {
             OpCode::Return => {
                 let return_value = self.pop_stack()?;
                 self.context.call_stack.pop();
+
+                self.update_frame_cache()?;
+
                 self.push_stack(return_value)?;
             }
             OpCode::VReturn => {
                 self.context.call_stack.pop();
+
+                self.update_frame_cache()?;
+
                 self.push_stack(ValueRef::new(Value::Void))?;
             }
         };
@@ -420,12 +426,12 @@ impl VM {
     }
 
     fn get_code(&self) -> Result<Rc<Vec<u8>>, RuntimeError> {
-        Ok(self.get_current_frame()?.borrow().code())
+        Ok(self.borrow_current_frame().code())
     }
 
     fn fetch_opcode(&self) -> Result<OpCode, RuntimeError> {
-        let current_frame = self.get_current_frame()?;
-        let opcode_byte = current_frame.borrow().code()[current_frame.borrow().pc() as usize];
+        let current_frame = self.borrow_current_frame();
+        let opcode_byte = current_frame.code()[current_frame.pc() as usize];
         match OpCode::from(opcode_byte) {
             Some(v) => Ok(v),
             None => Err(error!(self, "Invalid opcode: {}", opcode_byte)),
@@ -433,43 +439,29 @@ impl VM {
     }
 
     fn push_stack(&mut self, value: ValueRef) -> Result<(), RuntimeError> {
-        self.context.operand_stack.push(value);
-        self.get_current_frame_mut()?.borrow_mut().increment_sp();
-        Ok(())
+        Ok(self.get_current_frame().borrow_mut().push_operand_stack(value))
     }
 
     fn pop_stack(&mut self) -> Result<ValueRef, RuntimeError> {
-        let sp = self.get_current_frame()?.borrow().sp();
-        let stack_base = self.get_current_frame()?.borrow().stack_base();
-
-        if sp <= stack_base {
-            return Err(error!(
-                self,
-                "Stack Underflow: frame {}",
-                self.get_current_frame()?.borrow().name()
-            ));
-        }
-
-        let current_frame = self.get_current_frame_mut()?;
-
-        current_frame.borrow_mut().decrement_sp();
-
-        match self.context.operand_stack.pop() {
-            None => Err(error!(self, "Could not pop stack.")),
-            Some(v) => Ok(v),
-        }
+        self.get_current_frame().borrow_mut().pop_operand_stack()
     }
 
-    fn get_current_frame_mut(&mut self) -> Result<FrameRef, RuntimeError> {
-        let pc = self.get_current_frame()?.borrow().pc();
-        match self.context.call_stack.last_mut() {
-            Some(v) => Ok(v.clone()),
-            None => Err(error_with_pc!(pc, "Call stack is empty")),
-        }
+    fn get_current_frame(&self) -> FrameRef {
+        self.context.stack_frame_cache.current_frame()
     }
 
-    fn get_current_frame(&self) -> Result<FrameRef, RuntimeError> {
-        self.context.call_stack.last().ok_or(error_without_pc!("Call stack is empty")).cloned()
+    fn borrow_current_frame(&self) -> Ref<'_, StackFrame> {
+        self.context.stack_frame_cache.borrow_frame_ref()
+    }
+
+    pub fn borrow_current_frame_mut(&self) -> RefMut<'_, StackFrame> {
+        self.context.stack_frame_cache.borrow_frame_ref_mut()
+    }
+
+    fn update_frame_cache(&mut self) -> Result<(), RuntimeError> {
+        Ok(self.context.stack_frame_cache.update_frame(
+            self.context.call_stack.last().ok_or_else(|| error_without_pc!("Could not update stack frame."))?.clone()
+        ))
     }
 }
 

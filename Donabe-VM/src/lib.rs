@@ -6,3 +6,4 @@ pub mod stack_frame;
 pub mod value;
 pub mod vm;
 pub mod builtin_functions;
+pub mod stack_frame_cache;

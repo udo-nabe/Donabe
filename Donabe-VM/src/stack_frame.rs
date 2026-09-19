@@ -19,6 +19,7 @@ pub struct StackFrame {
     name: String,
     parent: Option<Rc<RefCell<StackFrame>>>,
     registers: Registers,
+    operand_stack: Vec<ValueRef>,
     code: Rc<Vec<u8>>,
     locals: HashMap<u16, ValueRef>,
 }
@@ -45,9 +46,18 @@ impl StackFrame {
             name,
             parent,
             registers: Registers::new(stack_base),
+            operand_stack: Vec::new(),
             code,
             locals
         }
+    }
+
+    pub fn push_operand_stack(&mut self, value_ref: ValueRef) {
+        self.operand_stack.push(value_ref);
+    }
+
+    pub fn pop_operand_stack(&mut self) -> Result<ValueRef, RuntimeError> {
+        self.operand_stack.pop().ok_or_else(|| error_with_pc!(self.registers.pc, "Operand stack is empty"))
     }
 
     pub fn increase_pc(&mut self, increasement: u32) {

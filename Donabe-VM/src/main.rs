@@ -6,6 +6,7 @@ mod stack_frame;
 mod value;
 mod vm;
 mod builtin_functions;
+mod stack_frame_cache;
 
 use crate::bytecode::ByteCode;
 use crate::header::{HeaderError, check_header};
