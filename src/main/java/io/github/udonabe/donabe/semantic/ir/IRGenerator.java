@@ -410,13 +410,11 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     public List<Instruction> visitListLiteral(ListLiteral expr) {
         var result = new ArrayList<Instruction>();
 
-        int elementSize = 0;
         for (Expression arg : expr.elements()) {
             result.addAll(arg.accept(this));
-            elementSize++;
         }
 
-        result.add(new MakeList(elementSize, generateLocation(expr.location())));
+        result.add(new MakeList(expr.elements().size(), generateLocation(expr.location())));
 
         return List.copyOf(result);
     }

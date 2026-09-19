@@ -154,7 +154,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
     @Override
     public List<Operand> visitMakeList(MakeList instruction) {
-        return List.of(new SizeOperand(instruction.size()));
+        return List.of(new SizeOperand(instruction.count()));
     }
 
     @Override

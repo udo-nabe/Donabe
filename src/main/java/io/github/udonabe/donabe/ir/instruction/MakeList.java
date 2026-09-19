@@ -4,7 +4,7 @@ import io.github.udonabe.donabe.compile.code.instruction.OpCode;
 import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRVisitor;
 
-public record MakeList(int size, IRLocation location) implements Instruction {
+public record MakeList(int count, IRLocation location) implements Instruction {
 
     @Override
     public <R> R accept(IRVisitor<R> visitor) {
