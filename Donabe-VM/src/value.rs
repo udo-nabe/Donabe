@@ -1,15 +1,14 @@
 use crate::error_without_pc;
-use crate::stack_frame::{FrameRef, StackFrame};
+use crate::heap::handle::Handle;
+use crate::heap::heap::Heap;
+use crate::heap::heap_error::HeapError;
+use crate::stack_frame::FrameRef;
 use crate::vm::RuntimeError;
-use std::cell::{Ref, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq)]
-pub struct ValueRef {
-    value: Rc<RefCell<Value>>,
-}
+pub type ValueRef = Handle;
 
 #[derive(Clone, PartialEq)]
 pub enum BuiltinFunctionKind {
@@ -65,35 +64,6 @@ pub enum Value {
     Void,
 }
 
-impl ValueRef {
-    pub fn new(value: Value) -> ValueRef {
-        ValueRef {
-            value: Rc::new(RefCell::new(value)),
-        }
-    }
-
-    pub fn owned(self) -> Value {
-        match Rc::try_unwrap(self.value) {
-            Ok(v) => v.into_inner(),
-            Err(_) => panic!("Could not unwrap."),
-        }
-    }
-
-    pub fn value(&self) -> Ref<'_, Value> {
-        self.value.borrow()
-    }
-
-    pub fn set_value(&self, value: Value) {
-        self.value.replace(value);
-    }
-}
-
-impl Debug for ValueRef {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
-    }
-}
-
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -106,9 +76,6 @@ impl Debug for Value {
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            Value::Bool { value } => format!("{}", value),
-            Value::Int { value } => format!("{}", value),
-            Value::Int64 { value } => format!("{}", value),
             Value::String { value } => format!("{}", value),
             Value::Function { params, .. } => format!("({} args) -> ?", params.len()),
             Value::Closure { params, .. } => format!("({} args) -> ?", params.len()),
@@ -125,6 +92,9 @@ impl Display for Value {
             }
             Value::Undefined => "<undefined>".to_string(),
             Value::Void => "<void>".to_string(),
+            Value::Bool { value } => format!("{}", value),
+            Value::Int { value } => format!("{}", value),
+            Value::Int64 { value } => format!("{}", value),
         };
         write!(f, "{}", str)
     }
@@ -149,6 +119,7 @@ impl Value {
         match self {
             Value::List { value } => Ok(value),
             _ => Err(error_without_pc!("Failed to convert {} to bool", self)),
+            _ => Err(error_without_pc!("Failed to convert {} to bool", self)),
         }
     }
 
@@ -159,22 +130,23 @@ impl Value {
         }
     }
 
-    pub fn members(&self, receiver_id: usize) -> HashMap<String, ValueRef> {
+    pub fn members(&self, receiver_id: usize) -> Result<HashMap<String, Value>, HeapError> {
         let mut result = HashMap::new();
+
         result.insert(
             "toString".to_string(),
-            ValueRef::new(Value::BuiltinFunction {
+            Value::BuiltinFunction {
                 name: "toString".to_string(),
                 param_count: 0,
                 receiver_id: Some(receiver_id),
                 body: BuiltinFunctionKind::ToString,
-            }),
+            },
         );
-        result
+        Ok(result)
     }
 
-    pub fn find_member(&self, member_name: &String, receiver_id: usize) -> Option<ValueRef> {
-        self.members(receiver_id).get(member_name).cloned()
+    pub fn find_member(&self, member_name: &String, receiver_id: usize) -> Option<Value> {
+        self.members(receiver_id).ok()?.get(member_name).cloned()
     }
 
     pub fn add(lhs: &Value, rhs: &Value) -> Result<Value, RuntimeError> {

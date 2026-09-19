@@ -33,7 +33,7 @@ fn benchmark_vm(c: &mut Criterion) {
 
     c.bench_function("vm", |b| {
         b.iter(|| {
-            let mut vm = VM::new(&bytecode);
+            let mut vm = VM::new(&bytecode).unwrap();
             if let Err(err) = vm.run() {
                 eprintln!("Error: {}", err);
             }

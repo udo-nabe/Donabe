@@ -7,6 +7,8 @@ mod value;
 mod vm;
 mod builtin_functions;
 mod stack_frame_cache;
+mod allocator;
+mod heap;
 
 use crate::bytecode::ByteCode;
 use crate::header::{HeaderError, check_header};
@@ -15,8 +17,9 @@ use crate::vm::VM;
 use clap::Parser;
 use std::fmt::Debug;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{BufReader};
 use std::path::PathBuf;
+use crate::value::Value;
 
 #[derive(Parser, Debug)]
 #[command(name = "Donabe VM")]
@@ -26,6 +29,8 @@ struct CliArgs {
 }
 
 fn main() {
+    println!("Value size: {}", size_of::<Value>());
+
     let args = CliArgs::parse();
 
     let mut reader = BufReader::new(File::open(&args.file).expect("Unable to open .dnbc file."));
@@ -55,7 +60,13 @@ fn main() {
 
     //println!("ByteCode: \n{:#?}", bytecode);
 
-    let mut vm = VM::new(&bytecode);
+    let mut vm = match VM::new(&bytecode) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Could not make VM. {:?}", e);
+            std::process::exit(1);
+        }
+    };
     if let Err(err) = vm.run() {
         eprintln!("Error: {}", err);
     }
