@@ -31,7 +31,6 @@ pub struct ConstantPoolSection {
 #[derive(Debug, Clone)]
 pub struct IdentifiersSection {
     count: u16,
-    slots: HashSet<u16>,
 }
 
 #[derive(Debug, Clone)]
@@ -66,18 +65,17 @@ impl ConstantPoolSection {
 }
 
 impl IdentifiersSection {
-    pub fn new(slots: HashSet<u16>) -> Result<IdentifiersSection, SectionCreateError> {
-        if slots.len() >= 0xffff {
+    pub fn new(count: u16) -> Result<IdentifiersSection, SectionCreateError> {
+        if count >= 0xffff {
             return Err(SectionCreateError::TooManyEntries);
         }
         Ok(IdentifiersSection {
-            count: slots.len() as u16,
-            slots,
+            count,
         })
     }
     
-    pub fn slots(&self) -> HashSet<u16> {
-        self.slots.clone()
+    pub fn count(&self) -> u16 {
+        self.count
     }
 }
 

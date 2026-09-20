@@ -1,6 +1,6 @@
-use crate::value::{ValueRef};
-use std::cell::RefCell;
-use std::collections::HashMap;
+use crate::value::{Value, ValueRef};
+use std::cell::{Ref, RefCell};
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use crate::error_with_pc;
 use crate::vm::RuntimeError;
@@ -21,7 +21,8 @@ pub struct StackFrame {
     registers: Registers,
     operand_stack: Vec<ValueRef>,
     code: Rc<Vec<u8>>,
-    locals: HashMap<u16, ValueRef>,
+    identifiers: Vec<ValueRef>,
+    locals: HashSet<u16>,
 }
 
 impl Registers {
@@ -40,7 +41,8 @@ impl StackFrame {
         parent: Option<Rc<RefCell<StackFrame>>>,
         code: Rc<Vec<u8>>,
         stack_base: u32,
-        locals: HashMap<u16, ValueRef>,
+        identifiers: &Vec<ValueRef>,
+        locals: HashSet<u16>,
     ) -> StackFrame {
         StackFrame {
             name,
@@ -48,7 +50,8 @@ impl StackFrame {
             registers: Registers::new(stack_base),
             operand_stack: Vec::new(),
             code,
-            locals
+            identifiers: identifiers.clone(),
+            locals,
         }
     }
 
@@ -93,7 +96,7 @@ impl StackFrame {
     }
 
     pub fn get_local_var(&self, slot: u16) -> Option<ValueRef> {
-        Some(self.locals.get(&slot)?.clone())
+        Some(self.identifiers.get(slot as usize)?.clone())
     }
 
     pub fn get_captured_var(&self, slot: u16) -> Option<ValueRef> {
@@ -101,10 +104,8 @@ impl StackFrame {
     }
 
     pub fn set_local_var(&mut self, slot: u16, value: ValueRef) -> Result<(), RuntimeError> {
-        match self.locals.insert(slot, value) {
-            None => Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot)),
-            Some(_) => Ok(())
-        }
+        self.identifiers[slot as usize] = value;
+        Ok(())
     }
 
     pub fn set_captured_var(&self, slot: u16, value_ref: ValueRef) -> Result<(), RuntimeError> {
@@ -126,6 +127,8 @@ impl StackFrame {
         self.code.clone()
     }
 
+
+
     fn find_var_recursive(&self, slot: u16) -> Option<ValueRef> {
         match self.get_local_var(slot) {
             Some(v) => Some(v),
@@ -140,8 +143,8 @@ impl StackFrame {
     }
 
     fn set_var_recursive(&mut self, slot: u16, value_ref: ValueRef) -> Result<(), RuntimeError> {
-        if self.locals.contains_key(&slot) {
-            self.locals.insert(slot, value_ref);
+        if self.locals.contains(&slot) {
+            self.identifiers[slot as usize] = value_ref;
             Ok(())
         } else {
             if self.parent.is_some() {
@@ -153,5 +156,9 @@ impl StackFrame {
                 Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot))
             }
         }
+    }
+
+    pub fn operand_stack(&self) -> &Vec<ValueRef> {
+        &self.operand_stack
     }
 }

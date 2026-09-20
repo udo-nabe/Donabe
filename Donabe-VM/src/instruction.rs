@@ -1,4 +1,5 @@
 #[repr(u8)]
+#[derive(Debug)]
 pub enum OpCode {
     Push = 0x01,
     Pop = 0x02,

@@ -92,21 +92,11 @@ fn load_identifiers_section(
 ) -> Result<IdentifiersSection, LoadError> {
     let identifiers_count = read_2bytes(reader)?;
 
-    if size != (0x02 + identifiers_count * IDENTIFIER_SLOT_SIZE) as u32 {
+    if size != 0x02u32 {
         return Err(LoadError::SizeMismatch(format!("Identifier slots. expected: {size} actual: {:}", 0x02 + identifiers_count * IDENTIFIER_SLOT_SIZE)));
     }
 
-    let mut slots = HashSet::new();
-
-    for _ in 0..identifiers_count {
-        let slot = read_2bytes(reader)?;
-        if slots.contains(&slot) {
-            return Err(LoadError::IdentifierSlotsOverlap);
-        }
-        slots.insert(slot);
-    }
-
-    Ok(IdentifiersSection::new(slots).map_err(LoadError::FailedToCreateSection)?)
+    Ok(IdentifiersSection::new(identifiers_count).map_err(LoadError::FailedToCreateSection)?)
 }
 
 fn load_constant_pool_section(

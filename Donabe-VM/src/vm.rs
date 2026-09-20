@@ -9,7 +9,7 @@ use crate::stack_frame::{FrameRef, StackFrame};
 use crate::stack_frame_cache::StackFrameCache;
 use crate::value::{BuiltinFunctionKind, Value, ValueRef};
 use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -53,6 +53,7 @@ enum VMConstantEntry {
 
 pub struct VM {
     constant_pool: Vec<VMConstantEntry>,
+    identifiers: Vec<ValueRef>,
     receiver_table: Vec<ValueRef>,
     context: VMContext,
     heap: Heap,
@@ -103,11 +104,9 @@ impl VM {
             });
         }
 
-        let identifier_slots_set = byte_code.identifiers.slots();
-        let mut identifier_slots = identifier_slots_set
-            .iter()
-            .enumerate()
-            .map(|(_, slot)| (*slot, undefined_handle))
+        let identifier_slots_count = byte_code.identifiers.count();
+        let mut identifier_slots = (0..identifier_slots_count)
+            .map(|_| undefined_handle)
             .collect();
         setup_builtin_functions(&mut heap, &mut identifier_slots)?;
 
@@ -116,11 +115,13 @@ impl VM {
             None,
             Rc::new(byte_code.code_section.code()),
             0,
-            identifier_slots,
+            &identifier_slots,
+            HashSet::from_iter(0..identifier_slots_count),
         )));
 
         Ok(VM {
             constant_pool,
+            identifiers: identifier_slots,
             receiver_table: Vec::new(),
             context: VMContext {
                 call_stack: vec![root_frame.clone()],
@@ -134,9 +135,6 @@ impl VM {
     /// VMの実行を開始する。
     pub fn run(&mut self) -> Result<(), RuntimeError> {
         while self.borrow_current_frame().pc() < self.borrow_current_frame().code().len() as u32 {
-            // println!("[Log] Current stack: {:?}, SP={}", self.context.operand_stack, self.get_current_frame()?.borrow().sp());
-            // println!("[Log] Current stack base: {:?}", self.get_current_frame()?.borrow().stack_base());
-
             let opcode = self.fetch_opcode()?;
             let operand_size = opcode.get_operand_size();
 
@@ -231,7 +229,6 @@ impl VM {
                 )?)?;
             }
             OpCode::Call => {
-                let undefined_ref = self.undefined_ref;
                 let target = self.pop_stack_get()?;
 
                 match target.clone() {
@@ -260,15 +257,10 @@ impl VM {
                             }
                         };
 
-                        let mut local_vars: HashMap<u16, ValueRef> = locals
-                            .iter()
-                            .map(|slot| (*slot, undefined_ref.clone()))
-                            .collect();
-
                         for param in &params {
                             let param_value = self.pop_stack()?;
 
-                            if !local_vars.contains_key(param) {
+                            if !locals.contains(param) {
                                 bail!(
                                     self,
                                     "Unbindable argument: {}. Non-existent in locals.",
@@ -276,7 +268,7 @@ impl VM {
                                 );
                             }
 
-                            local_vars.insert(*param, param_value);
+                            self.identifiers[*param as usize] = param_value;
                         }
 
                         let callee_frame = StackFrame::new(
@@ -284,7 +276,8 @@ impl VM {
                             Some(parent.clone()),
                             code,
                             self.borrow_current_frame().sp(),
-                            local_vars,
+                            &self.identifiers,
+                            locals,
                         );
 
                         self.context
@@ -325,7 +318,7 @@ impl VM {
                         self.push_stack_alloc(ret_value)?;
                         return Ok(());
                     }
-                    _ => {},
+                    _ => {}
                 }
                 bail!(self, "Invalid callee.");
             }
@@ -575,7 +568,7 @@ fn operand_4bytes(code: Rc<Vec<u8>>, pos: u32) -> Result<u32, RuntimeError> {
 ///引数のHashMapに組み込み関数を定義する。
 fn setup_builtin_functions(
     heap: &mut Heap,
-    identifier_slot: &mut HashMap<u16, ValueRef>,
+    identifier_slot: &mut Vec<ValueRef>,
 ) -> Result<(), RuntimeError> {
     identifier_slot.insert(
         0,
