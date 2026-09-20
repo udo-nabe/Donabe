@@ -1,17 +1,13 @@
 package io.github.udonabe.donabe.compile.code.section;
 
 import io.github.udonabe.donabe.compile.code.EndianUtil;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Set;
 
-public record IdentifiersSection(Set<Integer> slots) implements Section {
-    
+public record IdentifiersSection(int resolutionMax) implements Section {
+
     public IdentifiersSection {
-        if (slots.size() > 0xFFFF) {
+        if (resolutionMax > 0xFFFF) {
             throw new IllegalArgumentException("Identifiers are too many.");
         }
-        slots = Set.copyOf(slots);
     }
 
     @Override
@@ -21,17 +17,7 @@ public record IdentifiersSection(Set<Integer> slots) implements Section {
 
     @Override
     public byte[] content() {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            out.write(EndianUtil.to2BytesLittleEndian(slots.size()));
-            
-            for (var slot : slots) {
-                out.write(EndianUtil.to2BytesLittleEndian(slot));
-            }
-
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to serialize IdentifiersSection.", e);
-        }
+        return EndianUtil.to2BytesLittleEndian(resolutionMax);
     }
 
 }

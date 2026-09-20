@@ -22,7 +22,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.IntStream;
 
 @CommandLine.Command(name = "donabe",
         version = "1.0-SNAPSHOT",
@@ -100,26 +102,30 @@ public class Main implements Callable<Integer> {
                 log.debug("Launching interpreter...");
 
                 Operations registry = new Operations();
-                IRInterpreter interpreter = new IRInterpreter(checkResult.irProgram(), checkResult.resolution(), registry);
+                Set<Integer> slots = Set.copyOf(
+                        IntStream.range(0, checkResult.resolutionMax())
+                                .mapToObj(i -> i)
+                                .toList()
+                );
+                IRInterpreter interpreter = new IRInterpreter(checkResult.irProgram(), slots, registry);
                 interpreter.run();
 
                 log.info("Normal termination.");
             } else {
                 log.debug("Compiling...");
-                
+
                 Compiler compiler = new Compiler();
-                ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.resolution());
-                
+                ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.resolutionMax());
+
                 log.debug("Success to compile.");
                 log.debug("Encoding...");
-                
+
                 Encoder encoder = new Encoder();
                 byte[] encoded = encoder.encode(code);
-                
+
                 log.debug("Success to encode.");
                 log.debug("Write to file...");
-                
-                
+
                 writeFile(encoded);
             }
         } catch (CompileException e) {
@@ -140,10 +146,10 @@ public class Main implements Callable<Integer> {
         }
         return 0;
     }
-    
+
     private void writeFile(byte[] encoded) throws IOException {
         Path outPath = Path.of("test.dnbc");
-        
+
         try (OutputStream out = Files.newOutputStream(outPath)) {
             out.write(encoded);
             out.flush();

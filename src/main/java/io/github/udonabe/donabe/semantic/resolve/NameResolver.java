@@ -15,7 +15,7 @@ import java.util.*;
 
 public final class NameResolver implements ASTVisitor<Void> {
     private final Scope rootScope;
-    private final Set<Integer> resolution;
+    private int resolutionMax;
     private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
     private final Map<Identifier, Integer> resolutionMap;
     private final String source;
@@ -25,7 +25,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         this.source = source;
         this.rootScope = Scope.generateRoot();
         this.currentScope = rootScope;
-        this.resolution = new HashSet<>();
+        this.resolutionMax = 0;
 
         putBuiltinFunction("print", 0);
         putBuiltinFunction("input", 1);
@@ -37,7 +37,7 @@ public final class NameResolver implements ASTVisitor<Void> {
 
 
     private void putBuiltinFunction(String name, int id) {
-        resolution.add(id);
+        resolutionMax++;
         rootScope.put(name, new SymbolInformation(false));
         rootScope.putId(name, id);
     }
@@ -45,16 +45,15 @@ public final class NameResolver implements ASTVisitor<Void> {
     public ResolveResult resolve(Program program) {
         rootScope.resetChildPos();
         program.accept(this);
-        return new ResolveResult(rootScope, resolution, localsASTNodeMap, Map.copyOf(resolutionMap));
+        return new ResolveResult(rootScope, resolutionMax, localsASTNodeMap, Map.copyOf(resolutionMap));
     }
 
     private int nextId() {
-        return resolution.size();
+        return resolutionMax++;
     }
 
     private void putIdentifier(Scope currentScope, Identifier identifier, int id) {
         currentScope.putId(identifier.name(), id);
-        resolution.add(id);
         resolutionMap.put(identifier, id);
     }
 
@@ -358,7 +357,7 @@ public final class NameResolver implements ASTVisitor<Void> {
         return null;
     }
 
-    public record ResolveResult(Scope root, Set<Integer> resolution, Map<ASTNode, Set<Integer>> localsASTNodeMap, Map<Identifier, Integer> resolutionMap) {
+    public record ResolveResult(Scope root, int resolutionMax, Map<ASTNode, Set<Integer>> localsASTNodeMap, Map<Identifier, Integer> resolutionMap) {
 
     }
 }

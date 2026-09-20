@@ -25,10 +25,10 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     private final IRGenerateContext context;
     private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
 
-    public IRGenerator(Map<Identifier, Integer> resolution, Set<Integer> slots, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
+    public IRGenerator(Map<Identifier, Integer> resolution, int resolutionMax, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
         this.resolution = resolution;
         this.localsASTNodeMap = localsASTNodeMap;
-        context = new IRGenerateContext(slots);
+        context = new IRGenerateContext(resolutionMax);
     }
 
     public IRProgram generate(Program program) {

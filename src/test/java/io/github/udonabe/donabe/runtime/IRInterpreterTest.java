@@ -23,6 +23,7 @@ class IRInterpreterTest {
         merged.add(0);
         merged.add(1);
         merged.add(2);
+        merged.add(3);
 
         merged.addAll(slots);
 
