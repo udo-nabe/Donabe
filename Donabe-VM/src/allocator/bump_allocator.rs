@@ -9,7 +9,6 @@ pub const DEFAULT_CHUNK_SIZE: usize = 1024 * 1024;
 pub struct BumpAllocator {
     current: Chunk,
     old_chunks: Vec<Chunk>,
-    new_chunk_count: usize,
 }
 
 impl BumpAllocator {
@@ -17,7 +16,6 @@ impl BumpAllocator {
         Ok(BumpAllocator {
             current: Chunk::new(chunk_size, chunk_align)?,
             old_chunks: Vec::new(),
-            new_chunk_count: 0,
         })
     }
 
@@ -26,15 +24,10 @@ impl BumpAllocator {
             return Ok(ptr);
         }
 
-        self.new_chunk_count = self.new_chunk_count + 1;
         let new_chunk = Chunk::new(max(layout.size(), DEFAULT_CHUNK_SIZE), layout.align())?;
         let old_chunk = std::mem::replace(&mut self.current, new_chunk);
         self.old_chunks.push(old_chunk);
         Ok(self.current.allocate(layout).unwrap())
-    }
-
-    pub fn get_new_chunk_count(&self) -> usize {
-        self.new_chunk_count
     }
 }
 

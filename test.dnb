@@ -30,6 +30,7 @@ let values = [12, 5, 8, 15, 3, 20, 7, 11, 4, 9];
 var total = 0;
 var round = 0;
 
+let start = now();
 while round < 100000 {
     var i = 0;
 
@@ -47,3 +48,6 @@ while round < 100000 {
 }
 
 print(total);
+
+let end = now();
+print("elapsed: " + (end - start).toString() + "ms");

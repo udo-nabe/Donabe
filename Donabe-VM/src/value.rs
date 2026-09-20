@@ -45,10 +45,7 @@ pub enum Value {
         code: Rc<Vec<u8>>,
     },
     Closure {
-        name: String,
-        params: Vec<u16>,
-        locals: HashSet<u16>,
-        code: Rc<Vec<u8>>,
+        function_handle: Handle,
         parent: FrameRef,
     },
     BuiltinFunction {
@@ -78,7 +75,7 @@ impl Display for Value {
         let str = match self {
             Value::String { value } => format!("{}", value),
             Value::Function { params, .. } => format!("({} args) -> ?", params.len()),
-            Value::Closure { params, .. } => format!("({} args) -> ?", params.len()),
+            Value::Closure { function_handle, .. } => "<closure>".to_string(),
             Value::BuiltinFunction { param_count, .. } => format!("({} args) -> ?", param_count),
             Value::List { value } => {
                 format!(

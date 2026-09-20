@@ -2,6 +2,7 @@ use crate::builtin_functions;
 use crate::builtin_functions::dispatch_builtin_function;
 use crate::bytecode::ByteCode;
 use crate::bytecode::section::ConstantPoolEntry;
+use crate::heap::handle::Handle;
 use crate::heap::heap::Heap;
 use crate::instruction::OpCode;
 use crate::stack_frame::{FrameRef, StackFrame};
@@ -45,8 +46,13 @@ struct VMContext {
     stack_frame_cache: StackFrameCache,
 }
 
+enum VMConstantEntry {
+    MemberRef { member_name: String },
+    Handle(Handle),
+}
+
 pub struct VM {
-    constant_pool: Vec<ConstantPoolEntry>,
+    constant_pool: Vec<VMConstantEntry>,
     receiver_table: Vec<ValueRef>,
     context: VMContext,
     heap: Heap,
@@ -78,8 +84,24 @@ impl Display for RuntimeError {
 
 impl VM {
     pub fn new(byte_code: &ByteCode) -> Result<VM, RuntimeError> {
-        let mut heap = Heap::new().map_err(|e| error_without_pc!("Could not allocation heap: {}", e))?;
-        let undefined_handle = heap.alloc(Value::Undefined).map_err(|_| error_without_pc!("Could not allocate undefined value"))?;
+        let mut heap =
+            Heap::new().map_err(|e| error_without_pc!("Could not allocation heap: {}", e))?;
+        let undefined_handle = heap
+            .alloc(Value::Undefined)
+            .map_err(|_| error_without_pc!("Could not allocate undefined value"))?;
+
+        let mut constant_pool = Vec::new();
+        for v in byte_code.constant_pool.values() {
+            constant_pool.push(match v {
+                ConstantPoolEntry::MemberRef { member_name } => {
+                    VMConstantEntry::MemberRef { member_name }
+                }
+
+                ConstantPoolEntry::Value { value } => VMConstantEntry::Handle(
+                    heap.alloc(value).map_err(|e| error_without_pc!("{}", e))?,
+                ),
+            });
+        }
 
         let identifier_slots_set = byte_code.identifiers.slots();
         let mut identifier_slots = identifier_slots_set
@@ -98,14 +120,14 @@ impl VM {
         )));
 
         Ok(VM {
-            constant_pool: byte_code.constant_pool.values(),
+            constant_pool,
             receiver_table: Vec::new(),
             context: VMContext {
                 call_stack: vec![root_frame.clone()],
                 stack_frame_cache: StackFrameCache::new(root_frame),
             },
             heap,
-            undefined_ref: undefined_handle
+            undefined_ref: undefined_handle,
         })
     }
 
@@ -125,53 +147,29 @@ impl VM {
 
             self.execute(operand_candidate, opcode)?;
         }
-
-        println!("Heap allocate count: {}", self.heap.get_allocate_count());
-        println!("New chunk count: {}", self.heap.get_new_chunk_count());
-
-        println!("  Bool: {}", self.heap.get_bool_count());
-        println!("  Int: {}", self.heap.get_int_count());
-        println!("  Int64: {}", self.heap.get_int64_count());
-        println!("  String: {}", self.heap.get_string_count());
-        println!("  Function: {}", self.heap.get_function_count());
-        println!("  Closure: {}", self.heap.get_closure_count());
-        println!("  BuiltinFunction: {}", self.heap.get_builtin_function_count());
-        println!("  List: {}", self.heap.get_list_count());
-        println!("  Undefined: {}", self.heap.get_undefined_count());
-        println!("  Void: {}", self.heap.get_void_count());
-
         Ok(())
     }
 
     fn execute(&mut self, operand_candidate: u32, opcode: OpCode) -> Result<(), RuntimeError> {
         match opcode {
             OpCode::Push => {
-                let constant_pool_value = self.constant_pool
-                    [operand_2bytes(self.get_code()?, operand_candidate)? as usize]
-                    .clone();
+                let constant_pool_value = &self.constant_pool
+                    [operand_2bytes(self.get_code()?, operand_candidate)? as usize];
                 match constant_pool_value {
-                    ConstantPoolEntry::MemberRef { .. } => {
+                    VMConstantEntry::MemberRef { .. } => {
                         bail!(self, "MemberRef cannot be pushed.")
                     }
-                    ConstantPoolEntry::Value { value } => {
-                        match value {
-                            Value::Function {
-                                name,
-                                params,
-                                locals,
-                                code,
-                            } => {
+                    VMConstantEntry::Handle(handle) => {
+                        match self.get_value(*handle)? {
+                            Value::Function { .. } => {
                                 let closure = Value::Closure {
-                                    name,
-                                    params,
-                                    locals,
-                                    code,
+                                    function_handle: *handle,
                                     parent: self.get_current_frame(),
                                 };
                                 self.push_stack_alloc(closure)?;
                             }
                             _ => {
-                                self.push_stack_alloc(value)?;
+                                self.push_stack(*handle)?;
                             }
                         };
                         Ok(())
@@ -214,7 +212,10 @@ impl VM {
             OpCode::GreaterEqual => {
                 let rhs = self.pop_stack()?;
                 let lhs = self.pop_stack()?;
-                self.push_stack_alloc(Value::greater_equal(self.get_value(lhs)?, self.get_value(rhs)?)?)?;
+                self.push_stack_alloc(Value::greater_equal(
+                    self.get_value(lhs)?,
+                    self.get_value(rhs)?,
+                )?)?;
             }
             OpCode::Less => {
                 let rhs = self.pop_stack()?;
@@ -224,41 +225,64 @@ impl VM {
             OpCode::LessEqual => {
                 let rhs = self.pop_stack()?;
                 let lhs = self.pop_stack()?;
-                self.push_stack_alloc(Value::less_equal(self.get_value(lhs)?, self.get_value(rhs)?)?)?;
+                self.push_stack_alloc(Value::less_equal(
+                    self.get_value(lhs)?,
+                    self.get_value(rhs)?,
+                )?)?;
             }
             OpCode::Call => {
-                let target = self.pop_stack()?;
-                match self.get_value(target.clone())?.clone() {
+                let undefined_ref = self.undefined_ref;
+                let target = self.pop_stack_get()?;
+
+                match target.clone() {
                     Value::Closure {
-                        name,
-                        params,
-                        locals,
-                        code,
+                        function_handle,
                         parent,
                     } => {
-                        let undefined_ref = &self.undefined_ref;
+                        let (name, params, locals, code) = {
+                            let function = self.get_value(function_handle)?;
+
+                            if let Value::Function {
+                                name,
+                                params,
+                                locals,
+                                code,
+                            } = function
+                            {
+                                (
+                                    name.clone(),
+                                    params.clone(),
+                                    locals.clone(),
+                                    Rc::clone(code),
+                                )
+                            } else {
+                                bail!(self, "Invalid function handle.");
+                            }
+                        };
+
                         let mut local_vars: HashMap<u16, ValueRef> = locals
                             .iter()
-                            .enumerate()
-                            .map(|(_, v)| (*v, undefined_ref.clone()))
+                            .map(|slot| (*slot, undefined_ref.clone()))
                             .collect();
 
-                        for param in params {
+                        for param in &params {
                             let param_value = self.pop_stack()?;
-                            if !local_vars.contains_key(&param) {
+
+                            if !local_vars.contains_key(param) {
                                 bail!(
                                     self,
                                     "Unbindable argument: {}. Non-existent in locals.",
                                     param
                                 );
                             }
-                            local_vars.insert(param, param_value);
+
+                            local_vars.insert(*param, param_value);
                         }
 
                         let callee_frame = StackFrame::new(
-                            name.clone(),
+                            name,
                             Some(parent.clone()),
-                            code.clone(),
+                            code,
                             self.borrow_current_frame().sp(),
                             local_vars,
                         );
@@ -268,6 +292,7 @@ impl VM {
                             .push(Rc::new(RefCell::new(callee_frame)));
 
                         self.update_frame_cache()?;
+                        return Ok(());
                     }
                     Value::BuiltinFunction {
                         param_count,
@@ -291,17 +316,26 @@ impl VM {
                             Some(v) => Some(self.receiver_table[v].clone()),
                         };
 
-                        let ret_value =
-                            dispatch_builtin_function(body.clone(), param_bindings, receiver, &self.heap)?;
+                        let ret_value = dispatch_builtin_function(
+                            body.clone(),
+                            param_bindings,
+                            receiver,
+                            &self.heap,
+                        )?;
                         self.push_stack_alloc(ret_value)?;
+                        return Ok(());
                     }
-                    _ => bail!(self, "Invalid callee: {}", self.get_value(target)?),
+                    _ => {},
                 }
+                bail!(self, "Invalid callee.");
             }
             OpCode::Index => {
                 let index_value = self.pop_stack()?;
                 let target = self.pop_stack()?;
-                match (self.get_value(index_value)?, self.get_value(target.clone())?) {
+                match (
+                    self.get_value(index_value)?,
+                    self.get_value(target.clone())?,
+                ) {
                     (Value::Int { value: index }, Value::List { value: list }) => {
                         if *index < 0 || *index >= list.len() as i32 {
                             bail!(
@@ -367,11 +401,11 @@ impl VM {
             }
             OpCode::LoadMember => {
                 let receiver_ref = self.pop_stack()?;
-                let entry = self.constant_pool
-                    [operand_2bytes(self.get_code()?, operand_candidate)? as usize]
-                    .clone();
+                let entry = &self.constant_pool
+                    [operand_2bytes(self.get_code()?, operand_candidate)? as usize];
+
                 match entry {
-                    ConstantPoolEntry::MemberRef { member_name } => {
+                    VMConstantEntry::MemberRef { member_name } => {
                         let receiver_id = self.receiver_table.len();
                         self.receiver_table.push(receiver_ref.clone());
                         let receiver = self.get_value(receiver_ref)?;
@@ -383,7 +417,7 @@ impl VM {
                             }
                         }
                     }
-                    ConstantPoolEntry::Value { .. } => {
+                    VMConstantEntry::Handle(_) => {
                         bail!(self, "Value cannot be used as MemberRef.")
                     }
                 };
@@ -468,16 +502,11 @@ impl VM {
         Ok(self
             .get_current_frame()
             .borrow_mut()
-            .push_operand_stack(
-                self.alloc(value)?
-            ))
+            .push_operand_stack(self.alloc(value)?))
     }
 
     fn pop_stack_get(&mut self) -> Result<&Value, RuntimeError> {
-        let value_ref = self
-            .get_current_frame()
-            .borrow_mut()
-            .pop_operand_stack()?;
+        let value_ref = self.get_current_frame().borrow_mut().pop_operand_stack()?;
 
         Ok(self.get_value(value_ref)?)
     }
@@ -509,15 +538,21 @@ impl VM {
     }
 
     fn alloc(&mut self, value: Value) -> Result<ValueRef, RuntimeError> {
-        self.heap.alloc(value).map_err(|e| error!(self, "Could not allocate: {}", e))
+        self.heap
+            .alloc(value)
+            .map_err(|e| error!(self, "Could not allocate: {}", e))
     }
 
     fn get_value(&self, value_ref: ValueRef) -> Result<&Value, RuntimeError> {
-        self.heap.get(value_ref).map_err(|e| error!(self, "Could not get value: {}", e))
+        self.heap
+            .get(value_ref)
+            .map_err(|e| error!(self, "Could not get value: {}", e))
     }
 
     fn get_value_mut(&mut self, value_ref: ValueRef) -> Result<&mut Value, RuntimeError> {
-        self.heap.get_mut(value_ref).map_err(|e| error!(self, "Could not get value: {}", e))
+        self.heap
+            .get_mut(value_ref)
+            .map_err(|e| error!(self, "Could not get value: {}", e))
     }
 }
 
@@ -538,7 +573,10 @@ fn operand_4bytes(code: Rc<Vec<u8>>, pos: u32) -> Result<u32, RuntimeError> {
 }
 
 ///引数のHashMapに組み込み関数を定義する。
-fn setup_builtin_functions(heap: &mut Heap, identifier_slot: &mut HashMap<u16, ValueRef>) -> Result<(), RuntimeError> {
+fn setup_builtin_functions(
+    heap: &mut Heap,
+    identifier_slot: &mut HashMap<u16, ValueRef>,
+) -> Result<(), RuntimeError> {
     identifier_slot.insert(
         0,
         heap.alloc(Value::BuiltinFunction {
@@ -546,7 +584,8 @@ fn setup_builtin_functions(heap: &mut Heap, identifier_slot: &mut HashMap<u16, V
             param_count: 1,
             receiver_id: None,
             body: BuiltinFunctionKind::Print,
-        }).map_err(|e| error_without_pc!("Could not allocate 'print': {}", e))?,
+        })
+        .map_err(|e| error_without_pc!("Could not allocate 'print': {}", e))?,
     );
     identifier_slot.insert(
         1,
@@ -555,7 +594,8 @@ fn setup_builtin_functions(heap: &mut Heap, identifier_slot: &mut HashMap<u16, V
             param_count: 0,
             receiver_id: None,
             body: BuiltinFunctionKind::Input,
-        }).map_err(|e| error_without_pc!("Could not allocate 'input': {}", e))?,
+        })
+        .map_err(|e| error_without_pc!("Could not allocate 'input': {}", e))?,
     );
     identifier_slot.insert(
         2,
@@ -564,7 +604,8 @@ fn setup_builtin_functions(heap: &mut Heap, identifier_slot: &mut HashMap<u16, V
             param_count: 2,
             receiver_id: None,
             body: BuiltinFunctionKind::Range,
-        }).map_err(|e| error_without_pc!("Could not allocate 'range': {}", e))?,
+        })
+        .map_err(|e| error_without_pc!("Could not allocate 'range': {}", e))?,
     );
     identifier_slot.insert(
         3,
@@ -573,7 +614,8 @@ fn setup_builtin_functions(heap: &mut Heap, identifier_slot: &mut HashMap<u16, V
             param_count: 0,
             receiver_id: None,
             body: BuiltinFunctionKind::Now,
-        }).map_err(|e| error_without_pc!("Could not allocate 'now': {}", e))?,
+        })
+        .map_err(|e| error_without_pc!("Could not allocate 'now': {}", e))?,
     );
     Ok(())
 }
