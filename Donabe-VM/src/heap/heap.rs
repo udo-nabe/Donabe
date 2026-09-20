@@ -21,7 +21,7 @@ pub struct Heap {
 
 impl Heap {
     pub fn new() -> Result<Heap, HeapError> {
-        let mut allocator = BumpAllocator::new(DEFAULT_CHUNK_SIZE, align_of::<Value>())
+        let mut allocator = BumpAllocator::new(align_of::<Value>())
             .map_err(HeapError::AllocationFailed)?;
 
         let bool_true_handle = alloc_impl(&mut allocator, Value::Bool { value: true })?;

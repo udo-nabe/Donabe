@@ -9,13 +9,23 @@ pub const DEFAULT_CHUNK_SIZE: usize = 1024 * 1024;
 pub struct BumpAllocator {
     current: Chunk,
     old_chunks: Vec<Chunk>,
+    chunk_size: usize,
 }
 
 impl BumpAllocator {
-    pub fn new(chunk_size: usize, chunk_align: usize) -> Result<BumpAllocator, AllocationError> {
+    pub fn new(chunk_align: usize) -> Result<BumpAllocator, AllocationError> {
+        Ok(BumpAllocator {
+            current: Chunk::new(DEFAULT_CHUNK_SIZE, chunk_align)?,
+            old_chunks: Vec::new(),
+            chunk_size: DEFAULT_CHUNK_SIZE,
+        })
+    }
+
+    pub fn with_chunk_size(chunk_size: usize, chunk_align: usize) -> Result<BumpAllocator, AllocationError> {
         Ok(BumpAllocator {
             current: Chunk::new(chunk_size, chunk_align)?,
             old_chunks: Vec::new(),
+            chunk_size,
         })
     }
 
@@ -33,7 +43,7 @@ impl BumpAllocator {
 
 #[test]
 fn bump_allocator_allocates() {
-    let mut allocator = BumpAllocator::new(128, 8).unwrap();
+    let mut allocator = BumpAllocator::with_chunk_size(128, 8).unwrap();
 
     let ptr = allocator.allocate(Layout::new::<u64>()).unwrap();
 
@@ -42,7 +52,7 @@ fn bump_allocator_allocates() {
 
 #[test]
 fn bump_allocator_allocates_across_chunks() {
-    let mut allocator = BumpAllocator::new(8, 8).unwrap();
+    let mut allocator = BumpAllocator::with_chunk_size(8, 8).unwrap();
 
     let ptr1 = allocator.allocate(Layout::new::<u64>()).unwrap();
     let ptr2 = allocator.allocate(Layout::new::<u64>()).unwrap();
@@ -53,7 +63,7 @@ fn bump_allocator_allocates_across_chunks() {
 
 #[test]
 fn bump_allocator_allocates_large_layout() {
-    let mut allocator = BumpAllocator::new(8, 8).unwrap();
+    let mut allocator = BumpAllocator::with_chunk_size(8, 8).unwrap();
 
     let big_layout = Layout::from_size_align(8192, 8).unwrap();
     let ptr = allocator.allocate(big_layout).unwrap();

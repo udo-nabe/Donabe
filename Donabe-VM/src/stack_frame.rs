@@ -48,7 +48,7 @@ impl StackFrame {
             name,
             parent,
             registers: Registers::new(stack_base),
-            operand_stack: Vec::new(),
+            operand_stack: Vec::with_capacity(10),
             code,
             identifiers: identifiers.clone(),
             locals,

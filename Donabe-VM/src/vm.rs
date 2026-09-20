@@ -280,11 +280,13 @@ impl VM {
                             locals,
                         );
 
+                        let callee_frame_ref = Rc::new(RefCell::new(callee_frame));
+
+                        self.update_frame_cache(&callee_frame_ref);
                         self.context
                             .call_stack
-                            .push(Rc::new(RefCell::new(callee_frame)));
+                            .push(callee_frame_ref);
 
-                        self.update_frame_cache()?;
                         return Ok(());
                     }
                     Value::BuiltinFunction {
@@ -456,14 +458,14 @@ impl VM {
                 let return_value = self.pop_stack()?;
                 self.context.call_stack.pop();
 
-                self.update_frame_cache()?;
+                self.update_frame_cache_and_get()?;
 
                 self.push_stack(return_value)?;
             }
             OpCode::VReturn => {
                 self.context.call_stack.pop();
 
-                self.update_frame_cache()?;
+                self.update_frame_cache_and_get()?;
 
                 self.push_stack_alloc(Value::Void)?;
             }
@@ -486,8 +488,7 @@ impl VM {
 
     fn push_stack(&mut self, value: ValueRef) -> Result<(), RuntimeError> {
         Ok(self
-            .get_current_frame()
-            .borrow_mut()
+            .borrow_current_frame_mut()
             .push_operand_stack(value))
     }
 
@@ -499,13 +500,13 @@ impl VM {
     }
 
     fn pop_stack_get(&mut self) -> Result<&Value, RuntimeError> {
-        let value_ref = self.get_current_frame().borrow_mut().pop_operand_stack()?;
+        let value_ref = self.borrow_current_frame_mut().pop_operand_stack()?;
 
         Ok(self.get_value(value_ref)?)
     }
 
     fn pop_stack(&mut self) -> Result<ValueRef, RuntimeError> {
-        self.get_current_frame().borrow_mut().pop_operand_stack()
+        self.borrow_current_frame_mut().pop_operand_stack()
     }
 
     fn get_current_frame(&self) -> FrameRef {
@@ -520,7 +521,7 @@ impl VM {
         self.context.stack_frame_cache.borrow_frame_ref_mut()
     }
 
-    fn update_frame_cache(&mut self) -> Result<(), RuntimeError> {
+    fn update_frame_cache_and_get(&mut self) -> Result<(), RuntimeError> {
         Ok(self.context.stack_frame_cache.update_frame(
             self.context
                 .call_stack
@@ -528,6 +529,10 @@ impl VM {
                 .ok_or_else(|| error_without_pc!("Could not update stack frame."))?
                 .clone(),
         ))
+    }
+
+    fn update_frame_cache(&mut self, frame_ref: &FrameRef) {
+        self.context.stack_frame_cache.update_frame(frame_ref.clone());
     }
 
     fn alloc(&mut self, value: Value) -> Result<ValueRef, RuntimeError> {
