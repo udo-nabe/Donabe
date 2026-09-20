@@ -1,21 +1,53 @@
-// Fibonacci
-// 生成する数字の数
-print("How many do you want to generate?> ");
-let limit = input().toInt();
-var a = 1;
-var b = 1;
-var result = "[1, 1";
+func abs(x: Int) -> Int {
+    if x < 0 {
+        return -x;
+    }
 
-for var i = 0; i < limit - 2; i++ {
-  let next = a + b;
-  a = b;
-  b = next;
-  result += ", " + next.toString();
+    return x;
 }
-print(result + "]");
-print("length: " + result.length.toString());
 
-func recursive() -> Void {
-    recursive();
+func clamp(x: Int, min: Int, max: Int) -> Int {
+    if x < min {
+        return min;
+    }
+
+    if x > max {
+        return max;
+    }
+
+    return x;
 }
-recursive();
+
+func calculate_score(a: Int, b: Int, c: Int) -> Int {
+    let x = abs(a - b);
+    let y = abs(b - c);
+
+    return clamp(x + y, 0, 100);
+}
+
+let values = [12, 5, 8, 15, 3, 20, 7, 11, 4, 9];
+
+var total = 0;
+var round = 0;
+
+let start = now();
+while round < 100000 {
+    var i = 0;
+
+    while i < 8 {
+        let a = values[i];
+        let b = values[i + 1];
+        let c = values[i + 2];
+
+        total = total + calculate_score(a, b, c);
+
+        i = i + 1;
+    }
+
+    round = round + 1;
+}
+
+print(total);
+
+let end = now();
+print("elapsed: " + (end - start).toString() + "ms");

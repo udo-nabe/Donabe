@@ -33,4 +33,10 @@ public class BuiltinFunctions {
                 throw new InterpreterException("range()の引数は(int, int)である必要があります。", null);
             }
     );
+    public static final BuiltinFunctionValue BUILTIN_NOW = new BuiltinFunctionValue(
+            List.of(),
+            l -> {
+                return new Int64Value(System.currentTimeMillis());
+            }
+    );
 }

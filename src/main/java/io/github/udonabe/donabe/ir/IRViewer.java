@@ -97,7 +97,7 @@ public class IRViewer implements IRVisitor<String> {
 
     @Override
     public String visitMakeList(MakeList instruction) {
-        return "make_list " + instruction.size();
+        return "make_list " + instruction.count();
     }
 
     @Override

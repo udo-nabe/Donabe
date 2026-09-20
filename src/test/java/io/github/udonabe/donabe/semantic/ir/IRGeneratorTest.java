@@ -35,7 +35,12 @@ class IRGeneratorTest {
     }
 
     private void assertIR(ASTNode ast, List<Instruction> instructions, Map<Identifier, Integer> resolution, Map<ASTNode, Set<Integer>> map) {
-        List<Instruction> actualInstructions = ast.accept(new IRGenerator(resolution, Set.copyOf(resolution.values()), map));
+        System.out.println("====================");
+        int max = resolution.values().stream()
+                .mapToInt(i -> i)
+                .max()
+                .orElse(0);
+        List<Instruction> actualInstructions = ast.accept(new IRGenerator(resolution, max == 0 ? max : max + 1, map));
         assertIterableEquals(instructions, actualInstructions);
     }
 

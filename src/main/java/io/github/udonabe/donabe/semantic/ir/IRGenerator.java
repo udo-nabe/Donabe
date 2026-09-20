@@ -25,10 +25,10 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     private final IRGenerateContext context;
     private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
 
-    public IRGenerator(Map<Identifier, Integer> resolution, Set<Integer> slots, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
+    public IRGenerator(Map<Identifier, Integer> resolution, int resolutionMax, Map<ASTNode, Set<Integer>> localsASTNodeMap) {
         this.resolution = resolution;
         this.localsASTNodeMap = localsASTNodeMap;
-        context = new IRGenerateContext(slots);
+        context = new IRGenerateContext(resolutionMax);
     }
 
     public IRProgram generate(Program program) {
@@ -410,13 +410,11 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     public List<Instruction> visitListLiteral(ListLiteral expr) {
         var result = new ArrayList<Instruction>();
 
-        int elementSize = 0;
         for (Expression arg : expr.elements()) {
             result.addAll(arg.accept(this));
-            elementSize++;
         }
 
-        result.add(new MakeList(elementSize, generateLocation(expr.location())));
+        result.add(new MakeList(expr.elements().size(), generateLocation(expr.location())));
 
         return List.copyOf(result);
     }
