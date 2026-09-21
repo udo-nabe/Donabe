@@ -2,11 +2,11 @@ package io.github.udonabe.donabe.compile.code.constant;
 
 import java.nio.charset.StandardCharsets;
 
-public record MethodRefEntry(String value) implements ConstantPoolEntry<String> {
+public record TopLevelRefEntry(String value) implements ConstantPoolEntry<String> {
     
     @Override
     public byte type() {
-        return METHOD_REF_TYPE;
+        return TOPLEVEL_REF_TYPE;
     }
 
     @Override

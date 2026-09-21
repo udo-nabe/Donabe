@@ -3,18 +3,17 @@ package io.github.udonabe.donabe.ir.instruction;
 import io.github.udonabe.donabe.compile.code.instruction.OpCode;
 import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRVisitor;
-import io.github.udonabe.donabe.ir.value.RuntimeValue;
 
-public record Push(RuntimeValue<?> value, IRLocation location) implements Instruction {
+public record LoadGlobal(String globalName, IRLocation location) implements Instruction {
 
     @Override
     public <R> R accept(IRVisitor<R> visitor) {
-        return visitor.visitPush(this);
+        return visitor.visitLoadGlobal(this);
     }
 
     @Override
     public OpCode opcode() {
-        return OpCode.PUSH;
+        return OpCode.LOAD_GLOBAL;
     }
 
     @Override

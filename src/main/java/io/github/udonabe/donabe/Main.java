@@ -8,9 +8,6 @@ import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ir.IRViewer;
 import io.github.udonabe.donabe.lexer.Lexer;
 import io.github.udonabe.donabe.parser.*;
-import io.github.udonabe.donabe.runtime.IRInterpreter;
-import io.github.udonabe.donabe.runtime.InterpreterException;
-import io.github.udonabe.donabe.runtime.Operations;
 import io.github.udonabe.donabe.semantic.SemanticAnalyzer;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -98,46 +95,28 @@ public class Main implements Callable<Integer> {
             log.debug("Semantic analysis successful.");
             log.debug("IR: \n{}", new IRViewer().getIRString(checkResult.irProgram()));
 
-            if (isRun) {
-                log.debug("Launching interpreter...");
+            log.debug("Compiling...");
 
-                Operations registry = new Operations();
-                Set<Integer> slots = Set.copyOf(
-                        IntStream.range(0, checkResult.resolutionMax())
-                                .mapToObj(i -> i)
-                                .toList()
-                );
-                IRInterpreter interpreter = new IRInterpreter(checkResult.irProgram(), slots, registry);
-                interpreter.run();
-
-                log.info("Normal termination.");
-            } else {
-                log.debug("Compiling...");
-
-                Compiler compiler = new Compiler();
-                ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.resolutionMax());
-
-                log.debug("Success to compile.");
-                log.debug("Encoding...");
-
-                Encoder encoder = new Encoder();
-                byte[] encoded = encoder.encode(code);
-
-                log.debug("Success to encode.");
-                log.debug("Write to file...");
-
-                writeFile(encoded);
-            }
+//            Compiler compiler = new Compiler();
+//            ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.resolutionMax());
+//
+//            log.debug("Success to compile.");
+//            log.debug("Encoding...");
+//
+//            Encoder encoder = new Encoder();
+//            byte[] encoded = encoder.encode(code);
+//
+//            log.debug("Success to encode.");
+//            log.debug("Write to file...");
+//
+//            writeFile(encoded);
+//            
+//            log.info("Normal termination.");
         } catch (CompileException e) {
             log.warn("Compile error.", e);
             System.err.println("Compile error: " + e.getMessage());
             return 1;
-        } catch (InterpreterException e) {
-            String msg = ErrorUtil.makeRuntimeError(e.occurredFrame(), e.getMessage());
-            log.warn("Runtime error.", e);
-            System.err.println("Runtime error: " + msg);
-            return 1;
-        } catch (Exception | AssertionError e) {
+        }  catch (Exception | AssertionError e) {
             log.error("An internal error has occurred.", e);
             return 1;
         } catch (Throwable e) {

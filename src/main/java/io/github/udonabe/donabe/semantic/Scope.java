@@ -59,7 +59,7 @@ public final class Scope {
         Objects.requireNonNull(identifier);
         if (!identifierIds.containsKey(identifier)) {
             if (parent == null) {
-                return -1;
+                throw new NoSuchElementException("The identifier \"" + identifier + "\" not found.");
             }
             return parent.getId(identifier);
         }

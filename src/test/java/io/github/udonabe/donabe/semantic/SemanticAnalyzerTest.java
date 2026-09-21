@@ -15,6 +15,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SemanticAnalyzerTest {
+
     private Program parse(String source) {
         TokenStream s = new Lexer(source).toTokenStream();
         ParseResult<Program> res = BasicParsers.program.parse(s);
@@ -38,7 +39,7 @@ class SemanticAnalyzerTest {
     void declaredLetCanBeReferenced() {
         doesNotThrow("""
                 let foo: Int = 1;
-                foo;
+                func test() -> Void { foo; }
                 """);
     }
 
@@ -46,7 +47,7 @@ class SemanticAnalyzerTest {
     void declaredVarCanBeReferenced() {
         doesNotThrow("""
                 var foo: Int = 1;
-                foo;
+                func test() -> Void { foo; }
                 """);
     }
 
@@ -54,7 +55,7 @@ class SemanticAnalyzerTest {
     void varCanBeAssigned() {
         doesNotThrow("""
                 var foo: Int = 1;
-                foo = 2;
+                func test() -> Void { foo = 9; }
                 """);
     }
 
@@ -62,67 +63,61 @@ class SemanticAnalyzerTest {
     void letCannotBeAssigned() {
         throwCompileException("""
                 let foo: Int = 1;
-                foo = 2;
+                func test() -> Void { foo = 9; }
                 """);
     }
 
     @Test
     void undefinedIdentifierCannotBeReferenced() {
         throwCompileException("""
-                foo;
-                """);
-        throwCompileException("""
-                foo;
-                let foo: Int = 1;
-                """);
-    }
-
-    @Test
-    void undefinedIdentifierCannotBeCalled() {
-        throwCompileException("""
-                foo();
-                """);
-        throwCompileException("""
-                foo;
-                let foo: () -> void = func() -> void {};
+                let foo: Int = bar;
                 """);
     }
 
     @Test
     void varOfParentScopeCanBeReferenced() {
         doesNotThrow("""
-                let x: Int = 1;
-                {x;}
+                func test() -> Void {
+                    let x: Int = 1;
+                    {x;}
+                }
                 """);
     }
 
     @Test
     void varOfChildScopeCannotBeReferenced() {
         throwCompileException("""
-                {let x: Int = 1;}
-                x;
+                func test() -> Void {
+                    {let x: Int = 1;}
+                    x;
+                }
                 """);
     }
 
     @Test
     void childScopeVarCanBeReferenced() {
         doesNotThrow("""
-                {
-                    let x: Int = 1;
-                    x;
-                }
+                    func test() -> Void {
+                        {
+                            let x: Int = 1;
+                            x;
+                        }
+                    }
                 """);
     }
 
     @Test
     void canShadowing() {
         doesNotThrow("""
-                let x: Int = 1;
-                {
-                    let x: Int = 2;
+                func test() -> Void {
+                    let x: Int = 1;
+                    {
+                        let x: Int = 2;
+                        x;
+                    
                     x;
+                    }
                 }
-                x;
                 """);
     }
 
@@ -130,15 +125,14 @@ class SemanticAnalyzerTest {
     void varCanBeReferencedInExpression() {
         doesNotThrow("""
                 let x: Int = 1;
-                print(x + 1 / 2);
+                let y: Int = x + 1;
                 """);
     }
 
     @Test
     void undefinedVarCannotBeReferencedInExpression() {
         throwCompileException("""
-                let x: Int = 1;
-                print(y + 1 / 2);
+                let x: Int = y;
                 """);
     }
 
@@ -164,9 +158,13 @@ class SemanticAnalyzerTest {
                     
                 }
                 """);
+        throwCompileException("""
+                let a: Int = 0;
+                var a: Int = 42;
+                """);
     }
 
-    private void nameResolution(String source, int resolutionMax) {
+    private void nameResolution(String source, Set<String> globals) {
         Lexer l = new Lexer(source);
         ParseResult<Program> programResult = BasicParsers.program.parse(l.toTokenStream());
 
@@ -175,8 +173,7 @@ class SemanticAnalyzerTest {
             return; //到達不可能。コンパイルを通すため。
         }
 
-        int max = new SemanticAnalyzer(source).check(value).resolutionMax();
-        assertEquals(resolutionMax, max);
+        assertEquals(globals, new SemanticAnalyzer(source).check(value).globals());
     }
 
     @Test
@@ -185,11 +182,10 @@ class SemanticAnalyzerTest {
         nameResolution("""
                         let a: Int = 10;
                         var b: Int = 2;
-                        func add(a: Int, b: Int) -> Int { return a + b;};
+                        func add(a: Int, b: Int) -> Int { return a + b;}
                         let c: Int = add(a, b);
-                        print("ADD: " + c.toString());
                         """,
-                10);
+                Set.of("print", "input", "range", "now", "add", "a", "b", "c"));
     }
 
     @Test
@@ -222,21 +218,20 @@ class SemanticAnalyzerTest {
                         }
                         let a: Int = add(1, 2);
                         """,
-                8);
+                Set.of("print", "input", "range", "now", "add", "a"));
     }
 
     @Test
     void nestedFunction() {
         nameResolution("""
+                        let b: Int = add(3, 4);
                         func add(a: Int, b: Int) -> Int {
                             func impl(a: Int, b: Int) -> Int {
                                 return a + b;
                             }
                             return impl(a, b);
                         }
-                        
-                        let b: Int = add(3, 4);
                         """,
-                11);
+                Set.of("print", "input", "range", "now", "add", "b"));
     }
 }

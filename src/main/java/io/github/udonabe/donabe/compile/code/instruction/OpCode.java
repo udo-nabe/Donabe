@@ -28,14 +28,16 @@ public enum OpCode {
     PLUS(0x19),
     MINUS(0x1a),
     RETURN(0x1b),
-    VRETURN(0x1c);
+    VRETURN(0x1c),
+    LOAD_GLOBAL(0x1d),
+    STORE_GLOBAL(0x1e),;
     private final byte opcode;
 
     private OpCode(int opcode) {
         if (opcode < 0 || opcode > 255) {
             throw new IllegalArgumentException("Invalid opecode.");
         }
-        
+
         this.opcode = (byte) opcode;
     }
 

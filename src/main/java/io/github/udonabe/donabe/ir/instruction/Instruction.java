@@ -9,7 +9,7 @@ public sealed interface Instruction
         Index, Jmp, JmpFalse, JmpTrue, LabelNop, Less, LessEqual, 
         LoadCaptured, LoadLocal, LoadMember, MakeList, Minus, Mul, 
         Nop, Not, Plus, Pop, Push, Return, StoreCaptured, StoreLocal, 
-        Sub, VoidReturn {
+        Sub, VoidReturn, LoadGlobal, StoreGlobal {
     <R> R accept(IRVisitor<R> visitor);
     IRLocation location();
     OpCode opcode();

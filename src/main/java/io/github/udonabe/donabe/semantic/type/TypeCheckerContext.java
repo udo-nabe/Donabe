@@ -24,4 +24,8 @@ public class TypeCheckerContext {
     public Type currentReturnType() {
         return returnTypeStack.peek();
     }
+    
+    public boolean isRoot() {
+        return returnTypeStack.isEmpty();
+    }
 }
