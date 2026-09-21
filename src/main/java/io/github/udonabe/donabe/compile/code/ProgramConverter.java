@@ -8,7 +8,7 @@ import io.github.udonabe.donabe.compile.code.instruction.operand.IdentifierSlotO
 import io.github.udonabe.donabe.compile.code.instruction.operand.JumpOperand;
 import io.github.udonabe.donabe.compile.code.instruction.operand.Operand;
 import io.github.udonabe.donabe.compile.code.instruction.operand.SizeOperand;
-import io.github.udonabe.donabe.compile.code.section.CodeSection;
+import io.github.udonabe.donabe.compile.code.section.InitializationCodeSection;
 import io.github.udonabe.donabe.compile.code.section.ConstantPoolSection;
 import io.github.udonabe.donabe.compile.code.value.BoolCodeValue;
 import io.github.udonabe.donabe.compile.code.value.CodeValue;
@@ -53,7 +53,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
         ));
     }
 
-    private CodeSection generate(List<Instruction> instructions) {
+    private InitializationCodeSection generate(List<Instruction> instructions) {
         List<ByteCodeInstruction> result = new ArrayList<>();
 
         labelOffsetMap.putAll(resolveLabel(instructions));
@@ -65,7 +65,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
             result.add(i);
         }
 
-        return new CodeSection(result);
+        return new InitializationCodeSection(result);
     }
 
     @Override

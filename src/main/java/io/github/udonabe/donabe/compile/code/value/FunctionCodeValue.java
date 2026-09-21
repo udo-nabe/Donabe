@@ -1,7 +1,7 @@
 package io.github.udonabe.donabe.compile.code.value;
 
 import io.github.udonabe.donabe.compile.code.EndianUtil;
-import io.github.udonabe.donabe.compile.code.section.CodeSection;
+import io.github.udonabe.donabe.compile.code.section.InitializationCodeSection;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
@@ -13,7 +13,7 @@ public record FunctionCodeValue(
         String name,
         List<Integer> paramSlots,
         Set<Integer> locals,
-        CodeSection code
+        InitializationCodeSection code
         ) implements CodeValue {
 
     public FunctionCodeValue {

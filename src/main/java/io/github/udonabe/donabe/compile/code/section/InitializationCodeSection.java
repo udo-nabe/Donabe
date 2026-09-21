@@ -5,7 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 
-public record CodeSection(List<ByteCodeInstruction> instructions) implements Section {
+public record InitializationCodeSection(List<ByteCodeInstruction> instructions) implements Section {
 
     @Override
     public byte type() {
