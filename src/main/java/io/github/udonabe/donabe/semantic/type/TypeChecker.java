@@ -70,7 +70,6 @@ public class TypeChecker implements ASTVisitor<Type> {
     private final TypeInferrer typeInferrer;
     private final OperationChecker operationChecker;
     private final FlowAnalyzer flowAnalyzer;
-    private final Map<Symbol, Type> identifierTypeTable;
     private final TypeCheckerContext context;
     private final String source;
     private final Map<Identifier, Symbol> resolution;
@@ -78,7 +77,6 @@ public class TypeChecker implements ASTVisitor<Type> {
     public TypeChecker(String source, Map<Identifier, Symbol> resolution) {
         this.source = source;
         this.resolution = resolution;
-        this.identifierTypeTable = new HashMap<>();
         typeResolver = new TypeResolver(source);
         context = new TypeCheckerContext();
         operationChecker = new OperationChecker(source);
@@ -94,12 +92,12 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     private Type defineFunction(List<Parameter> params, TypeAnnotation returnType, BlockStatement block,
             SourceFileLocation location) {
-        context.pushReturnType(typeResolver.resolve(returnType));
+        context.pushFunction(typeResolver.resolve(returnType));
 
         for (Parameter param : params) {
             Symbol paramID = resolution.get(param.name());
             Type paramType = typeResolver.resolve(param.type());
-            identifierTypeTable.put(paramID, paramType);
+            context.addSymbolType(paramID, paramType);
         }
 
         for (Statement statement : block.statements()) {
@@ -113,7 +111,7 @@ public class TypeChecker implements ASTVisitor<Type> {
                     "This function has a path that can exit without returning a value."));
         }
 
-        context.popReturnType();
+        context.popFunction();
 
         return generateFunctionType(params, returnType);
     }
@@ -136,7 +134,7 @@ public class TypeChecker implements ASTVisitor<Type> {
 
                 Symbol functionID = resolution.get(functionName);
                 FunctionType functionType = generateFunctionType(params, returnType);
-                identifierTypeTable.put(functionID, functionType);
+                context.addSymbolType(functionID, functionType);
             } else {
                 Identifier functionName = define.name();
                 TypeAnnotation definitionAnnotation = define.type();
@@ -147,7 +145,7 @@ public class TypeChecker implements ASTVisitor<Type> {
                 }
 
                 Symbol identifierID = resolution.get(functionName);
-                identifierTypeTable.put(identifierID, typeResolver.resolve(definitionAnnotation));
+                context.addSymbolType(identifierID, typeResolver.resolve(definitionAnnotation));
             }
         }
 
@@ -192,7 +190,7 @@ public class TypeChecker implements ASTVisitor<Type> {
     @Override
     public Type visitFunctionDefineStatement(FunctionDefineStatement statement) {
         if (!context.isRoot()) {
-            identifierTypeTable.put(
+            context.addSymbolType(
                     resolution.get(statement.name()),
                     defineFunction(statement)
             );
@@ -229,7 +227,7 @@ public class TypeChecker implements ASTVisitor<Type> {
         if (!context.isRoot()) {
             Symbol identifierSymbol = resolution.get(identifier);
 
-            identifierTypeTable.put(identifierSymbol, identifierType);
+            context.addSymbolType(identifierSymbol, identifierType);
         }
     }
 
@@ -367,10 +365,10 @@ public class TypeChecker implements ASTVisitor<Type> {
     @Override
     public Type visitIdentifier(Identifier expr) {
         Symbol identifierSymbol = resolution.get(expr);
-        if (!identifierTypeTable.containsKey(identifierSymbol)) {
+        if (!context.hasSymbolType(identifierSymbol)) {
             throw new AssertionError("Identifier not found: " + expr.name() + ", slot: " + identifierSymbol);
         }
-        return identifierTypeTable.get(identifierSymbol);
+        return context.getSymbolType(identifierSymbol);
     }
 
     @Override
@@ -473,19 +471,19 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     private void registerBuiltinFunctions() {
-        identifierTypeTable.put(new GlobalSymbol("print"),
+        context.addSymbolType(new GlobalSymbol("print"),
                 new FunctionType(
                         List.of(new AnyType()),
                         new VoidType()));
-        identifierTypeTable.put(new GlobalSymbol("input"),
+        context.addSymbolType(new GlobalSymbol("input"),
                 new FunctionType(
                         List.of(),
                         new StringType()));
-        identifierTypeTable.put(new GlobalSymbol("range"),
+        context.addSymbolType(new GlobalSymbol("range"),
                 new FunctionType(
                         List.of(new IntType(), new IntType()),
                         new ListType(new IntType())));
-        identifierTypeTable.put(new GlobalSymbol("now"),
+        context.addSymbolType(new GlobalSymbol("now"),
                 new FunctionType(
                         List.of(),
                         new Int64Type()));
@@ -497,9 +495,5 @@ public class TypeChecker implements ASTVisitor<Type> {
                 .map(typeResolver::resolve)
                 .toList();
         return new FunctionType(types, typeResolver.resolve(retType));
-    }
-
-    Map<Symbol, Type> identifierTypeTable() {
-        return Map.copyOf(identifierTypeTable);
     }
 }
