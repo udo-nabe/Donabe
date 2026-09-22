@@ -271,7 +271,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
             case StringValue value ->
                 new StringCodeValue(value.value());
             case FunctionValue value ->
-                new FunctionCodeValue(value.name(), value.paramSlots(), value.locals(), generate(value.instructions()));
+                new FunctionCodeValue(value.name(), value.paramSlots(), value.localCount(), generate(value.instructions()));
             case ListValue value ->
                 new ListCodeValue(value.value().stream()
                 .map(t -> convertRuntimeValue(t))

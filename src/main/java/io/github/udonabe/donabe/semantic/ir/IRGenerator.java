@@ -133,18 +133,15 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         }
 
         Set<Symbol> locals = context.currentLocals();
-        if (!params.stream().allMatch(s -> s instanceof LocalSymbol)) {
+        if (!locals.stream().allMatch(s -> s instanceof LocalSymbol)) {
             throw new IllegalStateException();
         }
-        Set<Integer> localSlots = params.stream()
-                .map(s -> (LocalSymbol) s)
-                .map(s -> s.slot())
-                .collect(Collectors.toSet());
+        int localCount = locals.size();
 
         FunctionValue functionValue = new FunctionValue(
                 statement.name().name(),
                 paramSlots,
-                localSlots,
+                localCount,
                 result);
 
         context.popFunction();
@@ -481,10 +478,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
         FunctionValue functionValue = new FunctionValue(
                 null,
                 paramSlots,
-                context.currentLocals().stream()
-                        .map(s -> (LocalSymbol) s)
-                        .map(s -> s.slot())
-                        .collect(Collectors.toSet()),
+                context.currentLocals().size(),
                 result);
 
         context.popFunction();

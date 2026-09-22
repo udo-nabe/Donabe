@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 public record FunctionCodeValue(
         String name,
         List<Integer> paramSlots,
-        Set<Integer> locals,
+        int localCount,
         InitializationCodeSection code
         ) implements CodeValue {
 
@@ -20,7 +20,7 @@ public record FunctionCodeValue(
         if (paramSlots.size() >= 0xffff) {
             throw new IllegalArgumentException("Too many params.");
         }
-        if (locals.size() >= 0xffff) {
+        if (localCount >= 0xffff) {
             throw new IllegalArgumentException("Too many locals.");
         }
     }
@@ -47,10 +47,7 @@ public record FunctionCodeValue(
             }
 
             //個数を明示し、ローカル変数一覧を書く
-            out.write(EndianUtil.to2BytesLittleEndian(locals.size()));
-            for (int slot : locals) {
-                out.write(EndianUtil.to2BytesLittleEndian(slot));
-            }
+            out.write(EndianUtil.to2BytesLittleEndian(localCount));
 
             byte[] codeContent = code.content();
 

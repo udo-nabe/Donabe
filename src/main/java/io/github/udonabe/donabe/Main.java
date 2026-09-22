@@ -97,21 +97,21 @@ public class Main implements Callable<Integer> {
 
             log.debug("Compiling...");
 
-//            Compiler compiler = new Compiler();
-//            ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.resolutionMax());
-//
-//            log.debug("Success to compile.");
-//            log.debug("Encoding...");
-//
-//            Encoder encoder = new Encoder();
-//            byte[] encoded = encoder.encode(code);
-//
-//            log.debug("Success to encode.");
-//            log.debug("Write to file...");
-//
-//            writeFile(encoded);
-//            
-//            log.info("Normal termination.");
+            Compiler compiler = new Compiler();
+            ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.globals());
+
+            log.debug("Success to compile.");
+            log.debug("Encoding...");
+
+            Encoder encoder = new Encoder();
+            byte[] encoded = encoder.encode(code);
+
+            log.debug("Success to encode.");
+            log.debug("Write to file...");
+
+            writeFile(encoded);
+            
+            log.info("Normal termination.");
         } catch (CompileException e) {
             log.warn("Compile error.", e);
             System.err.println("Compile error: " + e.getMessage());
