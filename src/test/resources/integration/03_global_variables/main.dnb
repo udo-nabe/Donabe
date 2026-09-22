@@ -1,0 +1,4 @@
+let value: Int = 42;
+
+func main() -> Void {
+}

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -74,12 +75,18 @@ public class IntegrationTest {
 
             ByteCode code = new Compiler().compile(checkResult.irProgram(), checkResult.globals());
 
-            
-            String acutalDump = ByteCodeDumper.dump(code).strip();
-            String expectedDump = expected.strip();
+            String acutalDump = normalize(ByteCodeDumper.dump(code));
+            String expectedDump = normalize(expected);
             assertEquals(expectedDump, acutalDump);
         } catch (IOException e) {
             throw new RuntimeException("Failed to run test.", e);
         }
+    }
+
+    private static String normalize(String text) {
+        return text.lines()
+                .map(String::stripTrailing)
+                .collect(Collectors.joining("\n"))
+                .stripTrailing();
     }
 }

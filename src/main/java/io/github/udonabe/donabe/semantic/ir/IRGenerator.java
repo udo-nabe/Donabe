@@ -32,6 +32,7 @@ import io.github.udonabe.donabe.ast.expr.StringLiteral;
 import io.github.udonabe.donabe.ast.expr.UnaryExpression;
 import io.github.udonabe.donabe.ast.expr.VoidExpression;
 import io.github.udonabe.donabe.ast.statement.BlockStatement;
+import io.github.udonabe.donabe.ast.statement.Definition;
 import io.github.udonabe.donabe.ast.statement.EmptyStatement;
 import io.github.udonabe.donabe.ast.statement.ExpressionStatement;
 import io.github.udonabe.donabe.ast.statement.ForEachStatement;
@@ -176,15 +177,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
     @Override
     public List<Instruction> visitProgram(Program program) {
         var result = new ArrayList<Instruction>();
-
-        var defineFunctions = program.definitions().stream()
-                .filter(s -> s instanceof FunctionDefineStatement)
-                .map(s -> (FunctionDefineStatement) s)
-                .toList();
-        for (FunctionDefineStatement define : defineFunctions) {
-            result.addAll(defineFunction(define));
-        }
-
+        
         for (Statement statement : program.definitions()) {
             result.addAll(statement.accept(this));
         }
@@ -217,8 +210,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
 
     @Override
     public List<Instruction> visitFunctionDefineStatement(FunctionDefineStatement statement) {
-        // 既に変換済みのため、何もしない
-        return List.of();
+        return defineFunction(statement);
     }
 
     @Override

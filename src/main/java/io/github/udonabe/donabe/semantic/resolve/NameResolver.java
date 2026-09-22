@@ -198,7 +198,7 @@ public final class NameResolver implements ASTVisitor<Void> {
     @Override
     public Void visitFunctionDefineStatement(FunctionDefineStatement statement) {
         if (!context.isRoot()) {
-            defineFunction(statement.params(), statement.block());
+            localCountASTNodeMap.put(statement, defineFunction(statement.params(), statement.block()));
             int id = context.issueID();
             currentScope.put(statement.name().name(), new SymbolInformation(false));
             currentScope.putId(statement.name().name(), id);

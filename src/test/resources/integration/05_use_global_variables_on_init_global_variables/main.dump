@@ -1,0 +1,21 @@
+globals
+  a
+  b
+  input
+  now
+  print
+  range
+
+constants
+  0 = 10
+  1 = global("a")
+  2 = 20
+  3 = global("b")
+
+initialization
+  PUSH 10
+  STORE_GLOBAL global("a")
+  LOAD_GLOBAL global("a")
+  PUSH 20
+  ADD
+  STORE_GLOBAL global("b")
