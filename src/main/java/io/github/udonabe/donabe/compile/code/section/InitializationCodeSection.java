@@ -6,12 +6,6 @@ import java.io.IOException;
 import java.util.List;
 
 public record InitializationCodeSection(List<ByteCodeInstruction> instructions) implements Section {
-
-    @Override
-    public byte type() {
-        return CODE_SECTION_TYPE;
-    }
-
     @Override
     public byte[] content() {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {

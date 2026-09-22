@@ -4,7 +4,9 @@ import io.github.udonabe.donabe.compile.code.EndianUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 public record GlobalIdentifiersSection(Set<String> globals) implements Section {
 
@@ -12,11 +14,9 @@ public record GlobalIdentifiersSection(Set<String> globals) implements Section {
         if (globals.size() > 0xFFFF) {
             throw new IllegalArgumentException("Identifiers are too many.");
         }
-    }
-
-    @Override
-    public byte type() {
-        return GLOBAL_IDENTIFIERS_SECTION_TYPE;
+        
+        //テストのため、辞書順に並び替えて保持する
+        globals = new TreeSet<>(globals);
     }
 
     @Override

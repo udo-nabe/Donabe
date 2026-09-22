@@ -46,11 +46,12 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
         this.constantPool = new ArrayList<>();
     }
 
-    public ByteCode generate(IRProgram program) {
+    public ProgramConvertResult generate(IRProgram program) {
         var instructions = generate(program.instructions());
-        return new ByteCode(Set.of(
-                instructions, new ConstantPoolSection(constantPool)
-        ));
+        return new ProgramConvertResult(
+                new ConstantPoolSection(constantPool),
+                instructions
+        );
     }
 
     private InitializationCodeSection generate(List<Instruction> instructions) {
@@ -299,5 +300,10 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
                         )
                 )
         );
+    }
+
+    public record ProgramConvertResult(ConstantPoolSection constantPoolSection,
+            InitializationCodeSection initializationCodeSection) {
+
     }
 }

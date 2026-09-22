@@ -11,11 +11,13 @@ public final class Compiler {
     public ByteCode compile(IRProgram program, Set<String> globals) {
         ProgramConverter programConverter = new ProgramConverter();
 
-        ByteCode byteCode = programConverter.generate(program);
+        ProgramConverter.ProgramConvertResult convertResult = programConverter.generate(program);
 
         GlobalIdentifiersSection identifiers = new GlobalIdentifiersSection(globals);
-        byteCode = byteCode.addSection(identifiers);
-        
+        ByteCode byteCode = new ByteCode(identifiers,
+                convertResult.constantPoolSection(),
+                convertResult.initializationCodeSection());
+
         return byteCode;
     }
 }

@@ -14,7 +14,7 @@ public class FunctionCodeValueTest {
 
     @Test
     public void testType() {
-        assertEquals(new FunctionCodeValue("test", List.of(), Set.of(), new InitializationCodeSection(List.of())).type(),
+        assertEquals(new FunctionCodeValue("test", List.of(), 0, new InitializationCodeSection(List.of())).type(),
                 CodeValue.FUNCTION_TYPE);
     }
 
@@ -27,11 +27,7 @@ public class FunctionCodeValueTest {
                     0x00, 0x00, //ローカル変数の個数(無し)
                     0x00, 0x00, 0x00, 0x00, //コードの長さ(無し)
                 },
-                new FunctionCodeValue("test", List.of(), Set.of(), new InitializationCodeSection(List.of())).content());
-
-        Set<Integer> locals = new LinkedHashSet<>();
-        locals.add(0);
-        locals.add(1);
+                new FunctionCodeValue("test", List.of(), 0, new InitializationCodeSection(List.of())).content());
 
         assertArrayEquals(new byte[]{
                     0x04, 0x00, 0x00, 0x00, //関数名の長さ
@@ -42,13 +38,11 @@ public class FunctionCodeValueTest {
                     0x01, 0x00, //引数スロット2
 
                     0x02, 0x00, //ローカル変数の個数
-                    0x00, 0x00, //ローカル変数1
-                    0x01, 0x00, //ローカル変数2
 
                     0x04, 0x00, 0x00, 0x00, //コードの長さ
                     OpCode.PUSH.opcode(), 0x42, 0x00,
                     OpCode.VRETURN.opcode(),},
-                new FunctionCodeValue("test", List.of(0, 1), locals, new InitializationCodeSection(
+                new FunctionCodeValue("test", List.of(0, 1), 2, new InitializationCodeSection(
                         List.of(
                                 new ByteCodeInstruction(OpCode.PUSH, List.of(
                                         new ConstantPoolOperand(0x42)
