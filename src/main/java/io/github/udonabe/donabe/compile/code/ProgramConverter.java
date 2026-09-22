@@ -252,7 +252,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
             constantPool.add(value);
         }
 
-        if (constantPool.size() > Short.MAX_VALUE) {
+        if (constantPool.size() > 0xffff) {
             throw new IllegalStateException("Constant pool size is too many.");
         }
 
