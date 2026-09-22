@@ -46,11 +46,11 @@ public class IntegrationTest {
 
     void integrationTest(Path dnbFile) {
         Path expectFile = dnbFile.resolveSibling(
-                dnbFile.getFileName().toString().replaceFirst("\\.[^.]+$", ".json")
+                dnbFile.getFileName().toString().replaceFirst("\\.[^.]+$", ".dump")
         );
 
         if (!Files.exists(expectFile)) {
-            throw new RuntimeException(".json file not found.");
+            throw new RuntimeException(".dump file not found.");
         }
 
         try {
@@ -73,30 +73,11 @@ public class IntegrationTest {
             SemanticAnalyzer.AnalyzeResult checkResult = semanticAnalyzer.check(parsed);
 
             ByteCode code = new Compiler().compile(checkResult.irProgram(), checkResult.globals());
+
             
-            //Constant Poolが正しく表示されるようにする
-            Gson gson = new GsonBuilder()
-                    .registerTypeAdapter(
-                            ConstantPoolSection.class,
-                            (JsonSerializer<ConstantPoolSection>) (section, type, context) -> {
-                                JsonObject object = new JsonObject();
-                                JsonArray pool = new JsonArray();
-
-                                for (ConstantPoolEntry<?> entry : section.pool()) {
-                                    pool.add(context.serialize(
-                                            entry,
-                                            entry.getClass()
-                                    ));
-                                }
-
-                                object.add("pool", pool);
-                                return object;
-                            }
-                    )
-                    .create();
-            JsonElement acutalTree = gson.toJsonTree(code);
-            JsonElement expectedTree = JsonParser.parseString(expected);
-            assertEquals(expectedTree, acutalTree);
+            String acutalDump = ByteCodeDumper.dump(code).strip();
+            String expectedDump = expected.strip();
+            assertEquals(expectedDump, acutalDump);
         } catch (IOException e) {
             throw new RuntimeException("Failed to run test.", e);
         }

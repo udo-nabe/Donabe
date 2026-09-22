@@ -1,0 +1,30 @@
+globals
+  input
+  main
+  now
+  print
+  range
+
+constants
+  0 = 10
+  1 = 20
+  2 = function(main)
+  3 = global("main")
+
+function main
+  params: []
+  locals: 3
+
+  PUSH 10
+  STORE_LOCAL 0
+  PUSH 20
+  STORE_LOCAL 1
+  LOAD_LOCAL 0
+  LOAD_LOCAL 1
+  ADD
+  STORE_LOCAL 2
+  VRETURN
+
+initialization
+  PUSH function(main)
+  STORE_GLOBAL global("main")
