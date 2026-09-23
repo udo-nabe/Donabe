@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 
 @CommandLine.Command(name = "donabe",
         version = "1.0-SNAPSHOT",
-        description = "Donabe言語 処理系",
+        description = "Donabe compiler",
         mixinStandardHelpOptions = true)
 public class Main implements Callable<Integer> {
 
@@ -45,19 +45,14 @@ public class Main implements Callable<Integer> {
     }
 
     @CommandLine.Parameters(index = "0",
-            description = "ソースファイル",
+            description = "Source file",
             paramLabel = "<file>")
     Path sourceFile;
     @CommandLine.Option(
             names = {"--verbose"},
-            description = "ログを詳細表示するか"
+            description = "Enable verbose logging"
     )
     boolean verbose;
-    @CommandLine.Option(
-            names = {"--run"},
-            description = "ログを詳細表示するか"
-    )
-    boolean isRun;
 
     public static void main(String[] args) {
         int exitCode = new CommandLine(new Main()).execute(args);
@@ -111,19 +106,17 @@ public class Main implements Callable<Integer> {
 
             writeFile(encoded);
             
+            log.debug("Success to write.");
             log.info("Normal termination.");
+            return 0;
         } catch (CompileException e) {
             log.warn("Compile error.", e);
-            System.err.println("Compile error: " + e.getMessage());
+            System.err.println("Error: " + e.getMessage());
             return 1;
         }  catch (Exception | AssertionError e) {
             log.error("An internal error has occurred.", e);
             return 1;
-        } catch (Throwable e) {
-            e.printStackTrace();    //ロギングすら失敗する可能性があるため、System.errにスタックトレースを出す
-            System.exit(1);
         }
-        return 0;
     }
 
     private void writeFile(byte[] encoded) throws IOException {
