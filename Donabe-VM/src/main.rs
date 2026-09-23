@@ -58,8 +58,6 @@ fn main() {
         }
     };
 
-    //println!("ByteCode: \n{:#?}", bytecode);
-
     let mut vm = match VM::new(&bytecode) {
         Ok(v) => v,
         Err(e) => {

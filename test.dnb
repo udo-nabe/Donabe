@@ -25,29 +25,31 @@ func calculate_score(a: Int, b: Int, c: Int) -> Int {
     return clamp(x + y, 0, 100);
 }
 
-let values = [12, 5, 8, 15, 3, 20, 7, 11, 4, 9];
+func main() -> Void {
+    let values = [12, 5, 8, 15, 3, 20, 7, 11, 4, 9];
 
-var total = 0;
-var round = 0;
+    var total = 0;
+    var round = 0;
 
-let start = now();
-while round < 100000 {
-    var i = 0;
+    let start = now();
+    while round < 100000 {
+        var i = 0;
 
-    while i < 8 {
-        let a = values[i];
-        let b = values[i + 1];
-        let c = values[i + 2];
+        while i < 8 {
+            let a = values[i];
+            let b = values[i + 1];
+            let c = values[i + 2];
 
-        total = total + calculate_score(a, b, c);
+            total = total + calculate_score(a, b, c);
 
-        i = i + 1;
+            i = i + 1;
+        }
+
+        round = round + 1;
     }
 
-    round = round + 1;
+    print(total);
+
+    let end = now();
+    print("elapsed: " + (end - start).toString() + "ms");
 }
-
-print(total);
-
-let end = now();
-print("elapsed: " + (end - start).toString() + "ms");

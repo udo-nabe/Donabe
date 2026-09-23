@@ -48,12 +48,13 @@ struct VMContext {
 
 enum VMConstantEntry {
     MemberRef { member_name: String },
+    GlobalRef { name: String },
     Handle(Handle),
 }
 
 pub struct VM {
     constant_pool: Vec<VMConstantEntry>,
-    identifiers: Vec<ValueRef>,
+    globals: HashMap<String, Handle>,
     receiver_table: Vec<ValueRef>,
     context: VMContext,
     heap: Heap,
@@ -101,27 +102,30 @@ impl VM {
                 ConstantPoolEntry::Value { value } => VMConstantEntry::Handle(
                     heap.alloc(value).map_err(|e| error_without_pc!("{}", e))?,
                 ),
+                ConstantPoolEntry::GlobalRef { name } => VMConstantEntry::GlobalRef { name },
             });
         }
 
-        let identifier_slots_count = byte_code.identifiers.count();
-        let mut identifier_slots = (0..identifier_slots_count)
-            .map(|_| undefined_handle)
+        let mut globals: HashMap<String, Handle> = byte_code
+            .identifiers
+            .globals()
+            .into_iter()
+            .map(|k| (k.clone(), undefined_handle))
             .collect();
-        setup_builtin_functions(&mut heap, &mut identifier_slots)?;
+        setup_builtin_functions(&mut heap, &mut globals)?;
 
         let root_frame = Rc::new(RefCell::new(StackFrame::new(
-            "<root>".to_string(),
+            "<init>".to_string(),
             None,
             Rc::new(byte_code.code_section.code()),
             0,
-            &identifier_slots,
-            HashSet::from_iter(0..identifier_slots_count),
+            0,
+            undefined_handle,
         )));
 
         Ok(VM {
             constant_pool,
-            identifiers: identifier_slots,
+            globals,
             receiver_table: Vec::new(),
             context: VMContext {
                 call_stack: vec![root_frame.clone()],
@@ -134,6 +138,40 @@ impl VM {
 
     /// VMの実行を開始する。
     pub fn run(&mut self) -> Result<(), RuntimeError> {
+        self.run_initialization_area()?;
+        self.run_main_function()?;
+        Ok(())
+    }
+
+    fn run_initialization_area(&mut self) -> Result<(), RuntimeError> {
+        self.run_impl()
+    }
+
+    fn run_main_function(&mut self) -> Result<(), RuntimeError> {
+        let main_closure_handle = self
+            .get_global_var("main".to_string())
+            .ok_or_else(|| error_without_pc!("Could not find main function"))?;
+
+        if let Value::Closure {
+            function_handle, ..
+        } = self.get_value(main_closure_handle)?
+        {
+            if let Value::Function {name, params, ..} = self.get_value(*function_handle)? {
+                if name != "main" || !params.is_empty() {
+                    return Err(error_without_pc!("Could not get main function handle"));
+                }
+
+                self.call(*function_handle, None)?;
+                return self.run_impl();
+            }
+        }
+        return Err(error_without_pc!(
+            "Could not find main function. The identifier main of global is {}",
+            self.get_value(main_closure_handle)?
+        ));
+    }
+
+    fn run_impl(&mut self) -> Result<(), RuntimeError> {
         while self.borrow_current_frame().pc() < self.borrow_current_frame().code().len() as u32 {
             let opcode = self.fetch_opcode()?;
             let operand_size = opcode.get_operand_size();
@@ -154,9 +192,6 @@ impl VM {
                 let constant_pool_value = &self.constant_pool
                     [operand_2bytes(self.get_code()?, operand_candidate)? as usize];
                 match constant_pool_value {
-                    VMConstantEntry::MemberRef { .. } => {
-                        bail!(self, "MemberRef cannot be pushed.")
-                    }
                     VMConstantEntry::Handle(handle) => {
                         match self.get_value(*handle)? {
                             Value::Function { .. } => {
@@ -171,6 +206,9 @@ impl VM {
                             }
                         };
                         Ok(())
+                    }
+                    _ => {
+                        bail!(self, "MemberRef or GlobalRef cannot be pushed.")
                     }
                 }?
             }
@@ -236,58 +274,7 @@ impl VM {
                         function_handle,
                         parent,
                     } => {
-                        let (name, params, locals, code) = {
-                            let function = self.get_value(function_handle)?;
-
-                            if let Value::Function {
-                                name,
-                                params,
-                                locals,
-                                code,
-                            } = function
-                            {
-                                (
-                                    name.clone(),
-                                    params.clone(),
-                                    locals.clone(),
-                                    Rc::clone(code),
-                                )
-                            } else {
-                                bail!(self, "Invalid function handle.");
-                            }
-                        };
-
-                        for param in &params {
-                            let param_value = self.pop_stack()?;
-
-                            if !locals.contains(param) {
-                                bail!(
-                                    self,
-                                    "Unbindable argument: {}. Non-existent in locals.",
-                                    param
-                                );
-                            }
-
-                            self.identifiers[*param as usize] = param_value;
-                        }
-
-                        let callee_frame = StackFrame::new(
-                            name,
-                            Some(parent.clone()),
-                            code,
-                            self.borrow_current_frame().sp(),
-                            &self.identifiers,
-                            locals,
-                        );
-
-                        let callee_frame_ref = Rc::new(RefCell::new(callee_frame));
-
-                        self.update_frame_cache(&callee_frame_ref);
-                        self.context
-                            .call_stack
-                            .push(callee_frame_ref);
-
-                        return Ok(());
+                        return self.call(function_handle, Some(parent));
                     }
                     Value::BuiltinFunction {
                         param_count,
@@ -412,7 +399,7 @@ impl VM {
                             }
                         }
                     }
-                    VMConstantEntry::Handle(_) => {
+                    _ => {
                         bail!(self, "Value cannot be used as MemberRef.")
                     }
                 };
@@ -469,7 +456,124 @@ impl VM {
 
                 self.push_stack_alloc(Value::Void)?;
             }
+            OpCode::LoadGlobal => {
+                let global_name_index = operand_2bytes(self.get_code()?, operand_candidate)?;
+                let global_name = match self.constant_pool.get(global_name_index as usize) {
+                    None => bail!(
+                        self,
+                        "GlobalRef constant pool entry does not exist: {}",
+                        global_name_index
+                    ),
+                    Some(v) => match v {
+                        VMConstantEntry::GlobalRef { name } => name,
+                        _ => bail!(
+                            self,
+                            "GlobalRef constant pool entry does not exist: {}",
+                            global_name_index
+                        ),
+                    },
+                };
+
+                let value_ref = match self.get_global_var(global_name.clone()) {
+                    None => bail!(self, "Non-existent global identifier: {}", global_name),
+                    Some(v) => v,
+                };
+                self.push_stack(value_ref)?;
+            }
+            OpCode::StoreGlobal => {
+                let global_name_index = operand_2bytes(self.get_code()?, operand_candidate)?;
+                let global_name = match self.constant_pool.get(global_name_index as usize) {
+                    None => bail!(
+                        self,
+                        "GlobalRef constant pool entry does not exist: {}",
+                        global_name_index
+                    ),
+                    Some(v) => match v {
+                        VMConstantEntry::GlobalRef { name } => name,
+                        _ => bail!(
+                            self,
+                            "GlobalRef constant pool entry does not exist: {}",
+                            global_name_index
+                        ),
+                    },
+                }
+                .clone();
+
+                let push_value = self.pop_stack()?;
+                self.set_global_bar(global_name, push_value)?;
+            }
         };
+        Ok(())
+    }
+
+    fn call(
+        &mut self,
+        function_handle: Handle,
+        parent: Option<FrameRef>,
+    ) -> Result<(), RuntimeError> {
+        let (name, params, local_count, code) = {
+            let function = self.get_value(function_handle)?;
+
+            if let Value::Function {
+                name,
+                params,
+                local_count,
+                code,
+            } = function
+            {
+                (name.clone(), params.clone(), *local_count, Rc::clone(code))
+            } else {
+                bail!(self, "Invalid function handle.");
+            }
+        };
+
+        let mut locals: Vec<Handle> = vec![self.undefined_ref; local_count as usize];
+
+        for param in &params {
+            let param_value = self.pop_stack()?;
+
+            if *param >= local_count {
+                bail!(
+                    self,
+                    "Unbindable argument: {}. Non-existent in locals.",
+                    param
+                );
+            }
+
+            locals[*param as usize] = param_value;
+        }
+
+        let callee_frame = StackFrame::with_locals(
+            name,
+            match parent {
+                None => None,
+                Some(v) => Some(v.clone()),
+            },
+            code,
+            self.borrow_current_frame().sp(),
+            locals,
+        );
+
+        let callee_frame_ref = Rc::new(RefCell::new(callee_frame));
+
+        self.update_frame_cache(&callee_frame_ref);
+        self.context.call_stack.push(callee_frame_ref);
+
+        return Ok(());
+    }
+
+    fn get_global_var(&self, name: String) -> Option<Handle> {
+        match self.globals.get(&name) {
+            None => None,
+            Some(v) => Some(*v),
+        }
+    }
+
+    fn set_global_bar(&mut self, name: String, handle: Handle) -> Result<(), RuntimeError> {
+        if !self.globals.contains_key(&name) {
+            bail!(self, "Global identifier does not exist: {}", name)
+        }
+        self.globals.insert(name, handle);
         Ok(())
     }
 
@@ -487,9 +591,7 @@ impl VM {
     }
 
     fn push_stack(&mut self, value: ValueRef) -> Result<(), RuntimeError> {
-        Ok(self
-            .borrow_current_frame_mut()
-            .push_operand_stack(value))
+        Ok(self.borrow_current_frame_mut().push_operand_stack(value))
     }
 
     fn push_stack_alloc(&mut self, value: Value) -> Result<(), RuntimeError> {
@@ -532,7 +634,9 @@ impl VM {
     }
 
     fn update_frame_cache(&mut self, frame_ref: &FrameRef) {
-        self.context.stack_frame_cache.update_frame(frame_ref.clone());
+        self.context
+            .stack_frame_cache
+            .update_frame(frame_ref.clone());
     }
 
     fn alloc(&mut self, value: Value) -> Result<ValueRef, RuntimeError> {
@@ -573,10 +677,10 @@ fn operand_4bytes(code: Rc<Vec<u8>>, pos: u32) -> Result<u32, RuntimeError> {
 ///引数のHashMapに組み込み関数を定義する。
 fn setup_builtin_functions(
     heap: &mut Heap,
-    identifier_slot: &mut Vec<ValueRef>,
+    globals: &mut HashMap<String, Handle>,
 ) -> Result<(), RuntimeError> {
-    identifier_slot.insert(
-        0,
+    globals.insert(
+        "print".to_string(),
         heap.alloc(Value::BuiltinFunction {
             name: "print".to_string(),
             param_count: 1,
@@ -585,8 +689,8 @@ fn setup_builtin_functions(
         })
         .map_err(|e| error_without_pc!("Could not allocate 'print': {}", e))?,
     );
-    identifier_slot.insert(
-        1,
+    globals.insert(
+        "input".to_string(),
         heap.alloc(Value::BuiltinFunction {
             name: "input".to_string(),
             param_count: 0,
@@ -595,8 +699,8 @@ fn setup_builtin_functions(
         })
         .map_err(|e| error_without_pc!("Could not allocate 'input': {}", e))?,
     );
-    identifier_slot.insert(
-        2,
+    globals.insert(
+        "range".to_string(),
         heap.alloc(Value::BuiltinFunction {
             name: "range".to_string(),
             param_count: 2,
@@ -605,8 +709,8 @@ fn setup_builtin_functions(
         })
         .map_err(|e| error_without_pc!("Could not allocate 'range': {}", e))?,
     );
-    identifier_slot.insert(
-        3,
+    globals.insert(
+        "now".to_string(),
         heap.alloc(Value::BuiltinFunction {
             name: "now".to_string(),
             param_count: 0,

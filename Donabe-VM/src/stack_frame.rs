@@ -3,6 +3,8 @@ use std::cell::{Ref, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use crate::error_with_pc;
+use crate::heap::handle::Handle;
+use crate::heap::heap::Heap;
 use crate::vm::RuntimeError;
 
 pub type FrameRef = Rc<RefCell<StackFrame>>;
@@ -22,7 +24,6 @@ pub struct StackFrame {
     operand_stack: Vec<ValueRef>,
     code: Rc<Vec<u8>>,
     identifiers: Vec<ValueRef>,
-    locals: HashSet<u16>,
 }
 
 impl Registers {
@@ -41,8 +42,8 @@ impl StackFrame {
         parent: Option<Rc<RefCell<StackFrame>>>,
         code: Rc<Vec<u8>>,
         stack_base: u32,
-        identifiers: &Vec<ValueRef>,
-        locals: HashSet<u16>,
+        locals_count: u16,
+        undefined_handle: Handle
     ) -> StackFrame {
         StackFrame {
             name,
@@ -50,8 +51,24 @@ impl StackFrame {
             registers: Registers::new(stack_base),
             operand_stack: Vec::with_capacity(10),
             code,
-            identifiers: identifiers.clone(),
-            locals,
+            identifiers: vec![undefined_handle; locals_count as usize],
+        }
+    }
+
+    pub fn with_locals(
+        name: String,
+        parent: Option<Rc<RefCell<StackFrame>>>,
+        code: Rc<Vec<u8>>,
+        stack_base: u32,
+        locals: Vec<Handle>,
+    ) -> StackFrame {
+        StackFrame {
+            name,
+            parent,
+            registers: Registers::new(stack_base),
+            operand_stack: Vec::with_capacity(10),
+            code,
+            identifiers: locals,
         }
     }
 
@@ -143,19 +160,20 @@ impl StackFrame {
     }
 
     fn set_var_recursive(&mut self, slot: u16, value_ref: ValueRef) -> Result<(), RuntimeError> {
-        if self.locals.contains(&slot) {
-            self.identifiers[slot as usize] = value_ref;
-            Ok(())
-        } else {
-            if self.parent.is_some() {
-                match self.parent.as_deref() {
-                    None => Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot)),
-                    Some(parent) => parent.borrow_mut().set_var_recursive(slot, value_ref),
-                }
-            } else {
-                Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot))
-            }
-        }
+        // if self.locals.contains(&slot) {
+        //     self.identifiers[slot as usize] = value_ref;
+        //     Ok(())
+        // } else {
+        //     if self.parent.is_some() {
+        //         match self.parent.as_deref() {
+        //             None => Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot)),
+        //             Some(parent) => parent.borrow_mut().set_var_recursive(slot, value_ref),
+        //         }
+        //     } else {
+        //         Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot))
+        //     }
+        // }
+        panic!("Unsupported currently.");
     }
 
     pub fn operand_stack(&self) -> &Vec<ValueRef> {
