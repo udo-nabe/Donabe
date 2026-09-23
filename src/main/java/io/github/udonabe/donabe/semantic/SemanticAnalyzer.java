@@ -83,13 +83,17 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
                 .map(s -> s.fullyQualifiedName()).collect(Collectors.toSet()));
     }
 
-    private void checkFunctions(List<Definition> functionDefineStatements) {
+    private void checkFunction(FunctionDefineStatement statement) {
+        context.pushFunction();
+        statement.block().accept(this);
+        context.popFunction();
+        globals.put(statement.name().name(), new SymbolInformation(false));
+    }
+
+    private void checkGlobals(List<Definition> functionDefineStatements) {
         for (Definition definition : functionDefineStatements) {
             if (definition instanceof FunctionDefineStatement functionDefine) {
-                context.pushFunction();
-                functionDefine.block().accept(this);
-                context.popFunction();
-                globals.put(functionDefine.name().name(), new SymbolInformation(false));
+                checkFunction(functionDefine);
             } else {
                 definition.accept(this);
             }
@@ -100,7 +104,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitProgram(Program program) {
         List<Definition> statements = program.definitions();
 
-        checkFunctions(statements);
+        checkGlobals(statements);
 
         for (Statement statement : statements) {
             if (statement == null) {
@@ -136,7 +140,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionDefineStatement(FunctionDefineStatement statement) {
-        log.trace("Skipped FunctionDefineStatement: {}", statement);
+        if (context.inFunction()) {
+            checkFunction(statement);
+        } else {
+            log.trace("Skipped FunctionDefineStatement: {}", statement);
+        }
         return null;
     }
 
