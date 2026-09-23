@@ -65,7 +65,7 @@ public class Main implements Callable<Integer> {
             LoggingUtil.configure(verbose);
             log.info("Donabe launched.");
             
-            if (!sourceFile.toString().endsWith("\\.dnb")) {
+            if (!sourceFile.toString().endsWith(".dnb")) {
                 System.err.println("Error: Source file must have a .dnb extension.");
                 return 1;
             }
