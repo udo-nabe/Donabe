@@ -1,6 +1,6 @@
 package io.github.udonabe.donabe.compile.code;
 
-import io.github.udonabe.donabe.compile.code.constant.MethodRefEntry;
+import io.github.udonabe.donabe.compile.code.constant.MemberRefEntry;
 import io.github.udonabe.donabe.compile.code.constant.ValueEntry;
 import io.github.udonabe.donabe.compile.code.instruction.ByteCodeInstruction;
 import io.github.udonabe.donabe.compile.code.instruction.operand.ConstantPoolOperand;
@@ -8,7 +8,7 @@ import io.github.udonabe.donabe.compile.code.instruction.operand.IdentifierSlotO
 import io.github.udonabe.donabe.compile.code.instruction.operand.JumpOperand;
 import io.github.udonabe.donabe.compile.code.instruction.operand.Operand;
 import io.github.udonabe.donabe.compile.code.instruction.operand.SizeOperand;
-import io.github.udonabe.donabe.compile.code.section.CodeSection;
+import io.github.udonabe.donabe.compile.code.section.InitializationCodeSection;
 import io.github.udonabe.donabe.compile.code.section.ConstantPoolSection;
 import io.github.udonabe.donabe.compile.code.value.BoolCodeValue;
 import io.github.udonabe.donabe.compile.code.value.CodeValue;
@@ -20,20 +20,21 @@ import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.ir.IRVisitor;
 import io.github.udonabe.donabe.ir.instruction.*;
 import io.github.udonabe.donabe.ir.instruction.label.Label;
-import io.github.udonabe.donabe.runtime.value.BooleanValue;
-import io.github.udonabe.donabe.runtime.value.FunctionValue;
-import io.github.udonabe.donabe.runtime.value.IntegerValue;
-import io.github.udonabe.donabe.runtime.value.ListValue;
-import io.github.udonabe.donabe.runtime.value.RuntimeValue;
-import io.github.udonabe.donabe.runtime.value.StringValue;
+import io.github.udonabe.donabe.ir.value.BooleanValue;
+import io.github.udonabe.donabe.ir.value.FunctionValue;
+import io.github.udonabe.donabe.ir.value.IntegerValue;
+import io.github.udonabe.donabe.ir.value.ListValue;
+import io.github.udonabe.donabe.ir.value.RuntimeValue;
+import io.github.udonabe.donabe.ir.value.StringValue;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import io.github.udonabe.donabe.compile.code.constant.ConstantPoolEntry;
+import io.github.udonabe.donabe.compile.code.constant.TopLevelRefEntry;
+import io.github.udonabe.donabe.compile.code.instruction.operand.DepthOperand;
 import io.github.udonabe.donabe.compile.code.value.Int64CodeValue;
-import io.github.udonabe.donabe.runtime.value.Int64Value;
-import java.util.Set;
+import io.github.udonabe.donabe.ir.value.Int64Value;
 
 public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
@@ -45,16 +46,17 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
         this.constantPool = new ArrayList<>();
     }
 
-    public ByteCode generate(IRProgram program) {
+    public ProgramConvertResult generate(IRProgram program) {
         var instructions = generate(program.instructions());
-        return new ByteCode(Set.of(
-                instructions, new ConstantPoolSection(constantPool)
-        ));
+        return new ProgramConvertResult(
+                new ConstantPoolSection(constantPool),
+                instructions
+        );
     }
 
-    private CodeSection generate(List<Instruction> instructions) {
+    private InitializationCodeSection generate(List<Instruction> instructions) {
         List<ByteCodeInstruction> result = new ArrayList<>();
-        
+
         labelOffsetMap.putAll(resolveLabel(instructions));
         for (Instruction instruction : instructions) {
             ByteCodeInstruction i = new ByteCodeInstruction(
@@ -64,7 +66,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
             result.add(i);
         }
 
-        return new CodeSection(result);
+        return new InitializationCodeSection(result);
     }
 
     @Override
@@ -134,7 +136,10 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
     @Override
     public List<Operand> visitLoadCaptured(LoadCaptured instruction) {
-        return List.of(new IdentifierSlotOperand(instruction.identifierSlot()));
+        return List.of(
+                new DepthOperand(instruction.depth()),
+                new IdentifierSlotOperand(instruction.identifierSlot())
+        );
     }
 
     @Override
@@ -145,10 +150,9 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
     @Override
     public List<Operand> visitLoadMember(LoadMember instruction) {
         return List.of(new ConstantPoolOperand(
-                        getConstantPoolIndex(
-                                new MethodRefEntry(instruction.memberName())
-                        )
+                getConstantPoolIndex(new MemberRefEntry(instruction.memberName())
                 )
+        )
         );
     }
 
@@ -191,8 +195,8 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
     public List<Operand> visitPush(Push instruction) {
         return List.of(new ConstantPoolOperand(
                 getConstantPoolIndex(new ValueEntry(
-                                convertRuntimeValue(instruction.value())
-                        ))
+                        convertRuntimeValue(instruction.value())
+                ))
         ));
     }
 
@@ -203,7 +207,10 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
     @Override
     public List<Operand> visitStoreCaptured(StoreCaptured instruction) {
-        return List.of(new IdentifierSlotOperand(instruction.identifierSlot()));
+        return List.of(
+                new DepthOperand(instruction.depth()),
+                new IdentifierSlotOperand(instruction.identifierSlot())
+        );
     }
 
     @Override
@@ -223,7 +230,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
     private Map<Label, Integer> resolveLabel(List<Instruction> instructions) {
         Map<Label, Integer> result = new HashMap<>();
-        
+
         int offset = 0;
         for (int i = 0; i < instructions.size(); i++) {
             Instruction instruction = instructions.get(i);
@@ -250,13 +257,13 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
         if (!constantPool.contains(value)) {
             constantPool.add(value);
         }
-        
-        if (constantPool.size() > Short.MAX_VALUE) {
+
+        if (constantPool.size() > 0xffff) {
             throw new IllegalStateException("Constant pool size is too many.");
         }
-        
+
         int index = constantPool.indexOf(value);
-        
+
         return (short) index;
     }
 
@@ -271,7 +278,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
             case StringValue value ->
                 new StringCodeValue(value.value());
             case FunctionValue value ->
-                new FunctionCodeValue(value.name(), value.paramSlots(), value.locals(), generate(value.instructions()));
+                new FunctionCodeValue(value.name(), value.paramSlots(), value.localCount(), generate(value.instructions()));
             case ListValue value ->
                 new ListCodeValue(value.value().stream()
                 .map(t -> convertRuntimeValue(t))
@@ -279,5 +286,30 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
             default ->
                 throw new IllegalStateException("Unexpected value: " + (target));
         };
+    }
+
+    @Override
+    public List<Operand> visitLoadGlobal(LoadGlobal instruction) {
+        return List.of(
+                new ConstantPoolOperand(
+                        getConstantPoolIndex(new TopLevelRefEntry(instruction.globalName())
+                        )
+                )
+        );
+    }
+
+    @Override
+    public List<Operand> visitStoreGlobal(StoreGlobal instruction) {
+        return List.of(
+                new ConstantPoolOperand(
+                        getConstantPoolIndex(new TopLevelRefEntry(instruction.globalName())
+                        )
+                )
+        );
+    }
+
+    public record ProgramConvertResult(ConstantPoolSection constantPoolSection,
+            InitializationCodeSection initializationCodeSection) {
+
     }
 }

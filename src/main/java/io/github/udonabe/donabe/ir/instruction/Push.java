@@ -3,7 +3,7 @@ package io.github.udonabe.donabe.ir.instruction;
 import io.github.udonabe.donabe.compile.code.instruction.OpCode;
 import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRVisitor;
-import io.github.udonabe.donabe.runtime.value.RuntimeValue;
+import io.github.udonabe.donabe.ir.value.RuntimeValue;
 
 public record Push(RuntimeValue<?> value, IRLocation location) implements Instruction {
 

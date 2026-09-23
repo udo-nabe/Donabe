@@ -1,35 +1,70 @@
 package io.github.udonabe.donabe.semantic;
 
+import java.util.List;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ast.ASTVisitor;
 import io.github.udonabe.donabe.ast.Parameter;
 import io.github.udonabe.donabe.ast.Program;
-import io.github.udonabe.donabe.ast.expr.*;
-import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.expr.AssignExpression;
+import io.github.udonabe.donabe.ast.expr.BinaryExpression;
+import io.github.udonabe.donabe.ast.expr.BooleanLiteral;
+import io.github.udonabe.donabe.ast.expr.CallExpression;
+import io.github.udonabe.donabe.ast.expr.CompoundAssignExpression;
+import io.github.udonabe.donabe.ast.expr.Decrement;
+import io.github.udonabe.donabe.ast.expr.Expression;
+import io.github.udonabe.donabe.ast.expr.FunctionLiteral;
+import io.github.udonabe.donabe.ast.expr.Identifier;
+import io.github.udonabe.donabe.ast.expr.Increment;
+import io.github.udonabe.donabe.ast.expr.IndexExpression;
+import io.github.udonabe.donabe.ast.expr.IntegerLiteral;
+import io.github.udonabe.donabe.ast.expr.ListLiteral;
+import io.github.udonabe.donabe.ast.expr.MemberAccessExpression;
+import io.github.udonabe.donabe.ast.expr.StringLiteral;
+import io.github.udonabe.donabe.ast.expr.UnaryExpression;
+import io.github.udonabe.donabe.ast.expr.VoidExpression;
+import io.github.udonabe.donabe.ast.statement.BlockStatement;
+import io.github.udonabe.donabe.ast.statement.Definition;
+import io.github.udonabe.donabe.ast.statement.EmptyStatement;
+import io.github.udonabe.donabe.ast.statement.ExpressionStatement;
+import io.github.udonabe.donabe.ast.statement.ForEachStatement;
+import io.github.udonabe.donabe.ast.statement.FunctionDefineStatement;
+import io.github.udonabe.donabe.ast.statement.IfStatement;
+import io.github.udonabe.donabe.ast.statement.LetDeclaration;
+import io.github.udonabe.donabe.ast.statement.ReturnStatement;
+import io.github.udonabe.donabe.ast.statement.Statement;
+import io.github.udonabe.donabe.ast.statement.VarDeclaration;
+import io.github.udonabe.donabe.ast.statement.WhileStatement;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
+import io.github.udonabe.donabe.error.ErrorUtil;
 import io.github.udonabe.donabe.ir.IRProgram;
 import io.github.udonabe.donabe.semantic.ir.IRGenerator;
 import io.github.udonabe.donabe.semantic.resolve.NameResolver;
 import io.github.udonabe.donabe.semantic.type.TypeChecker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
+
     private static final Logger log = LoggerFactory.getLogger(SemanticAnalyzer.class);
     private final String source;
     private Scope currentScope;
+    private final Map<String, SymbolInformation> globals;
     private final AnalyzeContext context;
 
     public SemanticAnalyzer(String source) {
         this.source = source;
         this.context = new AnalyzeContext();
+        this.globals = new HashMap<>();
     }
-    
+
     public AnalyzeResult check(Program program) {
         NameResolver.ResolveResult resolveResult = new NameResolver(source).resolve(program);
 
@@ -40,31 +75,41 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
         new TypeChecker(source, resolveResult.resolutionMap()).check(program);
 
-        IRProgram ir = new IRGenerator(resolveResult.resolutionMap(), resolveResult.resolutionMax(), resolveResult.localsASTNodeMap()).generate(program);
+        IRProgram ir = new IRGenerator(resolveResult.resolutionMap(), resolveResult.globals(), resolveResult.localCountASTNodeMap())
+                .generate(program);
 
-        return new AnalyzeResult(ir, resolveResult.resolutionMax());
+        return new AnalyzeResult(ir, resolveResult.globals()
+                .stream()
+                .map(s -> s.fullyQualifiedName()).collect(Collectors.toSet()));
     }
 
-    private void checkFunctions(List<FunctionDefineStatement> functionDefineStatements) {
-        for (FunctionDefineStatement s : functionDefineStatements) {
-            context.pushFunction();
-            s.block().accept(this);
-            context.popFunction();
+    private void checkFunction(FunctionDefineStatement statement) {
+        context.pushFunction();
+        statement.block().accept(this);
+        context.popFunction();
+        globals.put(statement.name().name(), new SymbolInformation(false));
+    }
+
+    private void checkGlobals(List<Definition> functionDefineStatements) {
+        for (Definition definition : functionDefineStatements) {
+            if (definition instanceof FunctionDefineStatement functionDefine) {
+                checkFunction(functionDefine);
+            } else {
+                definition.accept(this);
+            }
         }
     }
 
     @Override
     public SymbolInformation visitProgram(Program program) {
-        List<Statement> statements = program.statements();
+        List<Definition> statements = program.definitions();
 
-        List<FunctionDefineStatement> defines = statements.stream()
-                .filter(s -> s instanceof FunctionDefineStatement)
-                .map(s -> (FunctionDefineStatement) s)
-                .toList();
-        checkFunctions(defines);
+        checkGlobals(statements);
 
         for (Statement statement : statements) {
-            if (statement == null) continue;
+            if (statement == null) {
+                continue;
+            }
             statement.accept(this);
         }
         return null;
@@ -73,12 +118,6 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitBlockStatement(BlockStatement statement) {
         currentScope = currentScope.nextChildScope();
-
-        List<FunctionDefineStatement> defines = statement.statements().stream()
-                .filter(s -> s instanceof FunctionDefineStatement)
-                .map(s -> (FunctionDefineStatement) s)
-                .toList();
-        checkFunctions(defines);
 
         for (Statement s : statement.statements()) {
             s.accept(this);
@@ -101,7 +140,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitFunctionDefineStatement(FunctionDefineStatement statement) {
-        log.trace("Skipped FunctionDefineStatement: {}", statement);
+        if (context.inFunction()) {
+            checkFunction(statement);
+        } else {
+            log.trace("Skipped FunctionDefineStatement: {}", statement);
+        }
         return null;
     }
 
@@ -118,6 +161,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitLetDeclaration(LetDeclaration statement) {
         statement.expr().accept(this);
+        if (!context.inFunction()) {
+            globals.put(statement.name().name(), new SymbolInformation(false));
+        }
         return null;
     }
 
@@ -132,6 +178,9 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     @Override
     public SymbolInformation visitVarDeclaration(VarDeclaration statement) {
         statement.expr().accept(this);
+        if (!context.inFunction()) {
+            globals.put(statement.name().name(), new SymbolInformation(true));
+        }
         return null;
     }
 
@@ -155,7 +204,8 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
     public SymbolInformation visitAssignExpression(AssignExpression expr) {
         var target = expr.target().accept(this);
         if (!target.isAssignable()) {
-            throw new CompileException(ErrorUtil.makeError(expr.location(), source, "式\"%s\"へは代入できません。", expr.target().display()));
+            throw new CompileException(
+                    ErrorUtil.makeError(expr.location(), source, "式\"%s\"へは代入できません。", expr.target().display()));
         }
 
         return target;
@@ -206,7 +256,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     @Override
     public SymbolInformation visitIdentifier(Identifier expr) {
-        return currentScope.get(expr.name());
+        SymbolInformation local = currentScope.get(expr.name());
+        if (local != null) {
+            return local;
+        }
+        return globals.get(expr.name());
     }
 
     @Override
@@ -276,5 +330,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         return null;
     }
 
-    public record AnalyzeResult(IRProgram irProgram, int resolutionMax) {}
+    public record AnalyzeResult(IRProgram irProgram, Set<String> globals) {
+
+    }
 }

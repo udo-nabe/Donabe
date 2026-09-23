@@ -7,16 +7,16 @@ public class MethodRefEntryTest {
 
     @Test
     public void testType() {
-        MethodRefEntry entry = new MethodRefEntry("hoge");
+        MemberRefEntry entry = new MemberRefEntry("hoge");
         assertEquals(entry.type(), ConstantPoolEntry.METHOD_REF_TYPE);
     }
 
     @Test
     public void testContent() {
-        MethodRefEntry hoge = new MethodRefEntry("hoge");
+        MemberRefEntry hoge = new MemberRefEntry("hoge");
         assertArrayEquals(new byte[]{0x68, 0x6f, 0x67, 0x65}, hoge.content());
 
-        MethodRefEntry hogeUnderscore = new MethodRefEntry("hoge_");
+        MemberRefEntry hogeUnderscore = new MemberRefEntry("hoge_");
         assertArrayEquals(new byte[]{0x68, 0x6f, 0x67, 0x65, 0x5f}, hogeUnderscore.content());
     }
 }

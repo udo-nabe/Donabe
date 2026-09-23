@@ -1,0 +1,25 @@
+globals
+  input
+  main
+  now
+  print
+  range
+  value
+
+constants
+  0 = 42
+  1 = global("value")
+  2 = function(main)
+  3 = global("main")
+
+function main
+  params: []
+  locals: 0
+
+  VRETURN
+
+initialization
+  PUSH 42
+  STORE_GLOBAL global("value")
+  PUSH function(main)
+  STORE_GLOBAL global("main")

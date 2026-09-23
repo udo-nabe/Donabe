@@ -1,30 +1,67 @@
 package io.github.udonabe.donabe.semantic.type;
 
-import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.error.ErrorUtil;
-import io.github.udonabe.donabe.ast.ASTVisitor;
-import io.github.udonabe.donabe.ast.Parameter;
-import io.github.udonabe.donabe.ast.Program;
-import io.github.udonabe.donabe.ast.SourceFileLocation;
-import io.github.udonabe.donabe.ast.expr.*;
-import io.github.udonabe.donabe.ast.statement.*;
-import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
-import io.github.udonabe.donabe.ast.type.TypeAnnotation;
-import io.github.udonabe.donabe.semantic.flow.FlowAnalyzer;
-import io.github.udonabe.donabe.semantic.flow.FlowInfo;
-import io.github.udonabe.donabe.semantic.type.builtin.*;
-import io.github.udonabe.donabe.semantic.type.function.FunctionType;
-import io.github.udonabe.donabe.semantic.type.inferrer.TypeInferrer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.github.udonabe.donabe.CompileException;
+import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
+import io.github.udonabe.donabe.ast.Program;
+import io.github.udonabe.donabe.ast.SourceFileLocation;
+import io.github.udonabe.donabe.ast.expr.AssignExpression;
+import io.github.udonabe.donabe.ast.expr.BinaryExpression;
+import io.github.udonabe.donabe.ast.expr.BooleanLiteral;
+import io.github.udonabe.donabe.ast.expr.CallExpression;
+import io.github.udonabe.donabe.ast.expr.CompoundAssignExpression;
+import io.github.udonabe.donabe.ast.expr.Decrement;
+import io.github.udonabe.donabe.ast.expr.Expression;
+import io.github.udonabe.donabe.ast.expr.FunctionLiteral;
+import io.github.udonabe.donabe.ast.expr.Identifier;
+import io.github.udonabe.donabe.ast.expr.Increment;
+import io.github.udonabe.donabe.ast.expr.IndexExpression;
+import io.github.udonabe.donabe.ast.expr.IntegerLiteral;
+import io.github.udonabe.donabe.ast.expr.ListLiteral;
+import io.github.udonabe.donabe.ast.expr.MemberAccessExpression;
+import io.github.udonabe.donabe.ast.expr.StringLiteral;
+import io.github.udonabe.donabe.ast.expr.UnaryExpression;
+import io.github.udonabe.donabe.ast.expr.VoidExpression;
+import io.github.udonabe.donabe.ast.statement.BlockStatement;
+import io.github.udonabe.donabe.ast.statement.Definition;
+import io.github.udonabe.donabe.ast.statement.EmptyStatement;
+import io.github.udonabe.donabe.ast.statement.ExpressionStatement;
+import io.github.udonabe.donabe.ast.statement.ForEachStatement;
+import io.github.udonabe.donabe.ast.statement.FunctionDefineStatement;
+import io.github.udonabe.donabe.ast.statement.IfStatement;
+import io.github.udonabe.donabe.ast.statement.LetDeclaration;
+import io.github.udonabe.donabe.ast.statement.ReturnStatement;
+import io.github.udonabe.donabe.ast.statement.Statement;
+import io.github.udonabe.donabe.ast.statement.VarDeclaration;
+import io.github.udonabe.donabe.ast.statement.WhileStatement;
+import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
+import io.github.udonabe.donabe.ast.type.TypeAnnotation;
+import io.github.udonabe.donabe.ast.type.UnknownTypeAnnotation;
+import io.github.udonabe.donabe.error.ErrorUtil;
+import io.github.udonabe.donabe.semantic.GlobalSymbol;
+import io.github.udonabe.donabe.semantic.Symbol;
+import io.github.udonabe.donabe.semantic.flow.FlowAnalyzer;
+import io.github.udonabe.donabe.semantic.flow.FlowInfo;
+import io.github.udonabe.donabe.semantic.type.builtin.AnyType;
+import io.github.udonabe.donabe.semantic.type.builtin.BooleanType;
+import io.github.udonabe.donabe.semantic.type.builtin.Int64Type;
+import io.github.udonabe.donabe.semantic.type.builtin.IntType;
+import io.github.udonabe.donabe.semantic.type.builtin.ListType;
+import io.github.udonabe.donabe.semantic.type.builtin.StringType;
+import io.github.udonabe.donabe.semantic.type.builtin.VoidType;
+import io.github.udonabe.donabe.semantic.type.function.FunctionType;
+import io.github.udonabe.donabe.semantic.type.inferrer.TypeInferrer;
 
 public class TypeChecker implements ASTVisitor<Type> {
 
@@ -33,15 +70,13 @@ public class TypeChecker implements ASTVisitor<Type> {
     private final TypeInferrer typeInferrer;
     private final OperationChecker operationChecker;
     private final FlowAnalyzer flowAnalyzer;
-    private final Map<Integer, Type> identifierTypeTable;
     private final TypeCheckerContext context;
     private final String source;
-    private final Map<Identifier, Integer> resolution;
+    private final Map<Identifier, Symbol> resolution;
 
-    public TypeChecker(String source, Map<Identifier, Integer> resolution) {
+    public TypeChecker(String source, Map<Identifier, Symbol> resolution) {
         this.source = source;
         this.resolution = resolution;
-        this.identifierTypeTable = new HashMap<>();
         typeResolver = new TypeResolver(source);
         context = new TypeCheckerContext();
         operationChecker = new OperationChecker(source);
@@ -55,29 +90,28 @@ public class TypeChecker implements ASTVisitor<Type> {
         program.accept(this);
     }
 
-    private Type defineFunction(List<Parameter> params, TypeAnnotation returnType, BlockStatement block, SourceFileLocation location) {
-        context.pushReturnType(typeResolver.resolve(returnType));
+    private Type defineFunction(List<Parameter> params, TypeAnnotation returnType, BlockStatement block,
+            SourceFileLocation location) {
+        context.pushFunction(typeResolver.resolve(returnType));
 
         for (Parameter param : params) {
-            int paramID = resolution.get(param.name());
+            Symbol paramID = resolution.get(param.name());
             Type paramType = typeResolver.resolve(param.type());
-            identifierTypeTable.put(paramID, paramType);
+            context.addSymbolType(paramID, paramType);
         }
-
-        defineFunctions(block.statements());
 
         for (Statement statement : block.statements()) {
             statement.accept(this);
         }
 
-        FlowInfo functionFlow = flowAnalyzer.visitBlockStatement(block);    //フロー解析はステートレスのため、後から実行しても問題ない
+        FlowInfo functionFlow = flowAnalyzer.visitBlockStatement(block); //フロー解析はステートレスのため、後から実行しても問題ない
 
         if (isMissingReturn(functionFlow.canFallThrough(), typeResolver.resolve(returnType))) {
             throw new CompileException(ErrorUtil.makeError(location, source,
                     "This function has a path that can exit without returning a value."));
         }
 
-        context.popReturnType();
+        context.popFunction();
 
         return generateFunctionType(params, returnType);
     }
@@ -86,36 +120,48 @@ public class TypeChecker implements ASTVisitor<Type> {
         return blockCanFallThrough && !(returnType instanceof VoidType);
     }
 
-    private void defineFunction(FunctionDefineStatement statement) {
-        defineFunction(statement.params(), statement.returnType(), statement.block(), statement.location());
+    private Type defineFunction(FunctionDefineStatement statement) {
+        return defineFunction(statement.params(), statement.returnType(), statement.block(), statement.location());
     }
 
-    private void defineFunctions(List<Statement> statements) {
-        List<FunctionDefineStatement> defines = statements.stream()
-                .filter(s -> s instanceof FunctionDefineStatement)
-                .map(s -> (FunctionDefineStatement) s)
-                .toList();
-
+    private void defineGlobals(List<Definition> statements) {
         //相互参照を可能にするため、先に名前と型だけ登録する
-        for (FunctionDefineStatement define : defines) {
-            Identifier functionName = define.identifier();
-            List<Parameter> params = define.params();
-            TypeAnnotation returnType = define.returnType();
+        for (Definition define : statements) {
+            if (define instanceof FunctionDefineStatement functionDefine) {
+                Identifier functionName = functionDefine.name();
+                List<Parameter> params = functionDefine.params();
+                TypeAnnotation returnType = functionDefine.returnType();
 
-            int functionID = resolution.get(functionName);
-            FunctionType functionType = generateFunctionType(params, returnType);
-            identifierTypeTable.put(functionID, functionType);
+                Symbol functionID = resolution.get(functionName);
+                FunctionType functionType = generateFunctionType(params, returnType);
+                context.addSymbolType(functionID, functionType);
+            } else {
+                Identifier functionName = define.name();
+                TypeAnnotation definitionAnnotation = define.type();
+
+                if (definitionAnnotation instanceof UnknownTypeAnnotation) {
+                    throw new CompileException(ErrorUtil.makeError(define.location(), source,
+                            "Type annotation is required for global variables."));
+                }
+
+                Symbol identifierID = resolution.get(functionName);
+                context.addSymbolType(identifierID, typeResolver.resolve(definitionAnnotation));
+            }
         }
 
-        for (FunctionDefineStatement define : defines) {
-            defineFunction(define);
+        for (Definition definition : statements) {
+            if (definition instanceof FunctionDefineStatement functionDefine) {
+                defineFunction(functionDefine);
+            } else {
+                definition.accept(this);
+            }
         }
     }
 
     @Override
     public Type visitProgram(Program program) {
-        defineFunctions(program.statements());
-        for (Statement statement : program.statements()) {
+        defineGlobals(program.definitions());
+        for (Statement statement : program.definitions()) {
             statement.accept(this);
         }
         return null;
@@ -123,7 +169,6 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitBlockStatement(BlockStatement statement) {
-        defineFunctions(statement.statements());
         for (Statement s : statement.statements()) {
             s.accept(this);
         }
@@ -144,7 +189,12 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitFunctionDefineStatement(FunctionDefineStatement statement) {
-        //既に定義済みのため、スキップ
+        if (!context.isRoot()) {
+            context.addSymbolType(
+                    resolution.get(statement.name()),
+                    defineFunction(statement)
+            );
+        }
         return null;
     }
 
@@ -153,7 +203,8 @@ public class TypeChecker implements ASTVisitor<Type> {
         Type conditionType = statement.condition().accept(this);
         if (!(conditionType instanceof BooleanType)) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source,
-                    "The conditional expression of an 'if' statement must be of type 'Bool'. Actual: %s", conditionType));
+                    "The conditional expression of an 'if' statement must be of type 'Bool'. Actual: %s",
+                    conditionType));
         }
         statement.thenBlock().accept(this);
         if (statement.elseBlock() != null) {
@@ -162,7 +213,8 @@ public class TypeChecker implements ASTVisitor<Type> {
         return null;
     }
 
-    private void declareVariable(Identifier identifier, TypeAnnotation typeAnnotation, Expression value, SourceFileLocation location) {
+    private void declareVariable(Identifier identifier, TypeAnnotation typeAnnotation, Expression value,
+            SourceFileLocation location) {
         Type valueType = value.accept(this);
         Type identifierType = typeInferrer.inferVariableDeclaration(typeAnnotation, valueType);
 
@@ -172,9 +224,11 @@ public class TypeChecker implements ASTVisitor<Type> {
                     identifierType.asString(), valueType.asString()));
         }
 
-        int identifierID = resolution.get(identifier);
+        if (!context.isRoot()) {
+            Symbol identifierSymbol = resolution.get(identifier);
 
-        identifierTypeTable.put(identifierID, identifierType);
+            context.addSymbolType(identifierSymbol, identifierType);
+        }
     }
 
     @Override
@@ -190,7 +244,8 @@ public class TypeChecker implements ASTVisitor<Type> {
 
         if (!expectReturnType.isSupertypeOf(returnType)) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source,
-                    "The return type is different from what was expected. Expected: %s, Actual: %s", expectReturnType.asString(), returnType.asString()));
+                    "The return type is different from what was expected. Expected: %s, Actual: %s",
+                    expectReturnType.asString(), returnType.asString()));
         }
 
         return null;
@@ -207,7 +262,8 @@ public class TypeChecker implements ASTVisitor<Type> {
         Type conditionType = statement.condition().accept(this);
         if (!(conditionType instanceof BooleanType)) {
             throw new CompileException(ErrorUtil.makeError(statement.location(), source,
-                    "The conditional expression of an 'while' statement must be of type 'Bool'. Actual: %s", conditionType));
+                    "The conditional expression of an 'while' statement must be of type 'Bool'. Actual: %s",
+                    conditionType));
         }
 
         statement.loop().accept(this);
@@ -216,7 +272,7 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitForEachStatement(ForEachStatement statement) {
-        //まだ型パラメータを導入していないため、保留
+        //まだfor-each文を実装していないため、保留
         throw new UnsupportedOperationException("The for-each statement cannot be used currently.");
     }
 
@@ -308,11 +364,11 @@ public class TypeChecker implements ASTVisitor<Type> {
 
     @Override
     public Type visitIdentifier(Identifier expr) {
-        int identifierID = resolution.get(expr);
-        if (!identifierTypeTable.containsKey(identifierID)) {
-            throw new AssertionError("Identifier not found: " + expr.name() + ", slot: " + identifierID);
+        Symbol identifierSymbol = resolution.get(expr);
+        if (!context.hasSymbolType(identifierSymbol)) {
+            throw new AssertionError("Identifier not found: " + expr.name() + ", slot: " + identifierSymbol);
         }
-        return identifierTypeTable.get(identifierID);
+        return context.getSymbolType(identifierSymbol);
     }
 
     @Override
@@ -415,26 +471,22 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     private void registerBuiltinFunctions() {
-        identifierTypeTable.put(0,
+        context.addSymbolType(new GlobalSymbol("print"),
                 new FunctionType(
                         List.of(new AnyType()),
-                        new VoidType()
-                ));
-        identifierTypeTable.put(1,
+                        new VoidType()));
+        context.addSymbolType(new GlobalSymbol("input"),
                 new FunctionType(
                         List.of(),
-                        new StringType()
-                ));
-        identifierTypeTable.put(2,
+                        new StringType()));
+        context.addSymbolType(new GlobalSymbol("range"),
                 new FunctionType(
                         List.of(new IntType(), new IntType()),
-                        new ListType(new IntType())
-                ));
-        identifierTypeTable.put(3,
+                        new ListType(new IntType())));
+        context.addSymbolType(new GlobalSymbol("now"),
                 new FunctionType(
                         List.of(),
-                        new Int64Type()
-                ));
+                        new Int64Type()));
     }
 
     private FunctionType generateFunctionType(List<Parameter> params, TypeAnnotation retType) {
@@ -443,9 +495,5 @@ public class TypeChecker implements ASTVisitor<Type> {
                 .map(typeResolver::resolve)
                 .toList();
         return new FunctionType(types, typeResolver.resolve(retType));
-    }
-
-    Map<Integer, Type> identifierTypeTable() {
-        return Map.copyOf(identifierTypeTable);
     }
 }

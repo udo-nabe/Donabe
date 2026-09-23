@@ -2,19 +2,22 @@ package io.github.udonabe.donabe.compile;
 
 import io.github.udonabe.donabe.compile.code.ByteCode;
 import io.github.udonabe.donabe.compile.code.ProgramConverter;
-import io.github.udonabe.donabe.compile.code.section.IdentifiersSection;
+import io.github.udonabe.donabe.compile.code.section.GlobalIdentifiersSection;
 import io.github.udonabe.donabe.ir.IRProgram;
+import java.util.Set;
 
 public final class Compiler {
 
-    public ByteCode compile(IRProgram program, int resolutionMax) {
+    public ByteCode compile(IRProgram program, Set<String> globals) {
         ProgramConverter programConverter = new ProgramConverter();
 
-        ByteCode byteCode = programConverter.generate(program);
+        ProgramConverter.ProgramConvertResult convertResult = programConverter.generate(program);
 
-        IdentifiersSection identifiers = new IdentifiersSection(resolutionMax);
-        byteCode = byteCode.addSection(identifiers);
-        
+        GlobalIdentifiersSection identifiers = new GlobalIdentifiersSection(globals);
+        ByteCode byteCode = new ByteCode(identifiers,
+                convertResult.constantPoolSection(),
+                convertResult.initializationCodeSection());
+
         return byteCode;
     }
 }

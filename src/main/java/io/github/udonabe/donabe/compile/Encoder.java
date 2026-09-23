@@ -7,9 +7,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public final class Encoder {
-    
-    private static final byte[] MAGIC_NUMBER =
-    {0x00, 0x44, 0x4E, 0x42};
+
+    private static final byte[] MAGIC_NUMBER
+            = {0x00, 0x44, 0x4E, 0x42};
     private static final byte FILE_VERSION = 0x01;
     private static final byte LANG_VERSION = 0x01;
 
@@ -19,18 +19,20 @@ public final class Encoder {
             out.write(FILE_VERSION);
             out.write(LANG_VERSION);
             
-            for (Section section : code.sections()) {
-                out.write(section.type());
-                
-                byte[] sectionContent = section.content();
-                
-                out.write(EndianUtil.to4BytesLittleEndian(sectionContent.length));
-                out.write(sectionContent);
-            }
+            writeSection(out, code.globalIdentifiersSection());
+            writeSection(out, code.constantPoolSection());
+            writeSection(out, code.initializationCodeSection());
             
             return out.toByteArray();
         } catch (IOException e) {
             throw new IllegalStateException("Failed to encode.", e);
         }
+    }
+
+    private void writeSection(ByteArrayOutputStream out, Section section) throws IOException {
+            byte[] sectionContent = section.content();
+
+            out.write(EndianUtil.to4BytesLittleEndian(sectionContent.length));
+            out.write(sectionContent);
     }
 }

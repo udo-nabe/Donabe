@@ -1,139 +1,173 @@
 package io.github.udonabe.donabe.semantic.resolve;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import io.github.udonabe.donabe.CompileException;
-import io.github.udonabe.donabe.error.ErrorUtil;
-import io.github.udonabe.donabe.ast.*;
-import io.github.udonabe.donabe.ast.expr.*;
-import io.github.udonabe.donabe.ast.statement.*;
+import io.github.udonabe.donabe.ast.ASTNode;
+import io.github.udonabe.donabe.ast.ASTVisitor;
+import io.github.udonabe.donabe.ast.Parameter;
+import io.github.udonabe.donabe.ast.Program;
+import io.github.udonabe.donabe.ast.SourceFileLocation;
+import io.github.udonabe.donabe.ast.expr.AssignExpression;
+import io.github.udonabe.donabe.ast.expr.BinaryExpression;
+import io.github.udonabe.donabe.ast.expr.BooleanLiteral;
+import io.github.udonabe.donabe.ast.expr.CallExpression;
+import io.github.udonabe.donabe.ast.expr.CompoundAssignExpression;
+import io.github.udonabe.donabe.ast.expr.Decrement;
+import io.github.udonabe.donabe.ast.expr.Expression;
+import io.github.udonabe.donabe.ast.expr.FunctionLiteral;
+import io.github.udonabe.donabe.ast.expr.Identifier;
+import io.github.udonabe.donabe.ast.expr.Increment;
+import io.github.udonabe.donabe.ast.expr.IndexExpression;
+import io.github.udonabe.donabe.ast.expr.IntegerLiteral;
+import io.github.udonabe.donabe.ast.expr.ListLiteral;
+import io.github.udonabe.donabe.ast.expr.MemberAccessExpression;
+import io.github.udonabe.donabe.ast.expr.StringLiteral;
+import io.github.udonabe.donabe.ast.expr.UnaryExpression;
+import io.github.udonabe.donabe.ast.expr.VoidExpression;
+import io.github.udonabe.donabe.ast.statement.BlockStatement;
+import io.github.udonabe.donabe.ast.statement.Definition;
+import io.github.udonabe.donabe.ast.statement.EmptyStatement;
+import io.github.udonabe.donabe.ast.statement.ExpressionStatement;
+import io.github.udonabe.donabe.ast.statement.ForEachStatement;
+import io.github.udonabe.donabe.ast.statement.FunctionDefineStatement;
+import io.github.udonabe.donabe.ast.statement.IfStatement;
+import io.github.udonabe.donabe.ast.statement.LetDeclaration;
+import io.github.udonabe.donabe.ast.statement.ReturnStatement;
+import io.github.udonabe.donabe.ast.statement.Statement;
+import io.github.udonabe.donabe.ast.statement.VarDeclaration;
+import io.github.udonabe.donabe.ast.statement.WhileStatement;
 import io.github.udonabe.donabe.ast.type.FunctionTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.GenericTypeAnnotation;
 import io.github.udonabe.donabe.ast.type.NamedTypeAnnotation;
+import io.github.udonabe.donabe.error.ErrorUtil;
+import io.github.udonabe.donabe.semantic.GlobalSymbol;
+import io.github.udonabe.donabe.semantic.LocalSymbol;
 import io.github.udonabe.donabe.semantic.Scope;
+import io.github.udonabe.donabe.semantic.Symbol;
 import io.github.udonabe.donabe.semantic.SymbolInformation;
 
-import java.util.*;
-
 public final class NameResolver implements ASTVisitor<Void> {
+
     private final Scope rootScope;
-    private int resolutionMax;
-    private final Map<ASTNode, Set<Integer>> localsASTNodeMap;
-    private final Map<Identifier, Integer> resolutionMap;
+    private final Map<ASTNode, Integer> localCountASTNodeMap;
+    private final Set<GlobalSymbol> globals;
+    private final Map<Identifier, Symbol> resolutionMap;
     private final String source;
+    private final ResolveContext context;
     private Scope currentScope;
 
     public NameResolver(String source) {
         this.source = source;
         this.rootScope = Scope.generateRoot();
         this.currentScope = rootScope;
-        this.resolutionMax = 0;
-
-        putBuiltinFunction("print", 0);
-        putBuiltinFunction("input", 1);
-        putBuiltinFunction("range", 2);
-        putBuiltinFunction("now", 3);
-        localsASTNodeMap = new HashMap<>();
+        this.context = new ResolveContext();
+        localCountASTNodeMap = new HashMap<>();
         resolutionMap = new HashMap<>();
+        globals = new HashSet<>();
+
+        putBuiltinFunction("print");
+        putBuiltinFunction("input");
+        putBuiltinFunction("range");
+        putBuiltinFunction("now");
     }
 
-
-    private void putBuiltinFunction(String name, int id) {
-        resolutionMax++;
-        rootScope.put(name, new SymbolInformation(false));
-        rootScope.putId(name, id);
+    private void putBuiltinFunction(String name) {
+        globals.add(new GlobalSymbol(name));
     }
 
     public ResolveResult resolve(Program program) {
         rootScope.resetChildPos();
         program.accept(this);
-        return new ResolveResult(rootScope, resolutionMax, localsASTNodeMap, Map.copyOf(resolutionMap));
+        return new ResolveResult(rootScope, localCountASTNodeMap, Map.copyOf(resolutionMap), globals);
     }
 
-    private int nextId() {
-        return resolutionMax++;
-    }
-
-    private void putIdentifier(Scope currentScope, Identifier identifier, int id) {
+    private void putLocalIdentifier(Scope currentScope, Identifier identifier, int id) {
         currentScope.putId(identifier.name(), id);
-        resolutionMap.put(identifier, id);
+        resolutionMap.put(identifier, new LocalSymbol(id));
     }
 
-    private void defineFunctions(List<Statement> statements) {
-        var defines = statements.stream()
-                .filter(s -> s instanceof FunctionDefineStatement)
-                .map(s -> (FunctionDefineStatement) s)
-                .toList();
+    private void putGlobalIdentifier(Identifier identifier) {
+        globals.add(new GlobalSymbol(identifier.name()));
+        resolutionMap.put(identifier, new GlobalSymbol(identifier.name()));
+    }
 
+    private void defineGlobals(List<Definition> statements) {
         //相互再帰を可能にするため、先に全て仮登録する
-        for (var define : defines) {
-            currentScope.put(define.identifier().name(), new SymbolInformation(false, true));
-            putIdentifier(currentScope, define.identifier(), nextId());
+        for (var define : statements) {
+            if (globals.contains(new GlobalSymbol(define.name().name()))) {
+                throw new CompileException(ErrorUtil.makeError(define.location(), source, 
+                        "Identifier '%s' is already declared.",
+                        define.name().name()));
+            }
+            putGlobalIdentifier(define.name());
         }
 
-        for (var define : defines) {
-            var locals = defineFunction(define);
-            localsASTNodeMap.put(define, locals);
+        for (var define : statements) {
+            if (define instanceof FunctionDefineStatement functionDefine) {
+                var localCount = defineFunction(functionDefine.params(), functionDefine.block());
+                localCountASTNodeMap.put(define, localCount);
+            } else {
+                define.accept(this);
+            }
         }
     }
 
-    private Set<Integer> defineFunction(List<Parameter> params, BlockStatement block) {
-        currentScope = currentScope.newChild();
+    private int defineFunction(List<Parameter> params, BlockStatement block) {
+        currentScope = currentScope.newChild(true);
+        context.pushFunction();
 
-        Set<Integer> locals = new HashSet<>();
         for (Parameter param : params) {
             String argName = param.name().name();
 
-            int argID = nextId();
+            int argID = context.issueID();
             currentScope.put(argName, new SymbolInformation(false));
-            putIdentifier(currentScope, param.name(), argID);
-            locals.add(argID);
+            putLocalIdentifier(currentScope, param.name(), argID);
         }
 
-        List<Statement> statements = block.statements();
-        defineFunctions(statements);
-
-        for (Statement statement : statements) {
-            statement.accept(this);
-            switch (statement) {
-                case LetDeclaration define -> locals.add(currentScope.getId(define.name().name()));
-                case VarDeclaration define -> locals.add(currentScope.getId(define.name().name()));
-                case FunctionDefineStatement define -> locals.add(currentScope.getId(define.identifier().name()));
-                default -> {
-                    //localsに追加する必要がないため、何もしない
-                }
-            }
+        for (Statement s : block.statements()) {
+            s.accept(this);
         }
 
+        int count = context.popFunction();
         currentScope = currentScope.parent();
-        return locals;
+        return count;
     }
 
-    private Set<Integer> defineFunction(FunctionDefineStatement define) {
-        Identifier functionIdentifier = define.identifier();
+    private void visitVariableDeclaration(Expression expr, Identifier identifier, boolean isAssignable,
+            SourceFileLocation location) {
+        if (context.isRoot()) {
+            if (!globals.contains(new GlobalSymbol(identifier.name()))) {
+                throw new CompileException(
+                        ErrorUtil.makeError(location, source, "Local identifier \"%s\" has not yet declared.",
+                                identifier.name()));
+            }
 
-        if (!currentScope.put(functionIdentifier.name(), new SymbolInformation(false))) {
-            throw new CompileException(ErrorUtil.makeError(define.location(), source, "識別子\"%s\"は既に定義されています。", functionIdentifier.name()));
+            expr.accept(this);
+        } else {
+            if (!currentScope.put(identifier.name(), new SymbolInformation(isAssignable))) {
+                throw new CompileException(
+                        ErrorUtil.makeError(location, source, "Local identifier \"%s\" is already declared.",
+                                identifier.name()));
+            }
+
+            expr.accept(this);
+            putLocalIdentifier(currentScope, identifier, context.issueID());
         }
-        //仮登録されているため、getIdで取得できる
-        int id = currentScope.getId(functionIdentifier.name());
-        putIdentifier(currentScope, functionIdentifier, id);
-        return defineFunction(define.params(), define.block());
-    }
-
-    private void visitVariableDeclaration(Expression expr, Identifier identifier, boolean isAssignable, SourceFileLocation location) {
-        if (!currentScope.put(identifier.name(), new SymbolInformation(isAssignable))) {
-            throw new CompileException(ErrorUtil.makeError(location, source, "識別子\"%s\"は既に宣言されています。", identifier.name()));
-        }
-        putIdentifier(currentScope, identifier, nextId());
-
-        expr.accept(this);
     }
 
     @Override
     public Void visitProgram(Program program) {
-        defineFunctions(program.statements());
+        defineGlobals(program.definitions());
 
-        for (Statement statement : program.statements()) {
-            if (statement == null) continue;
+        for (Statement statement : program.definitions()) {
+            if (statement == null) {
+                continue;
+            }
             statement.accept(this);
         }
         return null;
@@ -141,8 +175,7 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitBlockStatement(BlockStatement statement) {
-        currentScope = currentScope.newChild();
-        defineFunctions(statement.statements());
+        currentScope = currentScope.newChild(false);
 
         for (Statement s : statement.statements()) {
             s.accept(this);
@@ -164,7 +197,13 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitFunctionDefineStatement(FunctionDefineStatement statement) {
-        //既に定義済みのため、何もしない
+        if (!context.isRoot()) {
+            localCountASTNodeMap.put(statement, defineFunction(statement.params(), statement.block()));
+            int id = context.issueID();
+            currentScope.put(statement.name().name(), new SymbolInformation(false));
+            currentScope.putId(statement.name().name(), id);
+            putLocalIdentifier(currentScope, statement.name(), id);
+        }
         return null;
     }
 
@@ -184,8 +223,7 @@ public final class NameResolver implements ASTVisitor<Void> {
                 statement.expr(),
                 statement.name(),
                 false,
-                statement.location()
-        );
+                statement.location());
         return null;
     }
 
@@ -195,8 +233,7 @@ public final class NameResolver implements ASTVisitor<Void> {
                 statement.expr(),
                 statement.name(),
                 true,
-                statement.location()
-        );
+                statement.location());
         return null;
     }
 
@@ -211,16 +248,20 @@ public final class NameResolver implements ASTVisitor<Void> {
     public Void visitForEachStatement(ForEachStatement statement) {
         statement.iterable().accept(this);
 
-        currentScope.newChild();
+        currentScope.newChild(false);
         Identifier variable = statement.variable();
 
         if (!currentScope.put(variable.name(), new SymbolInformation(false))) {
-            throw new CompileException(ErrorUtil.makeError(statement.location(), source, "識別子\"%s\"は既に宣言されています。", variable.name()));
+            throw new CompileException(
+                    ErrorUtil.makeError(statement.location(), source, "Local identifier \"%s\" is already declared.",
+                            variable.name()));
         }
 
-        putIdentifier(currentScope, variable, nextId());
+        putLocalIdentifier(currentScope, variable, context.issueID());
 
         statement.body().accept(this);
+
+        currentScope = currentScope.parent();
         return null;
     }
 
@@ -232,15 +273,22 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitFunctionLiteral(FunctionLiteral literal) {
-        var locals = defineFunction(literal.args(), literal.block());
-        localsASTNodeMap.put(literal, locals);
+        int localCount = defineFunction(literal.args(), literal.block());
+        localCountASTNodeMap.put(literal, localCount);
         return null;
     }
 
     @Override
     public Void visitIdentifier(Identifier identifier) {
         if (currentScope.get(identifier.name()) == null) {
-            throw new CompileException(ErrorUtil.makeError(identifier.location(), source, "識別子\"%s\"は宣言されていません。", identifier.name()));
+            if (!globals.contains(new GlobalSymbol(identifier.name()))) {
+                throw new CompileException(
+                        ErrorUtil.makeError(identifier.location(), source,
+                                "Identifier \"%s\" has not yet been declared.",
+                                identifier.name()));
+            }
+            resolutionMap.put(identifier, new GlobalSymbol(identifier.name()));
+            return null;
         }
         resolutionMap.put(identifier, currentScope.getId(identifier.name()));
         return null;
@@ -357,7 +405,9 @@ public final class NameResolver implements ASTVisitor<Void> {
         return null;
     }
 
-    public record ResolveResult(Scope root, int resolutionMax, Map<ASTNode, Set<Integer>> localsASTNodeMap, Map<Identifier, Integer> resolutionMap) {
+    public record ResolveResult(Scope root, Map<ASTNode, Integer> localCountASTNodeMap,
+            Map<Identifier, Symbol> resolutionMap,
+            Set<GlobalSymbol> globals) {
 
     }
 }

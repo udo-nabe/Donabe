@@ -1,5 +1,5 @@
 use crate::bytecode::ByteCode;
-use crate::bytecode::section::{CODE_SECTION_TYPE, CONSTANT_POOL_MEMBER_REF_TYPE, CONSTANT_POOL_SECTION_TYPE, CodeSection, ConstantPoolEntry, ConstantPoolSection, IDENTIFIER_SLOT_SIZE, IDENTIFIERS_SECTION_TYPE, IdentifiersSection, SectionCreateError, CONSTANT_POOL_VALUE_TYPE};
+use crate::bytecode::section::{CODE_SECTION_TYPE, CONSTANT_POOL_MEMBER_REF_TYPE, CONSTANT_POOL_SECTION_TYPE, InitializationCodeSection, ConstantPoolEntry, ConstantPoolSection, IDENTIFIER_SLOT_SIZE, IDENTIFIERS_SECTION_TYPE, GlobalIdentifiersSection, SectionCreateError, CONSTANT_POOL_VALUE_TYPE, CONSTANT_POOL_GLOBAL_REF_TYPE};
 use crate::value::Value;
 use byteorder::ReadBytesExt;
 use std::collections::{HashMap, HashSet};
@@ -29,74 +29,48 @@ pub enum LoadError {
 }
 
 pub fn load_file(reader: &mut BufReader<File>) -> Result<ByteCode, LoadError> {
-    let file_size = reader.get_ref().metadata().map_err(LoadError::Io)?.len();
+    let section_size = read_4bytes(reader)?;
+    let mut identifiers_section: GlobalIdentifiersSection = load_identifiers_section(reader, section_size)?;
 
-    let mut code_section: Option<CodeSection> = None;
-    let mut constant_pool_section: Option<ConstantPoolSection> = None;
-    let mut identifiers_section: Option<IdentifiersSection> = None;
+    let section_size = read_4bytes(reader)?;
+    let mut constant_pool_section: ConstantPoolSection = load_constant_pool_section(reader, section_size)?;
 
-    while reader.stream_position().map_err(LoadError::Io)? < file_size {
-        let section_type = reader.read_u8().map_err(LoadError::Io)?;
-        let section_size = read_4bytes(reader)?;
-
-        match section_type {
-            CODE_SECTION_TYPE => {
-                if code_section.is_some() {
-                    return Err(LoadError::SectionOverlap);
-                }
-                code_section = Some(load_code_section(reader, section_size)?);
-            }
-            CONSTANT_POOL_SECTION_TYPE => {
-                if constant_pool_section.is_some() {
-                    return Err(LoadError::SectionOverlap);
-                }
-                constant_pool_section = Some(load_constant_pool_section(reader, section_size)?);
-            }
-            IDENTIFIERS_SECTION_TYPE => {
-                if identifiers_section.is_some() {
-                    return Err(LoadError::SectionOverlap);
-                }
-                identifiers_section = Some(load_identifiers_section(reader, section_size)?);
-            }
-            _ => {
-                return Err(LoadError::InvalidSectionType);
-            }
-        };
-    }
-
-    if code_section.is_none() {
-        return Err(LoadError::MissingCodeSection);
-    }
-    if constant_pool_section.is_none() {
-        return Err(LoadError::MissingConstantPoolSection);
-    }
-    if identifiers_section.is_none() {
-        return Err(LoadError::MissingIdentifiersSection);
-    }
+    let section_size = read_4bytes(reader)?;
+    let mut code_section: InitializationCodeSection = load_code_section(reader, section_size)?;
 
     Ok(ByteCode {
-        constant_pool: constant_pool_section.unwrap(),
-        identifiers: identifiers_section.unwrap(),
-        code_section: code_section.unwrap(),
+        constant_pool: constant_pool_section,
+        identifiers: identifiers_section,
+        code_section,
     })
 }
 
-fn load_code_section(reader: &mut dyn Read, size: u32) -> Result<CodeSection, LoadError> {
-    Ok(CodeSection::new(read_any_bytes(reader, size as usize)?)
+fn load_code_section(reader: &mut dyn Read, size: u32) -> Result<InitializationCodeSection, LoadError> {
+    Ok(InitializationCodeSection::new(read_any_bytes(reader, size as usize)?)
         .map_err(LoadError::FailedToCreateSection)?)
 }
 
 fn load_identifiers_section(
     reader: &mut dyn Read,
     size: u32,
-) -> Result<IdentifiersSection, LoadError> {
+) -> Result<GlobalIdentifiersSection, LoadError> {
     let identifiers_count = read_2bytes(reader)?;
 
-    if size != 0x02u32 {
-        return Err(LoadError::SizeMismatch(format!("Identifier slots. expected: {size} actual: {:}", 0x02 + identifiers_count * IDENTIFIER_SLOT_SIZE)));
+    let mut result = HashSet::with_capacity(identifiers_count as usize);
+    let mut sum_size = 0x02;
+
+    for _ in 0..identifiers_count {
+        let size = read_4bytes(reader)?;
+        result.insert(read_utf8(reader, size)?);
+
+        sum_size += 0x04 + size;
     }
 
-    Ok(IdentifiersSection::new(identifiers_count).map_err(LoadError::FailedToCreateSection)?)
+    if size != sum_size {
+        return Err(LoadError::SizeMismatch(format!("Identifier slots. expected: {:x} actual: {:x}", size, sum_size)));
+    }
+
+    Ok(GlobalIdentifiersSection::new(result).map_err(LoadError::FailedToCreateSection)?)
 }
 
 fn load_constant_pool_section(
@@ -115,6 +89,7 @@ fn load_constant_pool_section(
         let entry = match entry_type {
             CONSTANT_POOL_MEMBER_REF_TYPE => load_member_ref_entry(reader, entry_size),
             CONSTANT_POOL_VALUE_TYPE => load_value_entry(reader, entry_size),
+            CONSTANT_POOL_GLOBAL_REF_TYPE => load_global_ref_entry(reader, entry_size),
             _ => Err(LoadError::UnknownConstantPoolEntryType(entry_type)),
         }?;
 
@@ -151,6 +126,15 @@ fn load_value_entry(
 
     Ok(ConstantPoolEntry::Value {
         value: load_value(reader, value_type, value_size)?,
+    })
+}
+
+fn load_global_ref_entry(
+    reader: &mut dyn Read,
+    entry_size: u32,
+) -> Result<ConstantPoolEntry, LoadError> {
+    Ok(ConstantPoolEntry::GlobalRef {
+        name: read_utf8(reader, entry_size)?,
     })
 }
 
@@ -219,22 +203,13 @@ fn load_function_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<V
         params.push(read_2bytes(reader)?);
     }
 
-    let locals_count = read_2bytes(reader)?;
-    let mut locals = HashSet::new();
-
-    for _ in 0..locals_count {
-        let local_slot = read_2bytes(reader)?;
-        if locals.contains(&local_slot) {
-            return Err(LoadError::LocalSlotOverlap);
-        }
-        locals.insert(local_slot);
-    }
+    let local_count = read_2bytes(reader)?;
 
     let code_size = read_4bytes(reader)?;
     let code = read_any_bytes(reader, code_size as usize)?;
     let actual_size = 0x04 + name_size
         + 0x02 + param_count as u32 * 0x02
-        + 0x02 + locals_count as u32 * 0x02
+        + 0x02
         + 0x04
         + code_size;
 
@@ -245,7 +220,7 @@ fn load_function_value_entry(reader: &mut dyn Read, entry_size: u32) -> Result<V
     Ok(Value::Function {
         name,
         params,
-        locals,
+        local_count,
         code: Rc::new(code),
     })
 }

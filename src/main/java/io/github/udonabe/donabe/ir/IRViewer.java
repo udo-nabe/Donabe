@@ -1,8 +1,8 @@
 package io.github.udonabe.donabe.ir;
 
 import io.github.udonabe.donabe.ir.instruction.*;
-import io.github.udonabe.donabe.runtime.value.FunctionValue;
-import io.github.udonabe.donabe.runtime.value.StringValue;
+import io.github.udonabe.donabe.ir.value.FunctionValue;
+import io.github.udonabe.donabe.ir.value.StringValue;
 
 import java.util.List;
 
@@ -145,7 +145,7 @@ public class IRViewer implements IRVisitor<String> {
         } else if (value instanceof StringValue(String str)) {
             return "push \"" + str + "\"";
         }
-        return "push " + value.display();
+        return "push " + value.value();
     }
 
     @Override
@@ -171,5 +171,15 @@ public class IRViewer implements IRVisitor<String> {
     @Override
     public String visitVoidReturn(VoidReturn instruction) {
         return "vreturn";
+    }
+
+    @Override
+    public String visitLoadGlobal(LoadGlobal instruction) {
+        return "load_global " + instruction.globalName();
+    }
+
+    @Override
+    public String visitStoreGlobal(StoreGlobal instruction) {
+        return "store_global " + instruction.globalName();
     }
 }

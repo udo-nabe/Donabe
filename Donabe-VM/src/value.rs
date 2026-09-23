@@ -41,7 +41,7 @@ pub enum Value {
     Function {
         name: String,
         params: Vec<u16>,
-        locals: HashSet<u16>,
+        local_count: u16,
         code: Rc<Vec<u8>>,
     },
     Closure {

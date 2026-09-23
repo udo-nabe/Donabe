@@ -29,6 +29,8 @@ pub enum OpCode {
     Minus = 0x1A,
     Return = 0x1B,
     VReturn = 0x1C,
+    LoadGlobal = 0x1D,
+    StoreGlobal = 0x1E,
 }
 
 impl OpCode {
@@ -62,6 +64,8 @@ impl OpCode {
             0x1A => Some(OpCode::Minus),
             0x1B => Some(OpCode::Return),
             0x1C => Some(OpCode::VReturn),
+            0x1D => Some(OpCode::LoadGlobal),
+            0x1E => Some(OpCode::StoreGlobal),
             _ => None,
         }
     }
@@ -85,10 +89,10 @@ impl OpCode {
             OpCode::JmpFalse => 0x04,
             OpCode::JmpTrue => 0x04,
             OpCode::Nop => 0x00,
-            OpCode::LoadCaptured => 0x02,
+            OpCode::LoadCaptured => 0x04,
             OpCode::LoadLocal => 0x02,
             OpCode::LoadMember => 0x02,
-            OpCode::StoreCaptured => 0x02,
+            OpCode::StoreCaptured => 0x04,
             OpCode::StoreLocal => 0x02,
             OpCode::MakeList => 0x04,
             OpCode::Not => 0x00,
@@ -96,6 +100,8 @@ impl OpCode {
             OpCode::Minus => 0x00,
             OpCode::Return => 0x00,
             OpCode::VReturn => 0x00,
+            OpCode::LoadGlobal => 0x02,
+            OpCode::StoreGlobal => 0x02,
         }
     }
 }

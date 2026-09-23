@@ -9,6 +9,7 @@ pub const IDENTIFIER_SLOT_SIZE: u16 = 0x02;
 
 pub const CONSTANT_POOL_MEMBER_REF_TYPE: u8 = 0x01;
 pub const CONSTANT_POOL_VALUE_TYPE: u8 = 0x02;
+pub const CONSTANT_POOL_GLOBAL_REF_TYPE: u8 = 0x03;
 
 #[derive(Debug, Clone)]
 pub enum SectionCreateError {
@@ -19,6 +20,7 @@ pub enum SectionCreateError {
 #[derive(Clone)]
 pub enum ConstantPoolEntry {
     MemberRef { member_name: String },
+    GlobalRef { name: String },
     Value { value: Value },
 }
 
@@ -29,12 +31,12 @@ pub struct ConstantPoolSection {
 }
 
 #[derive(Debug, Clone)]
-pub struct IdentifiersSection {
-    count: u16,
+pub struct GlobalIdentifiersSection {
+    identifiers: HashSet<String>
 }
 
 #[derive(Debug, Clone)]
-pub struct CodeSection {
+pub struct InitializationCodeSection {
     size: u32,
     code: Vec<u8>,
 }
@@ -43,7 +45,8 @@ impl Debug for ConstantPoolEntry {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ConstantPoolEntry::MemberRef { member_name } => write!(f, "MemberRef: {member_name}"),
-            ConstantPoolEntry::Value { value } => write!(f, "Value: {}", value)
+            ConstantPoolEntry::Value { value } => write!(f, "Value: {}", value),
+            ConstantPoolEntry::GlobalRef { name } => write!(f, "GlobalRef: {name}")
         }
     }
 }
@@ -64,28 +67,28 @@ impl ConstantPoolSection {
     }
 }
 
-impl IdentifiersSection {
-    pub fn new(count: u16) -> Result<IdentifiersSection, SectionCreateError> {
-        if count >= 0xffff {
+impl GlobalIdentifiersSection {
+    pub fn new(identifiers: HashSet<String>) -> Result<GlobalIdentifiersSection, SectionCreateError> {
+        if identifiers.len() >= 0xffff {
             return Err(SectionCreateError::TooManyEntries);
         }
-        Ok(IdentifiersSection {
-            count,
+        Ok(GlobalIdentifiersSection {
+            identifiers,
         })
     }
     
-    pub fn count(&self) -> u16 {
-        self.count
+    pub fn globals(&self) -> &HashSet<String> {
+        &self.identifiers
     }
 }
 
-impl CodeSection {
-    pub fn new(code: Vec<u8>) -> Result<CodeSection, SectionCreateError> {
+impl InitializationCodeSection {
+    pub fn new(code: Vec<u8>) -> Result<InitializationCodeSection, SectionCreateError> {
         if code.len() >= 0xff_ff_ff_ff {
             return Err(SectionCreateError::TooLongCode);
         }
 
-        Ok(CodeSection {
+        Ok(InitializationCodeSection {
             size: code.len() as u32,
             code,
         })

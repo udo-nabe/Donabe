@@ -16,11 +16,6 @@ public record ConstantPoolSection(List<ConstantPoolEntry<?>> pool) implements Se
     }
 
     @Override
-    public byte type() {
-        return CONSTANT_POOL_SECTION_TYPE;
-    }
-
-    @Override
     public byte[] content() {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             out.write(EndianUtil.to2BytesLittleEndian(pool.size()));
