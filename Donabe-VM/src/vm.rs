@@ -366,9 +366,10 @@ impl VM {
                 //何もしない
             }
             OpCode::LoadCaptured => {
-                let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
-                let value_ref = match self.borrow_current_frame().get_captured_var(slot) {
-                    None => bail!(self, "Non-existent slot: {}", slot),
+                let depth = operand_2bytes(self.get_code()?, operand_candidate)?;
+                let slot = operand_2bytes(self.get_code()?, operand_candidate + 0x02)?;
+                let value_ref = match self.borrow_current_frame().get_captured_var(depth, slot) {
+                    None => bail!(self, "Non-existent captured variable. depth: {}, slot: {}", depth, slot),
                     Some(v) => v,
                 };
                 self.push_stack(value_ref)?;
@@ -405,11 +406,12 @@ impl VM {
                 };
             }
             OpCode::StoreCaptured => {
-                let slot = operand_2bytes(self.get_code()?, operand_candidate)?;
+                let depth = operand_2bytes(self.get_code()?, operand_candidate)?;
+                let slot = operand_2bytes(self.get_code()?, operand_candidate + 0x02)?;
                 let value_ref = self.pop_stack()?;
 
                 self.borrow_current_frame_mut()
-                    .set_captured_var(slot, value_ref.clone())?;
+                    .set_captured_var(depth, slot, value_ref.clone())?;
             }
             OpCode::StoreLocal => {
                 let slot = operand_2bytes(self.get_code()?, operand_candidate)?;

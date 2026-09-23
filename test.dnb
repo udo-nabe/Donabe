@@ -1,14 +1,25 @@
-    func add(a: Int, b: Int) -> Int {
-        return a + b;
+func makeCounter() -> () -> Int {
+    var count = 0;
+
+    func counter() -> Int {
+        count++;
+        return count;
     }
 
+    return counter;
+}
+
 func main() -> Void {
-    var sum = 0;
-    let start = now();
-    for var i = 0; i < 10000000; i++ {
-        sum = add(sum, i);
-    }
-    let end = now();
-    print("sum: " + sum.toString());
-    print("elapsed: " + (end - start).toString());
+    let counter = makeCounter();
+
+    print(counter());
+    print(counter());
+    print(counter());
+
+    let anotherCounter = makeCounter();
+
+    print(anotherCounter());
+    print(anotherCounter());
+
+    print(counter());
 }

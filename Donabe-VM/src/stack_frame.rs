@@ -1,11 +1,11 @@
-use crate::value::{Value, ValueRef};
-use std::cell::{Ref, RefCell};
-use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
 use crate::error_with_pc;
 use crate::heap::handle::Handle;
 use crate::heap::heap::Heap;
+use crate::value::{Value, ValueRef};
 use crate::vm::RuntimeError;
+use std::cell::{Ref, RefCell};
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 pub type FrameRef = Rc<RefCell<StackFrame>>;
 
@@ -43,7 +43,7 @@ impl StackFrame {
         code: Rc<Vec<u8>>,
         stack_base: u32,
         locals_count: u16,
-        undefined_handle: Handle
+        undefined_handle: Handle,
     ) -> StackFrame {
         StackFrame {
             name,
@@ -77,7 +77,9 @@ impl StackFrame {
     }
 
     pub fn pop_operand_stack(&mut self) -> Result<ValueRef, RuntimeError> {
-        self.operand_stack.pop().ok_or_else(|| error_with_pc!(self.registers.pc, "Operand stack is empty"))
+        self.operand_stack
+            .pop()
+            .ok_or_else(|| error_with_pc!(self.registers.pc, "Operand stack is empty"))
     }
 
     pub fn increase_pc(&mut self, increasement: u32) {
@@ -91,11 +93,11 @@ impl StackFrame {
     pub fn set_sp(&mut self, sp: u32) {
         self.registers.sp = sp;
     }
-    
+
     pub fn increment_sp(&mut self) {
         self.registers.sp += 1;
     }
-    
+
     pub fn decrement_sp(&mut self) {
         self.registers.sp -= 1;
     }
@@ -116,8 +118,8 @@ impl StackFrame {
         Some(self.identifiers.get(slot as usize)?.clone())
     }
 
-    pub fn get_captured_var(&self, slot: u16) -> Option<ValueRef> {
-        self.parent.as_deref()?.borrow().find_var_recursive(slot)
+    pub fn get_captured_var(&self, depth: u16, slot: u16) -> Option<ValueRef> {
+        self.get_var_with_depth(depth, slot)
     }
 
     pub fn set_local_var(&mut self, slot: u16, value: ValueRef) -> Result<(), RuntimeError> {
@@ -125,11 +127,13 @@ impl StackFrame {
         Ok(())
     }
 
-    pub fn set_captured_var(&self, slot: u16, value_ref: ValueRef) -> Result<(), RuntimeError> {
-        match self.parent {
-            None => Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot)),
-            Some(ref parent) => parent.borrow_mut().set_var_recursive(slot, value_ref),
-        }
+    pub fn set_captured_var(
+        &mut self,
+        depth: u16,
+        slot: u16,
+        value_ref: ValueRef,
+    ) -> Result<(), RuntimeError> {
+        self.set_var_with_depth(depth, slot, value_ref)
     }
 
     pub fn name(&self) -> &str {
@@ -144,36 +148,47 @@ impl StackFrame {
         self.code.clone()
     }
 
-
-
-    fn find_var_recursive(&self, slot: u16) -> Option<ValueRef> {
-        match self.get_local_var(slot) {
-            Some(v) => Some(v),
-            None => {
-                if self.parent.is_some() {
-                    self.parent.as_deref()?.borrow().find_var_recursive(slot)
-                } else {
-                    None
-                }
-            }
+    fn get_var_with_depth(&self, depth: u16, slot: u16) -> Option<ValueRef> {
+        if depth == 0 {
+            return None;
         }
+
+        let mut target_parent = self.parent.clone()?;
+
+        for _ in 0..depth - 1 {
+            let parent = target_parent.borrow().parent.clone()?;
+            target_parent = parent;
+        }
+
+        target_parent.borrow().get_local_var(slot)
     }
 
-    fn set_var_recursive(&mut self, slot: u16, value_ref: ValueRef) -> Result<(), RuntimeError> {
-        // if self.locals.contains(&slot) {
-        //     self.identifiers[slot as usize] = value_ref;
-        //     Ok(())
-        // } else {
-        //     if self.parent.is_some() {
-        //         match self.parent.as_deref() {
-        //             None => Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot)),
-        //             Some(parent) => parent.borrow_mut().set_var_recursive(slot, value_ref),
-        //         }
-        //     } else {
-        //         Err(error_with_pc!(self.pc(), "Non-existent slot: {}", slot))
-        //     }
-        // }
-        panic!("Unsupported currently.");
+    fn set_var_with_depth(
+        &mut self,
+        depth: u16,
+        slot: u16,
+        value_ref: ValueRef,
+    ) -> Result<(), RuntimeError> {
+        if depth == 0 {
+            return Err(error_with_pc!(self.registers.pc, "The depth of instruction load_captured must not be 0."));
+        }
+
+        let mut target_parent = self
+            .parent
+            .as_ref()
+            .ok_or_else(|| error_with_pc!(self.registers.pc, "Parent not found."))?
+            .clone();
+
+        for _ in 0..depth - 1 {
+            let parent = target_parent
+                .borrow()
+                .parent
+                .clone()
+                .ok_or_else(|| error_with_pc!(self.registers.pc, "Parent not found."))?;
+            target_parent = parent;
+        }
+
+        target_parent.borrow_mut().set_local_var(slot, value_ref)
     }
 
     pub fn operand_stack(&self) -> &Vec<ValueRef> {
