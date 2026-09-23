@@ -1,0 +1,10 @@
+func main() -> Void {
+    let a = 10;
+    
+    func inner() -> Void {
+        a++;
+    }
+
+    inner();
+    print("a: " + a.toString());
+}

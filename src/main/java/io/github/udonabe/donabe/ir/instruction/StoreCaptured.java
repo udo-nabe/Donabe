@@ -4,7 +4,7 @@ import io.github.udonabe.donabe.compile.code.instruction.OpCode;
 import io.github.udonabe.donabe.ir.IRLocation;
 import io.github.udonabe.donabe.ir.IRVisitor;
 
-public record StoreCaptured(int identifierSlot, IRLocation location) implements Instruction {
+public record StoreCaptured(int depth, int identifierSlot, IRLocation location) implements Instruction {
 
     @Override
     public <R> R accept(IRVisitor<R> visitor) {
@@ -18,6 +18,6 @@ public record StoreCaptured(int identifierSlot, IRLocation location) implements 
 
     @Override
     public int size() {
-        return 0x03;
+        return 0x05;
     }
 }

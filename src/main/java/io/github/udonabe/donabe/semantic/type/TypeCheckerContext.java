@@ -56,8 +56,15 @@ public class TypeCheckerContext {
     }
     
     public boolean hasSymbolType(Symbol symbol) {
-        return globalSymbolType.containsKey(symbol) ||
-                symbolTypeStack.getLast().containsKey(symbol);
+        return switch(symbol) {
+            case GlobalSymbol s -> globalSymbolType.containsKey(s);
+            case LocalSymbol s -> symbolTypeStack.getLast().containsKey(s);
+            case CaptureSymbol s -> {
+                int index = symbolTypeStack.size() - s.depth() - 1;
+                var parentMap = symbolTypeStack.get(index);
+                yield parentMap.containsKey(new LocalSymbol(s.slot()));
+            }
+        };
     }
 
     public Type currentReturnType() {

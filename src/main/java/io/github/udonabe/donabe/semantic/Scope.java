@@ -3,26 +3,29 @@ package io.github.udonabe.donabe.semantic;
 import java.util.*;
 
 public final class Scope {
+
     private final Map<String, SymbolInformation> symbolTable;
     private final Map<String, Integer> identifierIds;
     private final Scope parent;
     private final List<Scope> children;
+    private final boolean isFunctionScope;
     private int childPos;
 
     public static Scope generateRoot() {
-        return new Scope(null);
+        return new Scope(null, false);
     }
 
-    private Scope(Map<String, SymbolInformation> symbolTable, Map<String, Integer> identifierIds, Scope parent) {
+    private Scope(Map<String, SymbolInformation> symbolTable, Map<String, Integer> identifierIds, Scope parent, boolean isFunctionScope) {
         this.symbolTable = symbolTable;
         this.identifierIds = identifierIds;
         this.parent = parent;
         this.children = new ArrayList<>();
         this.childPos = 0;
+        this.isFunctionScope = isFunctionScope;
     }
 
-    private Scope(Scope parent) {
-        this(new HashMap<>(), new HashMap<>(), parent);
+    private Scope(Scope parent, boolean isFunctionScope) {
+        this(new HashMap<>(), new HashMap<>(), parent, isFunctionScope);
     }
 
     public void resetChildPos() {
@@ -30,8 +33,8 @@ public final class Scope {
         children.forEach(Scope::resetChildPos);
     }
 
-    public Scope newChild() {
-        Scope child = new Scope(this);
+    public Scope newChild(boolean isFunctionScope) {
+        Scope child = new Scope(this, isFunctionScope);
         children.add(child);
         return child;
     }
@@ -55,15 +58,26 @@ public final class Scope {
         return symbolTable.get(key);
     }
 
-    public int getId(String identifier) {
+    public Symbol getId(String identifier) {
         Objects.requireNonNull(identifier);
         if (!identifierIds.containsKey(identifier)) {
-            if (parent == null) {
-                throw new NoSuchElementException("The identifier \"" + identifier + "\" not found.");
+            Scope before = this;
+            Scope parent = this.parent;
+            int depth = 1;
+
+            while (parent != null) {
+                if (parent.identifierIds.containsKey(identifier)) {
+                    return before.isFunctionScope
+                            ? new CaptureSymbol(depth, parent.identifierIds.get(identifier))
+                            : new LocalSymbol(parent.identifierIds.get(identifier));
+                } else {
+                    before = parent;
+                    parent = parent.parent;
+                    depth++;
+                }
             }
-            return parent.getId(identifier);
         }
-        return identifierIds.get(identifier);
+        return new LocalSymbol(identifierIds.get(identifier));
     }
 
     public boolean put(String key, SymbolInformation value) {
@@ -107,7 +121,9 @@ public final class Scope {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Scope scope)) return false;
+        if (!(o instanceof Scope scope)) {
+            return false;
+        }
         return childPos == scope.childPos && Objects.equals(symbolTable, scope.symbolTable) && Objects.equals(identifierIds, scope.identifierIds) && Objects.equals(parent, scope.parent) && Objects.equals(children, scope.children);
     }
 

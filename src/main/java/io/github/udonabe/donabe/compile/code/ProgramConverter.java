@@ -32,9 +32,9 @@ import java.util.List;
 import java.util.Map;
 import io.github.udonabe.donabe.compile.code.constant.ConstantPoolEntry;
 import io.github.udonabe.donabe.compile.code.constant.TopLevelRefEntry;
+import io.github.udonabe.donabe.compile.code.instruction.operand.DepthOperand;
 import io.github.udonabe.donabe.compile.code.value.Int64CodeValue;
 import io.github.udonabe.donabe.ir.value.Int64Value;
-import java.util.Set;
 
 public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
@@ -136,7 +136,10 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
     @Override
     public List<Operand> visitLoadCaptured(LoadCaptured instruction) {
-        return List.of(new IdentifierSlotOperand(instruction.identifierSlot()));
+        return List.of(
+                new DepthOperand(instruction.depth()),
+                new IdentifierSlotOperand(instruction.identifierSlot())
+        );
     }
 
     @Override
@@ -204,7 +207,10 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
 
     @Override
     public List<Operand> visitStoreCaptured(StoreCaptured instruction) {
-        return List.of(new IdentifierSlotOperand(instruction.identifierSlot()));
+        return List.of(
+                new DepthOperand(instruction.depth()),
+                new IdentifierSlotOperand(instruction.identifierSlot())
+        );
     }
 
     @Override

@@ -12,7 +12,7 @@ class ScopeTest {
         normality.put("foo", new SymbolInformation(true, false));
         assertEquals(new SymbolInformation(true, false), normality.get("foo"));
         //親に宣言がある場合、親のものが取得されるか
-        Scope child = normality.newChild();
+        Scope child = normality.newChild(false);
         assertEquals(new SymbolInformation(true, false), child.get("foo"));
         //親と自分自身両方に宣言がある場合、自分自身が優先されるか
         child.put("foo", new SymbolInformation(false, false));

@@ -1,0 +1,53 @@
+globals
+  input
+  main
+  now
+  print
+  range
+
+constants
+  0 = 10
+  1 = 1
+  2 = function(inner)
+  3 = "a: "
+  4 = member("toString")
+  5 = global("print")
+  6 = function(main)
+  7 = global("main")
+
+function inner
+  params: []
+  locals: 0
+
+  LOAD_CAPTURED 1 0
+  LOAD_CAPTURED 1 0
+  PUSH 1
+  ADD
+  STORE_CAPTURED 1 0
+  POP
+  VRETURN
+
+function main
+  params: []
+  locals: 2
+  
+  PUSH 10
+  STORE_LOCAL 0
+  PUSH function(inner)
+  STORE_LOCAL 1
+  LOAD_LOCAL 1
+  CALL
+  POP
+  PUSH "a: "
+  LOAD_LOCAL 0
+  LOAD_MEMBER member("toString")
+  CALL
+  ADD
+  LOAD_GLOBAL global("print")
+  CALL
+  POP
+  VRETURN
+
+initialization
+  PUSH function(main)
+  STORE_GLOBAL global("main")

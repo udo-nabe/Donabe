@@ -8,6 +8,7 @@ import io.github.udonabe.donabe.compile.code.constant.TopLevelRefEntry;
 import io.github.udonabe.donabe.compile.code.constant.ValueEntry;
 import io.github.udonabe.donabe.compile.code.instruction.ByteCodeInstruction;
 import io.github.udonabe.donabe.compile.code.instruction.operand.ConstantPoolOperand;
+import io.github.udonabe.donabe.compile.code.instruction.operand.DepthOperand;
 import io.github.udonabe.donabe.compile.code.instruction.operand.IdentifierSlotOperand;
 import io.github.udonabe.donabe.compile.code.instruction.operand.JumpOperand;
 import io.github.udonabe.donabe.compile.code.instruction.operand.Operand;
@@ -191,6 +192,9 @@ final class ByteCodeDumper {
                     Integer.toString(value.value());
 
             case SizeOperand value ->
+                    Integer.toString(value.value());
+                
+            case DepthOperand value -> 
                     Integer.toString(value.value());
 
             default ->

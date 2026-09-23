@@ -157,7 +157,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             case LocalSymbol local ->
                 new LoadLocal(local.slot(), generateLocation(location));
             case CaptureSymbol capture ->
-                new LoadCaptured(capture.slot(), generateLocation(location));
+                new LoadCaptured(capture.depth(), capture.slot(), generateLocation(location));
             case GlobalSymbol global ->
                 new LoadGlobal(global.fullyQualifiedName(), generateLocation(location));
         };
@@ -168,7 +168,7 @@ public class IRGenerator implements ASTVisitor<List<Instruction>> {
             case LocalSymbol local ->
                 new StoreLocal(local.slot(), generateLocation(location));
             case CaptureSymbol capture ->
-                new StoreCaptured(capture.slot(), generateLocation(location));
+                new StoreCaptured(capture.depth(), capture.slot(), generateLocation(location));
             case GlobalSymbol global ->
                 new StoreGlobal(global.fullyQualifiedName(), generateLocation(location));
         };

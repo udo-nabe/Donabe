@@ -118,7 +118,7 @@ public final class NameResolver implements ASTVisitor<Void> {
     }
 
     private int defineFunction(List<Parameter> params, BlockStatement block) {
-        currentScope = currentScope.newChild();
+        currentScope = currentScope.newChild(true);
         context.pushFunction();
 
         for (Parameter param : params) {
@@ -175,7 +175,7 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitBlockStatement(BlockStatement statement) {
-        currentScope = currentScope.newChild();
+        currentScope = currentScope.newChild(false);
 
         for (Statement s : statement.statements()) {
             s.accept(this);
@@ -248,7 +248,7 @@ public final class NameResolver implements ASTVisitor<Void> {
     public Void visitForEachStatement(ForEachStatement statement) {
         statement.iterable().accept(this);
 
-        currentScope.newChild();
+        currentScope.newChild(false);
         Identifier variable = statement.variable();
 
         if (!currentScope.put(variable.name(), new SymbolInformation(false))) {
@@ -290,7 +290,7 @@ public final class NameResolver implements ASTVisitor<Void> {
             resolutionMap.put(identifier, new GlobalSymbol(identifier.name()));
             return null;
         }
-        resolutionMap.put(identifier, new LocalSymbol(currentScope.getId(identifier.name())));
+        resolutionMap.put(identifier, currentScope.getId(identifier.name()));
         return null;
     }
 
