@@ -100,18 +100,18 @@ public class Main implements Callable<Integer> {
             Compiler compiler = new Compiler();
             ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.globals());
 
-            log.debug("Success to compile.");
+            log.debug("Compilation successful.");
             log.debug("Encoding.");
 
             Encoder encoder = new Encoder();
             byte[] encoded = encoder.encode(code);
 
-            log.debug("Success to encode.");
+            log.debug("Encoding successful.");
             log.debug("Writing to file.");
 
             writeFile(sourceFile, encoded);
             
-            log.debug("Success to write.");
+            log.debug("Writing successful.");
             log.info("Normal termination.");
             return 0;
         } catch (IOException e) {
