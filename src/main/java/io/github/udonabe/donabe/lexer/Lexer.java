@@ -11,8 +11,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Map.entry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Lexer {
+    private static final Logger log = LoggerFactory.getLogger(Lexer.class);
+    
     private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
     private static final Pattern STRING_PATTERN = Pattern.compile("\"([^\"\\n]*)\"");
     private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
@@ -90,10 +94,14 @@ public class Lexer {
     }
 
     private void tokenize() {
+        log.debug("Start to tokenize.");
         while (true) {
             Token token = scanToken();
             tokens.add(token);
+            log.trace("Scanned: {}", token);
+            
             if (token.kind() == Token.Kind.EOF) {
+                log.debug("EOF detected.");
                 break;
             }
         }
