@@ -72,13 +72,12 @@ public class Main implements Callable<Integer> {
 
             String source = Files.readString(sourceFile, StandardCharsets.UTF_8);
 
-            log.debug("Source file read.");
+            log.debug("Source file read successful: {} bytes", source.getBytes(StandardCharsets.UTF_8).length);
             log.trace("Source: {}{}", System.lineSeparator(), source);
 
             Lexer lexer = new Lexer(source);
             TokenStream stream = lexer.toTokenStream();
-            log.debug("Lexical analysis successful.");
-            log.trace("Tokens: {}", stream);
+            log.debug("Lexical analysis successful: {} tokens", stream.size());
 
             Parser<Program> parser = BasicParsers.program;
             ParseResult<Program> result = parser.parse(stream);
