@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <configuration>
-    <property name="pattern" value="%d{HH:mm:ss.SSS} [%t] %-5p %-24c{24} - %m%n" />
+    <property name="pattern" value="%d{HH:mm:ss.SSS} [%t] %-5p %-40c{40} - %m%n" />
     <appender name="stderr" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.err</target>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">

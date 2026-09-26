@@ -9,8 +9,12 @@ import io.github.udonabe.donabe.semantic.type.function.FunctionType;
 import java.util.List;
 import java.util.Map;
 import static java.util.Map.entry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TypeResolver {
+
+    private static final Logger log = LoggerFactory.getLogger(TypeResolver.class);
     private final Map<String, Type> namedTypeMap;
     private final String source;
 
@@ -27,12 +31,20 @@ public class TypeResolver {
     }
 
     public Type resolve(TypeAnnotation annotation) {
-        return switch (annotation) {
-            case FunctionTypeAnnotation functionTypeAnnotation -> resolveFunction(functionTypeAnnotation);
-            case NamedTypeAnnotation namedTypeAnnotation -> resolveName(namedTypeAnnotation);
-            case GenericTypeAnnotation genericTypeAnnotation -> resolveGenericType(genericTypeAnnotation);
-            case UnknownTypeAnnotation ignored -> throw new IllegalStateException("UnknownTypeAnnotation has not been inferred. location=" + annotation.location());
+        log.trace("Resolving type annotation: {}", annotation.typeString());
+
+        var result = switch (annotation) {
+            case FunctionTypeAnnotation functionTypeAnnotation ->
+                resolveFunction(functionTypeAnnotation);
+            case NamedTypeAnnotation namedTypeAnnotation ->
+                resolveName(namedTypeAnnotation);
+            case GenericTypeAnnotation genericTypeAnnotation ->
+                resolveGenericType(genericTypeAnnotation);
+            case UnknownTypeAnnotation ignored ->
+                throw new IllegalStateException("UnknownTypeAnnotation has not been inferred. location=" + annotation.location());
         };
+        log.trace("Resolved: {}", result);
+        return result;
     }
 
     private Type resolveName(NamedTypeAnnotation annotation) {
@@ -40,7 +52,9 @@ public class TypeResolver {
         if (!namedTypeMap.containsKey(type)) {
             throw new CompileException(ErrorUtil.makeError(annotation.location(), source, "Type '%s' is not defined.", type));
         }
-        return namedTypeMap.get(type);
+
+        Type result = namedTypeMap.get(type);
+        return result;
     }
 
     private Type resolveFunction(FunctionTypeAnnotation annotation) {

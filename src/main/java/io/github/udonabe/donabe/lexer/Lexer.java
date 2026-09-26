@@ -94,7 +94,7 @@ public class Lexer {
     }
 
     private void tokenize() {
-        log.debug("Start to tokenize.");
+        log.debug("Starting tokenization.");
         while (true) {
             Token token = scanToken();
             tokens.add(token);

@@ -111,7 +111,7 @@ public class Main implements Callable<Integer> {
             writeFile(sourceFile, encoded);
             
             log.debug("Writing successful.");
-            log.info("Normal termination.");
+            log.info("Compilation complete.");
             return 0;
         } catch (IOException e) {
             log.warn("I/O error.", e);
