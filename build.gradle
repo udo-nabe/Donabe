@@ -2,10 +2,11 @@ plugins {
     id 'java'
     id 'application'
     id 'jacoco'
+    id 'org.beryx.jlink' version '4.1.1'
 }
 
 group = 'io.github.udonabe'
-version = '1.0-SNAPSHOT'
+version = '0.1.0'
 
 repositories {
     mavenCentral()
@@ -28,6 +29,12 @@ dependencies {
     testImplementation 'com.google.code.gson:gson:2.14.0'
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 test {
     useJUnitPlatform()
 }
@@ -37,9 +44,31 @@ application {
     mainClass = "io.github.udonabe.donabe.Main"
 }
 
-tasks.named("run") {
+jlink {
+    launcher {
+        name = 'donabec'
+    }
+    
+    jpackage {
+        imageName = 'donabec'
+        outputDir = 'jpackage'
+        skipInstaller = true
+        imageOptions = ['--win-console']
+    }
+}
+
+tasks.register("runTest", JavaExec) {
+    group = "application"
+    description = "Run test.dnb with verbose logging"
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
     standardInput = System.in
     args("--verbose", "test.dnb")
+}
+
+tasks.named("run") {
+    standardInput = System.in
 }
 
 tasks.withType(JavaCompile).configureEach {
