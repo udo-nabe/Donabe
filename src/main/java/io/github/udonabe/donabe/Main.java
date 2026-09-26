@@ -23,8 +23,8 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.IntStream;
 
-@CommandLine.Command(name = "donabe",
-        version = "1.0-SNAPSHOT",
+@CommandLine.Command(name = "donabec",
+        version = "donabec 0.1.0",
         description = "Donabe compiler",
         mixinStandardHelpOptions = true)
 public class Main implements Callable<Integer> {
