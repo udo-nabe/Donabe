@@ -35,8 +35,11 @@ import io.github.udonabe.donabe.compile.code.constant.TopLevelRefEntry;
 import io.github.udonabe.donabe.compile.code.instruction.operand.DepthOperand;
 import io.github.udonabe.donabe.compile.code.value.Int64CodeValue;
 import io.github.udonabe.donabe.ir.value.Int64Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ProgramConverter implements IRVisitor<List<Operand>> {
+    private static final Logger log = LoggerFactory.getLogger(ProgramConverter.class);
 
     private final Map<Label, Integer> labelOffsetMap;
     private final List<ConstantPoolEntry<?>> constantPool;
@@ -55,6 +58,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
     }
 
     private InitializationCodeSection generate(List<Instruction> instructions) {
+        log.debug("Converting program.");
         List<ByteCodeInstruction> result = new ArrayList<>();
 
         labelOffsetMap.putAll(resolveLabel(instructions));
@@ -64,6 +68,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
                     instruction.accept(this)
             );
             result.add(i);
+            log.trace("Converted:\nIR={},\nresult={}\n", instruction, i);
         }
 
         return new InitializationCodeSection(result);
@@ -229,6 +234,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
     }
 
     private Map<Label, Integer> resolveLabel(List<Instruction> instructions) {
+        log.trace("Resolving labels.");
         Map<Label, Integer> result = new HashMap<>();
 
         int offset = 0;
@@ -236,6 +242,7 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
             Instruction instruction = instructions.get(i);
 
             if (instruction instanceof LabelNop labelNop) {
+                log.debug("Label resolved: name={}, offset={}", labelNop.label().name(), offset);
                 result.put(labelNop.label(), offset);
             }
             offset += instruction.size();
@@ -254,7 +261,9 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
     }
 
     private Short getConstantPoolIndex(ConstantPoolEntry<?> value) {
+        log.trace("Resolving constant pool index: {}", value);
         if (!constantPool.contains(value)) {
+            log.trace("Adding constant pool entry.");
             constantPool.add(value);
         }
 
@@ -263,7 +272,8 @@ public final class ProgramConverter implements IRVisitor<List<Operand>> {
         }
 
         int index = constantPool.indexOf(value);
-
+        
+        log.trace("Resolved index: {}", index);
         return (short) index;
     }
 
