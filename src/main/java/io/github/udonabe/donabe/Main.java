@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 
 @CommandLine.Command(name = "donabe",
         version = "1.0-SNAPSHOT",
-        description = "Donabe言語 処理系",
+        description = "Donabe compiler",
         mixinStandardHelpOptions = true)
 public class Main implements Callable<Integer> {
 
@@ -45,19 +45,14 @@ public class Main implements Callable<Integer> {
     }
 
     @CommandLine.Parameters(index = "0",
-            description = "ソースファイル",
+            description = "Source file",
             paramLabel = "<file>")
     Path sourceFile;
     @CommandLine.Option(
             names = {"--verbose"},
-            description = "ログを詳細表示するか"
+            description = "Enable verbose logging"
     )
     boolean verbose;
-    @CommandLine.Option(
-            names = {"--run"},
-            description = "ログを詳細表示するか"
-    )
-    boolean isRun;
 
     public static void main(String[] args) {
         int exitCode = new CommandLine(new Main()).execute(args);
@@ -69,16 +64,20 @@ public class Main implements Callable<Integer> {
         try {
             LoggingUtil.configure(verbose);
             log.info("Donabe launched.");
+            
+            if (!sourceFile.toString().endsWith(".dnb")) {
+                System.err.println("Error: Source file must have a .dnb extension.");
+                return 1;
+            }
 
             String source = Files.readString(sourceFile, StandardCharsets.UTF_8);
 
-            log.debug("Source file read.");
+            log.debug("Source file read successful: {} bytes", source.getBytes(StandardCharsets.UTF_8).length);
             log.trace("Source: {}{}", System.lineSeparator(), source);
 
-            Lexer lexer = new Lexer(source.toString());
+            Lexer lexer = new Lexer(source);
             TokenStream stream = lexer.toTokenStream();
-            log.debug("Lexical analysis successful.");
-            log.trace("Tokens: {}", stream);
+            log.debug("Lexical analysis successful: {} tokens", stream.size());
 
             Parser<Program> parser = BasicParsers.program;
             ParseResult<Program> result = parser.parse(stream);
@@ -90,46 +89,54 @@ public class Main implements Callable<Integer> {
             Program parsed = ((ParseSuccess<Program>) result).value();
             log.debug("Parse successful.");
 
-            SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source.toString());
+            SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(source);
             SemanticAnalyzer.AnalyzeResult checkResult = semanticAnalyzer.check(parsed);
             log.debug("Semantic analysis successful.");
-            log.debug("IR: \n{}", new IRViewer().getIRString(checkResult.irProgram()));
+            log.trace("IR: \n{}", new IRViewer().getIRString(checkResult.irProgram()));
 
-            log.debug("Compiling...");
+            log.debug("Compiling.");
 
             Compiler compiler = new Compiler();
             ByteCode code = compiler.compile(checkResult.irProgram(), checkResult.globals());
 
-            log.debug("Success to compile.");
-            log.debug("Encoding...");
+            log.debug("Compilation successful.");
+            log.debug("Encoding.");
 
             Encoder encoder = new Encoder();
             byte[] encoded = encoder.encode(code);
 
-            log.debug("Success to encode.");
-            log.debug("Write to file...");
+            log.debug("Encoding successful.");
+            log.debug("Writing to file.");
 
-            writeFile(encoded);
+            writeFile(sourceFile, encoded);
             
-            log.info("Normal termination.");
+            log.debug("Writing successful.");
+            log.info("Compilation complete.");
+            return 0;
+        } catch (IOException e) {
+            log.warn("I/O error.", e);
+            System.err.println("I/O error occurred: " + e.getMessage());
+            return 1;
         } catch (CompileException e) {
             log.warn("Compile error.", e);
-            System.err.println("Compile error: " + e.getMessage());
+            System.err.println("Error: " + e.getMessage());
             return 1;
         }  catch (Exception | AssertionError e) {
             log.error("An internal error has occurred.", e);
             return 1;
-        } catch (Throwable e) {
-            e.printStackTrace();    //ロギングすら失敗する可能性があるため、System.errにスタックトレースを出す
-            System.exit(1);
         }
-        return 0;
     }
 
-    private void writeFile(byte[] encoded) throws IOException {
-        Path outPath = Path.of("test.dnbc");
-
+    private void writeFile(Path source, byte[] encoded) throws IOException {
+        //拡張子.dnbを.dnbcへ書き換える
+        String sourceFilename = source.getFileName().toString();
+        Path outPath = source.resolveSibling(
+                sourceFilename.substring(0, sourceFilename.length() - 4) + ".dnbc"
+        );
+        log.debug("Output file: {}", outPath);
+        
         try (OutputStream out = Files.newOutputStream(outPath)) {
+            log.debug("Writing {} bytes.", Integer.toHexString(encoded.length));
             out.write(encoded);
             out.flush();
         }

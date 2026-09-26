@@ -50,8 +50,11 @@ import io.github.udonabe.donabe.semantic.LocalSymbol;
 import io.github.udonabe.donabe.semantic.Scope;
 import io.github.udonabe.donabe.semantic.Symbol;
 import io.github.udonabe.donabe.semantic.SymbolInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class NameResolver implements ASTVisitor<Void> {
+    private final static Logger log = LoggerFactory.getLogger(NameResolver.class);
 
     private final Scope rootScope;
     private final Map<ASTNode, Integer> localCountASTNodeMap;
@@ -77,6 +80,7 @@ public final class NameResolver implements ASTVisitor<Void> {
     }
 
     private void putBuiltinFunction(String name) {
+        log.trace("Register built-in function: {}", name);
         globals.add(new GlobalSymbol(name));
     }
 
@@ -87,17 +91,20 @@ public final class NameResolver implements ASTVisitor<Void> {
     }
 
     private void putLocalIdentifier(Scope currentScope, Identifier identifier, int id) {
+        log.trace("Putting local identifier: {}, id: {}", identifier.name(), id);
         currentScope.putId(identifier.name(), id);
         resolutionMap.put(identifier, new LocalSymbol(id));
     }
 
     private void putGlobalIdentifier(Identifier identifier) {
+        log.trace("Putting global identifier: {}", identifier.name());
         globals.add(new GlobalSymbol(identifier.name()));
         resolutionMap.put(identifier, new GlobalSymbol(identifier.name()));
     }
 
     private void defineGlobals(List<Definition> statements) {
         //相互再帰を可能にするため、先に全て仮登録する
+        log.trace("Putting all global identifiers.");
         for (var define : statements) {
             if (globals.contains(new GlobalSymbol(define.name().name()))) {
                 throw new CompileException(ErrorUtil.makeError(define.location(), source, 
@@ -106,8 +113,10 @@ public final class NameResolver implements ASTVisitor<Void> {
             }
             putGlobalIdentifier(define.name());
         }
-
+        
+        log.trace("Resolving all top-level definitions.");
         for (var define : statements) {
+            log.trace("Resolving: {}", define.name().name());
             if (define instanceof FunctionDefineStatement functionDefine) {
                 var localCount = defineFunction(functionDefine.params(), functionDefine.block());
                 localCountASTNodeMap.put(define, localCount);
@@ -120,15 +129,18 @@ public final class NameResolver implements ASTVisitor<Void> {
     private int defineFunction(List<Parameter> params, BlockStatement block) {
         currentScope = currentScope.newChild(true);
         context.pushFunction();
-
+        
+        log.trace("Resolving parameters.");
         for (Parameter param : params) {
             String argName = param.name().name();
 
             int argID = context.issueID();
             currentScope.put(argName, new SymbolInformation(false));
             putLocalIdentifier(currentScope, param.name(), argID);
+            log.trace("Resolved parameter: name={}, id={}", argName, argID);
         }
-
+        
+        log.trace("Resolving statements.");
         for (Statement s : block.statements()) {
             s.accept(this);
         }
@@ -162,6 +174,7 @@ public final class NameResolver implements ASTVisitor<Void> {
 
     @Override
     public Void visitProgram(Program program) {
+        log.trace("Resolving all top-level definitions.");
         defineGlobals(program.definitions());
 
         for (Statement statement : program.definitions()) {
@@ -176,7 +189,7 @@ public final class NameResolver implements ASTVisitor<Void> {
     @Override
     public Void visitBlockStatement(BlockStatement statement) {
         currentScope = currentScope.newChild(false);
-
+        
         for (Statement s : statement.statements()) {
             s.accept(this);
         }

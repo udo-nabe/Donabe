@@ -67,6 +67,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
 
     public AnalyzeResult check(Program program) {
         NameResolver.ResolveResult resolveResult = new NameResolver(source).resolve(program);
+        log.debug("Name resolution successful: {} global identifiers", resolveResult.globals().size());
 
         Scope rootScope = resolveResult.root();
         this.currentScope = rootScope;
@@ -74,9 +75,11 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         program.accept(this);
 
         new TypeChecker(source, resolveResult.resolutionMap()).check(program);
+        log.debug("Type checking successful.");
 
         IRProgram ir = new IRGenerator(resolveResult.resolutionMap(), resolveResult.globals(), resolveResult.localCountASTNodeMap())
                 .generate(program);
+        log.debug("IR Generation successful: {} top-level instructions.", ir.instructions().size());
 
         return new AnalyzeResult(ir, resolveResult.globals()
                 .stream()
@@ -143,7 +146,7 @@ public final class SemanticAnalyzer implements ASTVisitor<SymbolInformation> {
         if (context.inFunction()) {
             checkFunction(statement);
         } else {
-            log.trace("Skipped FunctionDefineStatement: {}", statement);
+            log.trace("Skipped FunctionDefineStatement.");
         }
         return null;
     }

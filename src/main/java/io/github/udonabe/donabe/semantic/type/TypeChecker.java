@@ -471,18 +471,22 @@ public class TypeChecker implements ASTVisitor<Type> {
     }
 
     private void registerBuiltinFunctions() {
+        log.trace("Register builtin-function: print, type=(Any) -> Void");
         context.addSymbolType(new GlobalSymbol("print"),
                 new FunctionType(
                         List.of(new AnyType()),
                         new VoidType()));
+        log.trace("Register builtin-function: input, type=() -> String");
         context.addSymbolType(new GlobalSymbol("input"),
                 new FunctionType(
                         List.of(),
                         new StringType()));
+        log.trace("Register builtin-function: range, type=(Int, Int) -> List<Int>");
         context.addSymbolType(new GlobalSymbol("range"),
                 new FunctionType(
                         List.of(new IntType(), new IntType()),
                         new ListType(new IntType())));
+        log.trace("Register builtin-function: now, type=() -> Int64");
         context.addSymbolType(new GlobalSymbol("now"),
                 new FunctionType(
                         List.of(),

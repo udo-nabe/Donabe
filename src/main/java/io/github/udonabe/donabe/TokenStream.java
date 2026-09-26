@@ -94,4 +94,12 @@ public class TokenStream {
         }
         this.pos = fork.pos;
     }
+    
+    /**
+     * トークン列の長さを取得する。
+     * @return トークン列の長さ
+     */
+    public int size() {
+        return tokens.size();
+    }
 }
